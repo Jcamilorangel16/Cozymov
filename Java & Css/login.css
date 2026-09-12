@@ -1,0 +1,61 @@
+body {
+    background-color: #061d29;
+    min-height: 100vh;
+}
+
+/* Tarjeta principal */
+.contenedor {
+    background-color: #c9def2;
+    width: 540px;
+    min-height: 285px;
+    border-radius: 16px;
+}
+
+/* Logo */
+.logo {
+    font-weight: bold;
+    font-size: 14px;
+    color: #30434f;
+}
+
+/* Texto */
+.descripcion {
+    color: #30434f;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+/* Botón crear cuenta */
+.btn-crear {
+    background-color: #5794b5;
+    border: none;
+    color: #203d4c;
+    border-radius: 20px;
+    height: 32px;
+    font-size: 13px;
+}
+
+/* Botón iniciar sesión */
+.btn-login {
+    background-color: #8bc8eb;
+    border: none;
+    color: #203d4c;
+    border-radius: 20px;
+    height: 32px;
+    font-size: 13px;
+}
+
+/* Efecto al pasar el mouse */
+.btn-crear:hover,
+.btn-login:hover {
+    opacity: 0.9;
+}
+
+/* Adaptación para celulares */
+@media (max-width: 600px) {
+
+    .contenedor {
+        width: 90%;
+    }
+
+}

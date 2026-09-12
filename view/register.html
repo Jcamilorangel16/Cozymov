@@ -12,42 +12,81 @@
 </head>
 
 <body class="d-flex justify-content-center align-items-center min-vh-100">
-  <div class="card shadow rounded-4 p-4" style="width: 420px;">
+  <div class="card shadow rounded-4 p-4 register-card">
+    <h2 class="display-6 text-center fw-bold text-primary mb-3">Cozymov</h2>
     <h1 class="text-center mb-3">Crear cuenta</h1>
     <h5 class="text-center text-muted mb-4">Únete a nosotros y empieza tu viaje</h5>
 
-    <label for="nombre" class="form-label">Nombres</label>
-    <input
-      id="nombre"
-      type="text"
-      class="form-control"
-      placeholder="Ingrese su nombre"
-    >
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label for="nombre" class="form-label">Nombres</label>
+        <input
+          id="nombre"
+          type="text"
+          class="form-control"
+          placeholder="👤 Sergio David"
+        >
+      </div>
 
-    <label for="documento" class="form-label">Documento de Identidad</label>
-    <input
-      id="documento"
-      type="text"
-      class="form-control"
-      placeholder="Ingrese su documento de identidad"
-    >
+      <div class="col-md-6">
+        <label for="apellido" class="form-label">Apellidos</label>
+        <input
+          id="apellido"
+          type="text"
+          class="form-control"
+          placeholder="👤 Gomez Gonzales"
+        >
+      </div>
+    </div>
 
-    <label for="numero" class="form-label">Número de Teléfono</label>
-    <input
-      id="numero"
-      type="text"
-      class="form-control"
-      placeholder="Ingrese su número de teléfono"
-    >
+    <div class="row g-3 mt-1">
+      <div class="col-md-6">
+        <label for="documento" class="form-label">Documento de Identidad</label>
+        <input
+          id="documento"
+          type="text"
+          class="form-control"
+          placeholder="🪪 0123456789"
+        >
 
-    <label for="correo" class="form-label">Correo Institucional</label>
-    <input
-      id="correo"
-      type="text"
-      class="form-control"
-      placeholder="Ingrese su correo institucional"
-    >
-    
+        <label for="numero" class="form-label mt-3">Número de Teléfono</label>
+        <input
+          id="numero"
+          type="text"
+          class="form-control"
+          placeholder="📞 3001234567"
+        >
+
+        <label for="correo" class="form-label mt-3">Correo Institucional</label>
+        <input
+          id="correo"
+          type="text"
+          class="form-control"
+          placeholder="📩 Sergio.Gomez@universidad.edu.co"
+        >
+      </div>
+
+      <div class="col-md-6">
+        <label for="contrasena" class="form-label">Contraseña</label>
+        <input
+          id="contrasena"
+          type="password"
+          class="form-control"
+          placeholder=" 🔒 Ingrese su contraseña"
+        >
+
+        <label for="confirmar-contrasena" class="form-label mt-3">Confirmar Contraseña</label>
+        <input
+          id="confirmar-contrasena"
+          type="password"
+          class="form-control"
+          placeholder=" 🔒 Confirme su contraseña"
+        >
+
+        <button type="button" class="btn btn-primary w-100 mt-5">Siguiente</button>
+      </div>
+    </div>
+
   </div>
 </body>
 
