@@ -9,3 +9,12 @@ body {
   width: min(850px, calc(100% - 2rem));
   min-height: 600px;
 }
+
+.brand-name {
+  color: #236b68;
+  font-size: 2.25rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 0.75rem;
+  text-align: center;
+}
