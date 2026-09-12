@@ -4,3 +4,8 @@ body {
   background-position: center;
   background-repeat: no-repeat;
 }
+
+.register-card {
+  width: min(850px, calc(100% - 2rem));
+  min-height: 600px;
+}
