@@ -7,7 +7,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" 
     integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
     <link rel="stylesheet" href="../menu-principal/CSS/menu-principal.css">
-    <script src="../menu-principal/JS/menu-principal.js"></script>
+    <script src="../menu-principal/JS/menu-principal.js" defer></script>
     
 </head>
 <body>
@@ -170,10 +170,142 @@
 
                 </div>
             </div>
+           </div>
 
-            
+            <div id="vista-buscar" class="vista" style="display: none;">
+ 
+                <!-- Sub-vista: Resultados -->
+                <div id="buscar-resultados">
+ 
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                        <h3 class="mb-0 letra-contenido">Buscar Viaje</h3>
+ 
+                        <div class="d-flex flex-wrap gap-2">
+                            <div class="input-group" style="width: 150px;">
+                                <span class="input-group-text">📍</span>
+                                <input type="text" class="form-control" value="Norte">
+                            </div>
+                            <div class="input-group" style="width: 160px;">
+                                <span class="input-group-text">🏁</span>
+                                <input type="text" class="form-control" value="Campus Sur">
+                            </div>
+                            <div class="input-group" style="width: 150px;">
+                                <span class="input-group-text">📅</span>
+                                <input type="date" class="form-control">
+                            </div>
+                            <button type="button" class="btn btn-primary">Buscar</button>
+                        </div>
+                    </div>
+ 
+                    <p class="texto-secundario fw-semibold mb-3">3 resultados encontrados</p>
+ 
+                    <div class="d-flex flex-column gap-3">
+ 
+                        <div class="card p-3 color-card resultado-viaje" style="cursor: pointer;"
+                             data-nombre="Carlos Monteno" data-iniciales="CM" data-avatar-color="bg-danger"
+                             data-rating="4.8" data-viajes="37" data-ruta="Norte → Campus Sur"
+                             data-horario="Hoy · 6:50 AM" data-vehiculo="Nissan Versa gris (ABC-123)"
+                             data-punto="Entrada Norte" data-cupos="2 lugares libres">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="user-avatar bg-danger" style="width: 38px; height: 38px; font-size: 13px;">CM</div>
+                                    <div>
+                                        <div class="fw-bold letra-contenido">Carlos Monteno</div>
+                                        <small class="texto-secundario">★ 4.8 · 6:50 AM</small>
+                                    </div>
+                                </div>
+                                <span class="fs-4 texto-secundario">›</span>
+                            </div>
+                            <div class="texto-secundario small mt-2">Nissan Versa gris (ABC-123)</div>
+                            <span class="badge bg-success mt-2">2 lugares libres</span>
+                        </div>
+ 
+                        <div class="card p-3 color-card resultado-viaje" style="cursor: pointer;"
+                             data-nombre="Sara Tomato" data-iniciales="ST" data-avatar-color="bg-primary"
+                             data-rating="4.9" data-viajes="52" data-ruta="Norte → Campus Sur"
+                             data-horario="Hoy · 10:50 AM" data-vehiculo="Chevrolet Onix azul (XYZ-987)"
+                             data-punto="Estación Central" data-cupos="4 lugares libres">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="user-avatar bg-primary" style="width: 38px; height: 38px; font-size: 13px;">ST</div>
+                                    <div>
+                                        <div class="fw-bold letra-contenido">Sara Tomato</div>
+                                        <small class="texto-secundario">★ 4.9 · 10:50 AM</small>
+                                    </div>
+                                </div>
+                                <span class="fs-4 texto-secundario">›</span>
+                            </div>
+                            <div class="texto-secundario small mt-2">Chevrolet Onix azul (XYZ-987)</div>
+                            <span class="badge bg-success mt-2">4 lugares libres</span>
+                        </div>
+ 
+                        <div class="card p-3 color-card resultado-viaje" style="cursor: pointer;"
+                             data-nombre="Diego Lopez" data-iniciales="DL" data-avatar-color="bg-warning text-dark"
+                             data-rating="4.5" data-viajes="19" data-ruta="Norte → Campus Sur"
+                             data-horario="Mañana · 6:00 AM" data-vehiculo="Renault Logan blanco (KLO-456)"
+                             data-punto="Portal Norte" data-cupos="1 lugar libre">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="user-avatar bg-warning text-dark" style="width: 38px; height: 38px; font-size: 13px;">DL</div>
+                                    <div>
+                                        <div class="fw-bold letra-contenido">Diego Lopez</div>
+                                        <small class="texto-secundario">★ 4.5 · 6:00 AM</small>
+                                    </div>
+                                </div>
+                                <span class="fs-4 texto-secundario">›</span>
+                            </div>
+                            <div class="texto-secundario small mt-2">Renault Logan blanco (KLO-456)</div>
+                            <span class="badge bg-success mt-2">1 lugar libre</span>
+                        </div>
+ 
+                    </div>
+                </div>
+                <!-- Fin sub-vista: Resultados -->
+ 
+                <!-- Sub-vista: Detalle del viaje seleccionado -->
+                <div id="buscar-detalle" style="display: none;">
+ 
+                    <button type="button" id="btn-volver-resultados" class="btn btn-link texto-secundario ps-0 mb-3">‹ Volver a resultados</button>
+ 
+                    <div class="row g-3">
+                        <div class="col-lg-5">
+                            <div class="card p-3 color-card">
+                                <h5 id="detalle-ruta" class="letra-contenido mb-0"></h5>
+                                <small id="detalle-horario" class="texto-secundario d-block mb-3"></small>
+ 
+                                <div class="d-flex align-items-center gap-2 mb-3">
+                                    <div id="detalle-avatar" class="user-avatar" style="width: 42px; height: 42px;"></div>
+                                    <div>
+                                        <div id="detalle-nombre" class="fw-semibold letra-contenido"></div>
+                                        <small id="detalle-rating" class="texto-secundario"></small>
+                                    </div>
+                                </div>
+ 
+                                <small class="texto-secundario d-block">Vehículo</small>
+                                <p id="detalle-vehiculo" class="letra-contenido fw-semibold mb-2"></p>
+ 
+                                <small class="texto-secundario d-block">Punto de encuentro</small>
+                                <p id="detalle-punto" class="fw-semibold mb-2" style="color: #ff6b6b;"></p>
+ 
+                                <small class="texto-secundario d-block">Lugares disponibles</small>
+                                <p id="detalle-cupos" class="fw-semibold mb-3" style="color: #4dabf7;"></p>
+ 
+                                <button type="button" class="btn btn-primary w-100">Solicitar unirme</button>
+                            </div>
+                        </div>
+ 
+                        <div class="col-lg-7">
+                            <div class="card color-card p-3 h-100 d-flex align-items-center justify-content-center text-center">
+                                <div style="font-size: 3.5rem;">🗺️</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Fin sub-vista: Detalle -->
+ 
+            </div>
 
-          
+
             <div id="vista-ofrecer" class="vista" style="display: none;">
               
             </div>
