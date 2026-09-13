@@ -7,6 +7,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" 
     integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
     <link rel="stylesheet" href="../menu-principal/CSS/menu-principal.css">
+    <script src="../menu-principal/JS/menu-principal.js"></script>
+    
 </head>
 <body>
     
@@ -19,19 +21,19 @@
         <nav class="sidebar-nav">
             <ul class="nav flex-column">
                 <li class="nav-item">
-                    <a class="nav-link active" href="menu_principal.html">Inicio</a>
+                    <a class="nav-link active" href="#" data-vista="inicio">Inicio</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="buscar.html">Buscar</a>
+                    <a class="nav-link" href="#" data-vista="buscar">Buscar</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="ofrecer.html">Ofrecer Viaje</a>
+                    <a class="nav-link" href="#" data-vista="ofrecer">Ofrecer Viaje</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="mensajes.html">Mensajes</a>
+                    <a class="nav-link" href="#" data-vista="mensajes">Mensajes</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="en_curso.html">En Curso</a>
+                    <a class="nav-link" href="#" data-vista="en-curso">En Curso</a>
                 </li>
             </ul>
         </nav>
@@ -45,130 +47,151 @@
     <main class="main-content flex-grow-1 p-4">
         <div class="border rounded-3 p-4 bloque_contenido" style="min-height: 400px;">
 
-            <!-- Barra superior -->
-            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-                <h3 class="mb-0 letra-contenido">Tu Panel de Control</h3>
+           <div id="vista-inicio" class="vista">
+              <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                    <h3 class="mb-0 letra-contenido">Tu Panel de Control</h3>
 
-                <div class="d-flex flex-wrap gap-2">
-                    <div class="input-group" style="width: 200px;">
-                        <span class="input-group-text">🔍</span>
-                        <input type="text" class="form-control" placeholder="Origen...">
+                    <div class="d-flex flex-wrap gap-2">
+                        <div class="input-group" style="width: 200px;">
+                            <span class="input-group-text">🔍</span>
+                            <input type="text" class="form-control" placeholder="Origen...">
+                        </div>
+
+                        <div class="input-group" style="width: 170px;">
+                            <span class="input-group-text">📅</span>
+                            <input type="date" class="form-control">
+                        </div>
+
+                        <button type="button" class="btn btn-primary">+ Ofrecer viaje</button>
+                    </div>
+                </div>
+
+                <div class="row g-4">
+
+                    <div class="col-md-8">
+                        <h5 class="mb-3 letra-contenido">Viajes destacados para ti</h5>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="card p-2 color-card">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="fs-4">🚗</span>
+                                        <div>
+                                            <div class="fw-semibold">Campus Sur → Centro</div>
+                                            <small class="text-muted">Hoy 7:00 AM · 3 plazas</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="card p-2 color-card">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="fs-4">🚗</span>
+                                        <div>
+                                            <div class="fw-semibold">Norte → Campus Sur</div>
+                                            <small class="text-muted">Mañana 6:45 AM · 1 lugar</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="card p-2 color-card">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="fs-4">🚗</span>
+                                        <div>
+                                            <div class="fw-semibold">Campus Norte → Centro</div>
+                                            <small class="text-muted">Hoy 8:15 AM · 2 plazas</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="card p-2 color-card">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="fs-4">🚗</span>
+                                        <div>
+                                            <div class="fw-semibold">Campus Sur → Este</div>
+                                            <small class="text-muted">Hoy 9:00 AM · 4 lugares</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="input-group" style="width: 170px;">
-                        <span class="input-group-text">📅</span>
-                        <input type="date" class="form-control">
+                    <div class="col-md-4">
+                        <h5 class="mb-3 letra-contenido">Mis Próximos Viajes</h5>
+                        <div class="d-flex flex-column gap-2">
+                            <div class="card p-3 d-flex flex-row justify-content-between align-items-center color-card">
+                                <div>
+                                    <div class="fw-semibold">Campus Norte → Centro</div>
+                                    <small class="text-muted">Mañana 8:00 AM</small>
+                                </div>
+                                <span class="badge bg-success">Agendado</span>
+                            </div>
+                            <div class="card p-3 d-flex flex-row justify-content-between align-items-center color-card">
+                                <div>
+                                    <div class="fw-semibold">Campus Norte → Centro</div>
+                                    <small class="text-muted">Mañana 9:00 AM</small>
+                                </div>
+                                <span class="badge bg-success">Agendado</span>
+                            </div>
+                        </div>
                     </div>
 
-                    <button type="button" class="btn btn-primary">+ Ofrecer viaje</button>
+                    <!-- Feed de notificaciones y actividad -->
+                <h5 class="mt-4 mb-3 letra-contenido">Feed de notificaciones y actividad</h5>
+                <div class="d-flex flex-column gap-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="fs-5">📅</span>
+                        <div>
+                            <span class="fw-semibold letra-contenido">Cita agendada</span>
+                            <span class="texto-secundario">· Camila Angel</span>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="fs-5">✉️</span>
+                        <div>
+                            <span class="fw-semibold letra-contenido">Mensaje recibido</span>
+                            <span class="texto-secundario">· Yefersonpazo</span>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="fs-5">🔔</span>
+                        <div>
+                            <span class="fw-semibold letra-contenido">Nuevo viaje publicado</span>
+                            <span class="texto-secundario">· system</span>
+                        </div>
+                    </div>
+
                 </div>
             </div>
 
-            <div class="row g-4">
-
-                <div class="col-md-8">
-                    <h5 class="mb-3 letra-contenido">Viajes destacados para ti</h5>
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <div class="card p-2 color-card">
-                                <div class="d-flex align-items-center gap-2">
-                                    <span class="fs-4">🚗</span>
-                                    <div>
-                                        <div class="fw-semibold">Campus Sur → Centro</div>
-                                        <small class="text-muted">Hoy 7:00 AM · 3 plazas</small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="card p-2 color-card">
-                                <div class="d-flex align-items-center gap-2">
-                                    <span class="fs-4">🚗</span>
-                                    <div>
-                                        <div class="fw-semibold">Norte → Campus Sur</div>
-                                        <small class="text-muted">Mañana 6:45 AM · 1 lugar</small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="card p-2 color-card">
-                                <div class="d-flex align-items-center gap-2">
-                                    <span class="fs-4">🚗</span>
-                                    <div>
-                                        <div class="fw-semibold">Campus Norte → Centro</div>
-                                        <small class="text-muted">Hoy 8:15 AM · 2 plazas</small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="card p-2 color-card">
-                                <div class="d-flex align-items-center gap-2">
-                                    <span class="fs-4">🚗</span>
-                                    <div>
-                                        <div class="fw-semibold">Campus Sur → Este</div>
-                                        <small class="text-muted">Hoy 9:00 AM · 4 lugares</small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-4">
-                    <h5 class="mb-3 letra-contenido">Mis Próximos Viajes</h5>
-                    <div class="d-flex flex-column gap-2">
-                        <div class="card p-3 d-flex flex-row justify-content-between align-items-center color-card">
-                            <div>
-                                <div class="fw-semibold">Campus Norte → Centro</div>
-                                <small class="text-muted">Mañana 8:00 AM</small>
-                            </div>
-                            <span class="badge bg-success">Agendado</span>
-                        </div>
-                        <div class="card p-3 d-flex flex-row justify-content-between align-items-center color-card">
-                            <div>
-                                <div class="fw-semibold">Campus Norte → Centro</div>
-                                <small class="text-muted">Mañana 9:00 AM</small>
-                            </div>
-                            <span class="badge bg-success">Agendado</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Feed de notificaciones y actividad -->
-            <h5 class="mt-4 mb-3 letra-contenido">Feed de notificaciones y actividad</h5>
-            <div class="d-flex flex-column gap-2">
-                <div class="d-flex align-items-center gap-2">
-                    <span class="fs-5">📅</span>
-                    <div>
-                        <span class="fw-semibold letra-contenido">Cita agendada</span>
-                        <span class="texto-secundario">· Camila Angel</span>
-                    </div>
-                </div>
-
-                <div class="d-flex align-items-center gap-2">
-                    <span class="fs-5">✉️</span>
-                    <div>
-                        <span class="fw-semibold letra-contenido">Mensaje recibido</span>
-                        <span class="texto-secundario">· Yefersonpazo</span>
-                    </div>
-                </div>
-
-                <div class="d-flex align-items-center gap-2">
-                    <span class="fs-5">🔔</span>
-                    <div>
-                        <span class="fw-semibold letra-contenido">Nuevo viaje publicado</span>
-                        <span class="texto-secundario">· system</span>
-                    </div>
-                </div>
-
+            <div id="vista-buscar" class="vista" style="display: none;">
+              
             </div>
+
+          
+            <div id="vista-ofrecer" class="vista" style="display: none;">
+              
+            </div>
+
+          
+            <div id="vista-mensajes" class="vista" style="display: none;">
+              
+            </div>
+
+          
+            <div id="vista-en-curso" class="vista" style="display: none;">
+              
+            </div>
+
         </div>
     </main>
-    
+
 </body>
 </html>
