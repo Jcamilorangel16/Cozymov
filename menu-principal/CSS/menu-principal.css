@@ -11,8 +11,12 @@ body {
     background-color: #1d224c
 }
 
-.titulo-panel {
+.letra-contenido {
     color: #ffffff;
+}
+
+.texto-secundario {
+    color: #cfd8ea;
 }
 
 .color-card {
