@@ -15,6 +15,10 @@ body {
     color: #ffffff;
 }
 
+.viaje-destacado {
+    background-color: #28447b;
+}
+
 .sidebar {
     width: 220px;
     min-height: 100vh;
