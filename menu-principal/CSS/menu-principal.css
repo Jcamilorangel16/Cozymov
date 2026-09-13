@@ -2,11 +2,13 @@ body {
     margin: 0px;
     display: flex;
     min-height: 100vh;
+    background-color: #1b4065;
 }
 
 .bloque_contenido {
     flex: 1; 
     padding: 20px;
+    background-color: #1d224c
 }
 
 .sidebar {
