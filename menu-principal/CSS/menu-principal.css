@@ -11,6 +11,10 @@ body {
     background-color: #1d224c
 }
 
+.titulo-panel {
+    color: #ffffff;
+}
+
 .sidebar {
     width: 220px;
     min-height: 100vh;
