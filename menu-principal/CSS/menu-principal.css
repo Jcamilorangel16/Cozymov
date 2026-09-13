@@ -25,11 +25,14 @@ body {
 
 .sidebar {
     width: 220px;
-    min-height: 100vh;
+    height: 100vh;
+    position: sticky;
+    top: 0;
     background-color: #1c2b4a;
     display: flex;
     flex-direction: column;
     padding: 20px 12px;
+    flex-shrink: 0;
 }
  
 .brand-logo h2 {
