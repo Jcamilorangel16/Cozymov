@@ -5,10 +5,10 @@ body {
     background-color: #1b4065;
 }
 
-.bloque_contenido {
+.bloque_contenido { 
     flex: 1; 
     padding: 20px;
-    background-color: #1d224c
+    background-color: #1d224c;
 }
 
 .letra-contenido {
@@ -25,6 +25,7 @@ body {
 
 .sidebar {
     width: 220px;
+    min-height: 100vh;
     height: 100vh;
     position: sticky;
     top: 0;
