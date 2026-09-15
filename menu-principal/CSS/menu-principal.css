@@ -2,13 +2,13 @@ body {
     margin: 0px;
     display: flex;
     min-height: 100vh;
-    background-color: #1b4065;
+    background-color: #341b65;
 }
 
 .bloque_contenido { 
     flex: 1; 
     padding: 20px;
-    background-color: #1d224c;
+    background-color: #271d4c;
 }
 
 .letra-contenido {
@@ -16,11 +16,11 @@ body {
 }
 
 .texto-secundario {
-    color: #cfd8ea;
+    color: #384380;
 }
 
 .color-card {
-    background-color: #2750a1;
+    background-color: #9cb1e7;
 }
 
 .sidebar {
@@ -29,7 +29,7 @@ body {
     height: 100vh;
     position: sticky;
     top: 0;
-    background-color: #1c2b4a;
+    background-color: #2a1c4a;
     display: flex;
     flex-direction: column;
     padding: 20px 12px;
@@ -60,7 +60,7 @@ body {
  
 /* Contorno al pasar el cursor */
 .sidebar-nav .nav-link:hover {
-    outline: 2px solid #4dabf7;
+    outline: 2px solid #644df7;
     outline-offset: -2px;
     background-color: rgba(255, 255, 255, 0.06);
     color: #ffffff;
@@ -68,13 +68,13 @@ body {
  
 /* Contorno tambien al navegar con teclado (accesibilidad) */
 .sidebar-nav .nav-link:focus-visible {
-    outline: 2px solid #4dabf7;
+    outline: 2px solid rgb(54, 149, 228);
     outline-offset: -2px;
 }
  
 /* Enlace de la seccion activa */
 .sidebar-nav .nav-link.active {
-    background-color: #4dabf7;
+    background-color: #9CB8E7;
     color: #ffffff;
     font-weight: 600;
 }

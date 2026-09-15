@@ -1,11 +1,11 @@
 body {
-    background-color: #061d29;
+    background-color: #382B7D;
     min-height: 100vh;
 }
 
 /* Tarjeta principal */
 .contenedor {
-    background-color: #c9def2;
+    background-color: #cedaee;
     width: 540px;
     min-height: 420px;
     border-radius: 16px;
@@ -15,12 +15,12 @@ body {
 .logo {
     font-weight: bold;
     font-size: 18px;
-    color: #30434f;
+    color: #0D6EFD;
 }
 
 /* Título */
 .titulo {
-    color: #30434f;
+    color: #2a73e1;
     font-weight: 600;
 }
 
@@ -31,7 +31,7 @@ body {
 
 /* Texto de los campos */
 .form-label {
-    color: #30434f;
+    color: #563d91;
     font-size: 14px;
     margin-bottom: 5px;
 }
@@ -52,7 +52,7 @@ body {
 
 /* Botón Iniciar sesión */
 .btn-login {
-    background-color: #8bc8eb;
+    background-color: #9cb8e7;
     border: none;
     color: #203d4c;
     border-radius: 20px;
@@ -62,9 +62,9 @@ body {
 
 /* Botón Registrarse */
 .btn-crear {
-    background-color: #5794b5;
+    background-color: #0D6EFD;
     border: none;
-    color: #203d4c;
+    color: #cedaee;
     border-radius: 20px;
     height: 38px;
     font-size: 13px;

@@ -295,12 +295,153 @@
                                 <p id="detalle-vehiculo" class="letra-contenido fw-semibold mb-2"></p>
 
                                 <small class="texto-secundario d-block">Punto de encuentro</small>
-                                <p id="detalle-punto" class="fw-semibold mb-2" style="color: #ff6b6b;"></p>
+                                <p id="detalle-punto" class="fw-semibold mb-2" style="color: #a03c3c;"></p>
 
                                 <small class="texto-secundario d-block">Lugares disponibles</small>
-                                <p id="detalle-cupos" class="fw-semibold mb-3" style="color: #4dabf7;"></p>
+                                <p id="detalle-cupos" class="fw-semibold mb-3" style="color: #1457e7;"></p>
 
                                 <button type="button" class="btn btn-primary w-100">Solicitar unirme</button>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-7">
+                            <div class="card color-card p-3 h-100 d-flex align-items-center justify-content-center text-center">
+                                <div style="font-size: 3.5rem;">🗺️</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Fin sub-vista: Detalle -->
+                
+            </div>
+
+            <div id="vista-ofrecer" class="vista" style="display: none;">
+
+                <!-- Sub-vista: Resultados de pasajeros -->
+                <div id="ofrecer-resultados">
+
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+                        <h3 class="mb-0 letra-contenido">Encontrar Pasajeros</h3>
+
+                        <div class="d-flex flex-wrap gap-2">
+                            <div class="input-group" style="width: 220px;">
+                                <span class="input-group-text">◉ Punto</span>
+                                <input type="text" class="form-control" placeholder="Norte">
+                            </div>
+                            <div class="input-group" style="width: 220px;">
+                                <span class="input-group-text">◎ Destino</span>
+                                <input type="text" class="form-control" placeholder="Campus Sur">
+                            </div>
+                            <div class="input-group" style="width: 170px;">
+                                <span class="input-group-text"># Personas</span>
+                                <input type="number" class="form-control" placeholder="2" min="1">
+                            </div>
+                            <button type="button" class="btn btn-primary px-3">Buscar</button>
+                        </div>
+                    </div>
+
+                    <p class="texto-secundario fw-semibold mb-3">2 Posibles pasajeros</p>
+
+                    <div class="row g-3">
+                        <!-- Tarjeta de PASAJERO 1 -->
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                            <div class="card p-3 color-card resultado-pasajero h-100" style="cursor: pointer;"
+                                data-nombre="Camila Castro"
+                                data-iniciales="CC"
+                                data-avatar-color="bg-success"
+                                data-rating="4.8"
+                                data-viajes="37"
+                                data-ruta="Norte → Campus Sur"
+                                data-horario="Hoy · 6:50 AM"
+                                data-punto="Entrada Norte"
+                                data-personas="2">
+
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="user-avatar bg-success" style="width: 38px; height: 38px; font-size: 13px;">CC</div>
+                                        <div>
+                                            <div class="fw-bold letra-contenido">Camila Castro</div>
+                                            <small class="texto-secundario">★ 4.8 · 37 viajes</small>
+                                        </div>
+                                    </div>
+                                    <span class="fs-4 texto-secundario">›</span>
+                                </div>
+
+                                <div class="texto-secundario small mt-2">
+                                    <span>◉ Norte</span> → <span>◎ Campus Sur</span>
+                                </div>
+
+                                <div class="mt-2 d-flex justify-content-between align-items-center">
+                                    <span class="badge bg-primary">2 personas</span>
+                                    <small class="texto-secundario">Hoy · 6:50 AM</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tarjeta de PASAJERO 2 -->
+                        <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                            <div class="card p-3 color-card resultado-pasajero h-100" style="cursor: pointer;"
+                                data-nombre="Luis Herrera"
+                                data-iniciales="LH"
+                                data-avatar-color="bg-warning"
+                                data-rating="4.5"
+                                data-viajes="12"
+                                data-ruta="Norte → Campus Sur"
+                                data-horario="Hoy · 7:10 AM"
+                                data-punto="Entrada Norte"
+                                data-personas="1">
+
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="user-avatar bg-warning" style="width: 38px; height: 38px; font-size: 13px;">LH</div>
+                                        <div>
+                                            <div class="fw-bold letra-contenido">Luis Herrera</div>
+                                            <small class="texto-secundario">★ 4.5 · 12 viajes</small>
+                                        </div>
+                                    </div>
+                                    <span class="fs-4 texto-secundario">›</span>
+                                </div>
+
+                                <div class="texto-secundario small mt-2">
+                                    <span>◉ Norte</span> → <span>◎ Campus Sur</span>
+                                </div>
+
+                                <div class="mt-2 d-flex justify-content-between align-items-center">
+                                    <span class="badge bg-primary">1 persona</span>
+                                    <small class="texto-secundario">Hoy · 7:10 AM</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Fin sub-vista: Resultados -->
+
+                <!-- Sub-vista: Detalle del pasajero seleccionado -->
+                <div id="ofrecer-detalle" style="display: none;">
+
+                    <button type="button" id="btn-volver-pasajeros" class="btn btn-link texto-secundario ps-0 mb-3">‹ Volver a pasajeros</button>
+
+                    <div class="row g-3">
+                        <div class="col-lg-5">
+                            <div class="card p-3 color-card">
+                                <h5 id="pasajero-ruta" class="letra-contenido mb-0"></h5>
+                                <small id="pasajero-horario" class="texto-secundario d-block mb-3"></small>
+
+                                <div class="d-flex align-items-center gap-2 mb-3">
+                                    <div id="pasajero-avatar" class="user-avatar" style="width: 42px; height: 42px;"></div>
+                                    <div>
+                                        <div id="pasajero-nombre" class="fw-semibold letra-contenido"></div>
+                                        <small id="pasajero-rating" class="texto-secundario"></small>
+                                    </div>
+                                </div>
+
+                                <small class="texto-secundario d-block">Punto de encuentro</small>
+                                <p id="pasajero-punto" class="fw-semibold mb-2" style="color: #a03c3c;"></p>
+
+                                <small class="texto-secundario d-block">Personas que viajan</small>
+                                <p id="pasajero-personas" class="fw-semibold mb-3" style="color: #1457e7;"></p>
+
+                                <button type="button" class="btn btn-primary w-100">Aceptar Pasajero</button>
                             </div>
                         </div>
 
@@ -316,9 +457,8 @@
             </div>
 
 
-            <div id="vista-ofrecer" class="vista" style="display: none;">
 
-            </div>
+
 
 
             <div id="vista-mensajes" class="vista" style="display: none;">
