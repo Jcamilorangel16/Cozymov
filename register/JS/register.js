@@ -1,5 +1,33 @@
 document.addEventListener('DOMContentLoaded', function () {
     const botonSiguiente = document.getElementById('siguiente');
+    const camposRegistro = [
+        'nombre',
+        'apellido',
+        'documento',
+        'numero',
+        'correo',
+        'contrasena',
+        'confirmar-contrasena'
+    ].map(function (id) {
+        return document.getElementById(id);
+    });
+
+    camposRegistro.forEach(function (campo, indice) {
+        campo.addEventListener('keydown', function (evento) {
+            if (evento.key !== 'Enter') {
+                return;
+            }
+
+            evento.preventDefault();
+
+            const siguienteCampo = camposRegistro[indice + 1];
+            if (siguienteCampo) {
+                siguienteCampo.focus();
+            } else {
+                botonSiguiente.click();
+            }
+        });
+    });
 
     botonSiguiente.addEventListener('click', function () {
         const datosUsuario = {
