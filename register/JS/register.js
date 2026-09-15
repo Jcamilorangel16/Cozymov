@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         localStorage.setItem('usuarioRegistrado', JSON.stringify(datosUsuario));
-        alert('Registro guardado correctamente.');
+        window.location.href = '../view/login.html';
     });
 });
 
