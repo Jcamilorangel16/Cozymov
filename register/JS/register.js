@@ -52,6 +52,14 @@ botonSiguiente.addEventListener('click', function () {
             return;
         }
 
+        const correoInstitucional = /^[^\s@]+@[^\s@]+\.edu\.co$/i;
+
+        if (!correoInstitucional.test(datosUsuario.correo)) {
+            alert('Ingresa un correo válido que termine en .edu.co.');
+            document.getElementById('correo').focus();
+            return;
+        }
+
         if (datosUsuario.contrasena !== confirmarContrasena) {
             alert('Las contraseñas no coinciden.');
             return;
