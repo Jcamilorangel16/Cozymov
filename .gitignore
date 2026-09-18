@@ -16,4 +16,4 @@ build/
 
 # Sistema operativo
 .DS_Store
-Thumbs.db
+Thumbs.db.next/
