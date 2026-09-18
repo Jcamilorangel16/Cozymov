@@ -1,7 +1,40 @@
+//DOMContentLoaded: Espera a que el DOM esté completamente cargado antes de ejecutar el código
 document.addEventListener('DOMContentLoaded', function () {
-    const botonSiguiente = document.getElementById('siguiente');
+//Funcion para navegar entre los campos del formulario con las teclas Enter, ArrowDown y ArrowUp
+    const camposRegistro = [
+        'nombre',
+        'apellido',
+        'documento',
+        'numero',
+        'correo',
+        'contrasena',
+        'confirmar-contrasena'
+    ].map(function (id) {
+        return document.getElementById(id);
+    });
 
-    botonSiguiente.addEventListener('click', function () {
+    camposRegistro.forEach(function (campo, indice) {
+        campo.addEventListener('keydown', function (evento) {
+            if (!['Enter', 'ArrowDown', 'ArrowUp'].includes(evento.key)) { //.includes sirve para verificar si el valor de evento.key está en el array de teclas permitidas
+                return;
+            }
+
+            evento.preventDefault(); //evita el comportamiento predeterminado de la tecla presionada
+
+            const desplazamiento = evento.key === 'ArrowUp' ? -1 : 1; //? -1 : 1; es una expresión condicional que asigna -1 si la tecla presionada es ArrowUp y 1 en caso contrario
+            const campoDestino = camposRegistro[indice + desplazamiento];
+
+            if (campoDestino) {
+                campoDestino.focus();
+            } else if (evento.key === 'Enter') {
+                botonSiguiente.click();//Si se presiona Enter en el último campo, simula un clic en el botón "Siguiente"
+            }
+        });
+    });
+
+//Botón siguiente de registro, guarda los datos en localStorage y redirige a login.html
+const botonSiguiente = document.getElementById('siguiente');
+botonSiguiente.addEventListener('click', function () {
         const datosUsuario = {
             nombre: document.getElementById('nombre').value.trim(),
             apellido: document.getElementById('apellido').value.trim(),
@@ -19,13 +52,21 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
+        const correoInstitucional = /^[^\s@]+@[^\s@]+\.edu\.co$/i;
+
+        if (!correoInstitucional.test(datosUsuario.correo)) {
+            alert('Ingresa un correo válido que termine en .edu.co.');
+            document.getElementById('correo').focus();
+            return;
+        }
+
         if (datosUsuario.contrasena !== confirmarContrasena) {
             alert('Las contraseñas no coinciden.');
             return;
         }
 
         localStorage.setItem('usuarioRegistrado', JSON.stringify(datosUsuario));
-        alert('Registro guardado correctamente.');
+        window.location.href = '../view/login.html';
     });
 });
 

@@ -45,7 +45,7 @@
         <label for="documento" class="form-label">Documento de Identidad</label>
         <input
           id="documento"
-          type="text"
+          type="number"
           class="form-control"
           placeholder="🪪 0123456789"
         >
@@ -53,7 +53,7 @@
         <label for="numero" class="form-label mt-3">Número de Teléfono</label>
         <input
           id="numero"
-          type="text"
+          type="tel"
           class="form-control"
           placeholder="📞 3001234567"
         >
@@ -61,9 +61,11 @@
         <label for="correo" class="form-label mt-3">Correo Institucional</label>
         <input
           id="correo"
-          type="text"
+          type="email"
           class="form-control"
           placeholder="📩 Sergio.Gomez@universidad.edu.co"
+          pattern="[^\s@]+@[^\s@]+\.edu\.co"
+          title="Usa un correo institucional que termine en .edu.co"
         >
       </div>
 
