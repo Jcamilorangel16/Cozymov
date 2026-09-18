@@ -1,21 +1,12 @@
 {
-<<<<<<< HEAD
-  "scripts": {
-=======
-"scripts": {
->>>>>>> 9260eb5 (Feact: Actualizacion de libreriass en el Next.js y React para control de versiones)
-  "dev": "next dev",
-  "build": "next build",
-  "start": "next start"
-}
-<<<<<<< HEAD
-,
-  "dependencies": {
-    "next": "^16.3.5",
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0"
-  }
-
-=======
->>>>>>> 9260eb5 (Feact: Actualizacion de libreriass en el Next.js y React para control de versiones)
+	"scripts": {
+		"dev": "next dev",
+		"build": "next build",
+		"start": "next start"
+	},
+	"dependencies": {
+		"next": "^16.3.5",
+		"react": "^19.3.0",
+		"react-dom": "^19.3.0"
+	}
 }
