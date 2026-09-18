@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 22, "column": 0}, "map": {"version":3,"sources":["file:///C:/Users/Ashly/Downloads/PWEB%20clases/Coszymov/pages/index.js"],"sourcesContent":["export default function Home() {\r\n  return <h1>Hola Ash, Next.js está funcionando!</h1>;\r\n}"],"names":["Home"],"mappings":";;;;;;AAAe,SAASA;IACtB,qBAAO,qKAAC;kBAAG;;;;;;AACb"}}]
+}
