@@ -1,0 +1,15 @@
+.register-page {
+  min-height: 100vh;
+  background-image: url("../../../assets/img/Img-fondo-register.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.register-card {
+  width: min(850px, calc(100% - 2rem));
+  min-height: 600px;
+}
