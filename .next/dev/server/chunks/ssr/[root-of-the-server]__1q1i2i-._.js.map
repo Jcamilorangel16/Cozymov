@@ -2,5 +2,5 @@
   "version": 3,
   "sources": [],
   "sections": [
-    {"offset": {"line": 22, "column": 0}, "map": {"version":3,"sources":["file:///C:/Users/juanr/Documents/VScode_projects/Cozymov/pages/index.js"],"sourcesContent":["export default function Home() {\r\n  return <h1>Hola Juan 👋, Next.js está funcionando!</h1>;\r\n}"],"names":["Home"],"mappings":";;;;;;AAAe,SAASA;IACtB,qBAAO,qKAAC;kBAAG;;;;;;AACb"}}]
+    {"offset": {"line": 22, "column": 0}, "map": {"version":3,"sources":["file:///C:/Users/yefer/OneDrive/Desktop/Yeferson/Cozymov/pages/index.js"],"sourcesContent":["export default function Home() {\r\n  return <h1>Hola Juan David 👋, Next.js está funcionando!</h1>;\r\n}\r\n"],"names":["Home"],"mappings":";;;;;;AAAe,SAASA;IACtB,qBAAO,qKAAC;kBAAG;;;;;;AACb"}}]
 }

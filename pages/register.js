@@ -1,0 +1,1 @@
+export { default } from '../Frontend/src/features/register/pages/register.jsx';
