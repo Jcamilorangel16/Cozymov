@@ -1,4 +1,4 @@
-# Node.js
+﻿# Node.js
 node_modules/
 npm-debug.log
 yarn-error.log
@@ -17,4 +17,3 @@ build/
 # Sistema operativo
 .DS_Store
 Thumbs.db
-

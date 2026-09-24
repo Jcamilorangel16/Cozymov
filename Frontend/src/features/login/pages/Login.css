@@ -1,0 +1,77 @@
+body {
+    background-color: #382B7D;
+    min-height: 100vh;
+}
+
+/* Tarjeta principal */
+.contenedor {
+    background-color: #cedaee;
+    width: 540px;
+    min-height: 420px;
+    border-radius: 16px;
+}
+
+/* Logo */
+.logo {
+    font-weight: bold;
+    font-size: 18px;
+    color: #0D6EFD;
+}
+
+/* Título */
+.titulo {
+    color: #2a73e1;
+    font-weight: 600;
+}
+
+/* Formulario */
+.formulario {
+    width: 70%;
+}
+
+/* Texto de los campos */
+.form-label {
+    color: #563d91;
+    font-size: 14px;
+    margin-bottom: 5px;
+}
+
+/* Campos de correo y contraseña */
+.form-control {
+    border: none;
+    border-radius: 20px;
+    height: 38px;
+    font-size: 13px;
+    padding-left: 15px;
+}
+
+/* Cuando seleccionamos un campo */
+.form-control:focus {
+    box-shadow: 0 0 0 2px #5794b5;
+}
+
+/* Botón Iniciar sesión */
+.btn-login {
+    background-color: #9cb8e7;
+    border: none;
+    color: #203d4c;
+    border-radius: 20px;
+    height: 38px;
+    font-size: 13px;
+}
+
+/* Botón Registrarse */
+.btn-crear {
+    background-color: #0D6EFD;
+    border: none;
+    color: #cedaee;
+    border-radius: 20px;
+    height: 38px;
+    font-size: 13px;
+}
+
+/* Efecto al pasar el mouse */
+.btn-crear:hover,
+.btn-login:hover {
+    opacity: 0.9;
+}
