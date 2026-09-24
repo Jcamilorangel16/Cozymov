@@ -2,11 +2,13 @@
 node_modules/
 npm-debug.log
 yarn-error.log
+.next
 
 # Build
 .next/
 dist/
 build/
+.next/dev
 
 # Configuración local
 .env
@@ -17,5 +19,3 @@ build/
 # Sistema operativo
 .DS_Store
 Thumbs.db
-.next
-
