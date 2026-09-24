@@ -1,9 +1,5 @@
 import { useEffect } from 'react';
 
 export default function Home() {
-  useEffect(() => {
-    window.location.replace('/register');
-  }, []);
-
-  return null;
+  return <h1>Hola JuanDv 👋, Next.js está funcionando!</h1>;
 }
