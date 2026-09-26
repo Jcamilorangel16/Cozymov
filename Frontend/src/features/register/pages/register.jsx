@@ -1,11 +1,12 @@
+"use client";
 import { useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import './Register.css';
+import { useRouter } from 'next/navigation';
+import './register.css';
 
 const CAMPOS = ['nombre', 'apellido', 'documento', 'numero', 'correo', 'contrasena', 'confirmar-contrasena'];
 
 function Register() {
-  const navigate = useNavigate();
+  const router = useRouter();
   const refs = useRef({}); // { nombre: <input>, apellido: <input>, ... }
 
   const [datosUsuario, setDatosUsuario] = useState({
@@ -59,90 +60,105 @@ function Register() {
     }
 
     localStorage.setItem('usuarioRegistrado', JSON.stringify(datosUsuario));
-    navigate('/login');
+    router.push('/');
   }
 
   return (
     <div className="register-page">
-      <div className="register-card">
+      <div className="register-card card shadow-lg">
         <h1>Crear cuenta</h1>
 
-        <input
-          id="nombre"
-          name="nombre"
-          placeholder="Nombre"
-          value={datosUsuario.nombre}
-          onChange={manejarCambio}
-          onKeyDown={(e) => manejarTeclado(e, 0)}
-          ref={(el) => (refs.current.nombre = el)}
-        />
+        <form
+          className="register-form"
+          onSubmit={(evento) => {
+            evento.preventDefault();
+            manejarSiguiente();
+          }}
+        >
+          <input
+            className="form-control"
+            id="nombre"
+            name="nombre"
+            placeholder="Nombre"
+            value={datosUsuario.nombre}
+            onChange={manejarCambio}
+            onKeyDown={(e) => manejarTeclado(e, 0)}
+            ref={(el) => (refs.current.nombre = el)}
+          />
 
-        <input
-          id="apellido"
-          name="apellido"
-          placeholder="Apellido"
-          value={datosUsuario.apellido}
-          onChange={manejarCambio}
-          onKeyDown={(e) => manejarTeclado(e, 1)}
-          ref={(el) => (refs.current.apellido = el)}
-        />
+          <input
+            className="form-control"
+            id="apellido"
+            name="apellido"
+            placeholder="Apellido"
+            value={datosUsuario.apellido}
+            onChange={manejarCambio}
+            onKeyDown={(e) => manejarTeclado(e, 1)}
+            ref={(el) => (refs.current.apellido = el)}
+          />
 
-        <input
-          id="documento"
-          name="documento"
-          placeholder="Documento"
-          value={datosUsuario.documento}
-          onChange={manejarCambio}
-          onKeyDown={(e) => manejarTeclado(e, 2)}
-          ref={(el) => (refs.current.documento = el)}
-        />
+          <input
+            className="form-control"
+            id="documento"
+            name="documento"
+            placeholder="Documento"
+            value={datosUsuario.documento}
+            onChange={manejarCambio}
+            onKeyDown={(e) => manejarTeclado(e, 2)}
+            ref={(el) => (refs.current.documento = el)}
+          />
 
-        <input
-          id="numero"
-          name="numero"
-          placeholder="Número de teléfono"
-          value={datosUsuario.numero}
-          onChange={manejarCambio}
-          onKeyDown={(e) => manejarTeclado(e, 3)}
-          ref={(el) => (refs.current.numero = el)}
-        />
+          <input
+            className="form-control"
+            id="numero"
+            name="numero"
+            placeholder="Número de teléfono"
+            value={datosUsuario.numero}
+            onChange={manejarCambio}
+            onKeyDown={(e) => manejarTeclado(e, 3)}
+            ref={(el) => (refs.current.numero = el)}
+          />
 
-        <input
-          id="correo"
-          name="correo"
-          type="email"
-          placeholder="Correo institucional"
-          value={datosUsuario.correo}
-          onChange={manejarCambio}
-          onKeyDown={(e) => manejarTeclado(e, 4)}
-          ref={(el) => (refs.current.correo = el)}
-        />
+          <input
+            className="form-control"
+            id="correo"
+            name="correo"
+            type="email"
+            placeholder="Correo institucional"
+            value={datosUsuario.correo}
+            onChange={manejarCambio}
+            onKeyDown={(e) => manejarTeclado(e, 4)}
+            ref={(el) => (refs.current.correo = el)}
+          />
 
-        <input
-          id="contrasena"
-          name="contrasena"
-          type="password"
-          placeholder="Contraseña"
-          value={datosUsuario.contrasena}
-          onChange={manejarCambio}
-          onKeyDown={(e) => manejarTeclado(e, 5)}
-          ref={(el) => (refs.current.contrasena = el)}
-        />
+          <input
+            className="form-control"
+            id="contrasena"
+            name="contrasena"
+            type="password"
+            placeholder="Contraseña"
+            value={datosUsuario.contrasena}
+            onChange={manejarCambio}
+            onKeyDown={(e) => manejarTeclado(e, 5)}
+            ref={(el) => (refs.current.contrasena = el)}
+          />
 
-        <input
-          id="confirmar-contrasena"
-          name="confirmar-contrasena"
-          type="password"
-          placeholder="Confirmar contraseña"
-          value={confirmarContrasena}
-          onChange={(e) => setConfirmarContrasena(e.target.value)}
-          onKeyDown={(e) => manejarTeclado(e, 6)}
-          ref={(el) => (refs.current['confirmar-contrasena'] = el)}
-        />
+          <input
+            className="form-control"
+            id="confirmar-contrasena"
+            name="confirmar-contrasena"
+            type="password"
+            placeholder="Confirmar contraseña"
+            value={confirmarContrasena}
+            onChange={(e) => setConfirmarContrasena(e.target.value)}
+            onKeyDown={(e) => manejarTeclado(e, 6)}
+            ref={(el) => (refs.current['confirmar-contrasena'] = el)}
+          />
 
-        <button id="siguiente" type="button" onClick={manejarSiguiente}>
-          Siguiente
-        </button>
+          <button id="siguiente" className="btn btn-primary" type="submit">
+            Siguiente
+          </button>
+        </form>
       </div>
     </div>
   );

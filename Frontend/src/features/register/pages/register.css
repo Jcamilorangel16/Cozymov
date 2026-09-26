@@ -7,9 +7,41 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 2rem 1rem;
 }
 
 .register-card {
-  width: min(850px, calc(100% - 2rem));
-  min-height: 600px;
+  width: min(850px, 100%);
+  padding: clamp(1.5rem, 5vw, 3rem);
+  border: 0;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.register-card h1 {
+  margin-bottom: 1.5rem;
+  color: #382b7d;
+  text-align: center;
+}
+
+.register-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+#siguiente {
+  grid-column: 1 / -1;
+  justify-self: end;
+  min-width: 12rem;
+}
+
+@media (max-width: 575.98px) {
+  .register-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #siguiente {
+    width: 100%;
+  }
 }
