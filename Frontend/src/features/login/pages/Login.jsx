@@ -1,5 +1,6 @@
 "use client";
 import { useState } from 'react';
+import Link from 'next/link';
 import './Login.css';
 
 function Login() {
@@ -92,9 +93,9 @@ function Login() {
                             Iniciar sesión
                         </button>
 
-                        <a href="register.html" className="btn btn-crear">
+                        <Link href="/register" className="btn btn-crear">
                             Registrarse
-                        </a>
+                        </Link>
                     </div>
 
                 </form>

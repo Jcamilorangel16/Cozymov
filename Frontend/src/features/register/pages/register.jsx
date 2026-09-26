@@ -1,11 +1,12 @@
+"use client";
 import { useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import './Register.css';
+import { useRouter } from 'next/navigation';
+import './register.css';
 
 const CAMPOS = ['nombre', 'apellido', 'documento', 'numero', 'correo', 'contrasena', 'confirmar-contrasena'];
 
 function Register() {
-  const navigate = useNavigate();
+  const router = useRouter();
   const refs = useRef({}); // { nombre: <input>, apellido: <input>, ... }
 
   const [datosUsuario, setDatosUsuario] = useState({
@@ -59,7 +60,7 @@ function Register() {
     }
 
     localStorage.setItem('usuarioRegistrado', JSON.stringify(datosUsuario));
-    navigate('/login');
+    router.push('/');
   }
 
   return (
