@@ -1,6 +1,5 @@
-"use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./menu-principal.css";
 
 // --- Datos de ejemplo (antes escritos a mano en el HTML) ---
@@ -66,6 +65,10 @@ const resultadosPasajeros = [
 ];
 
 export default function MenuPrincipal() {
+  useEffect(() => {
+    import("bootstrap/dist/js/bootstrap.bundle.min.js");
+  }, []);
+
   // Reemplaza a mostrarVista(): en vez de tocar el DOM, guardamos la vista activa en estado.
   const [vistaActiva, setVistaActiva] = useState("inicio");
 
