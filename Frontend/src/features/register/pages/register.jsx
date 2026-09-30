@@ -64,16 +64,7 @@ function Register() {
   }
 
   return (
-    <>
-      <Head>
-        <title>register</title>
-        <link
-          href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
-          rel="stylesheet"
-        />
-      </Head>
-
-      <div className="register-page d-flex justify-content-center align-items-center min-vh-100">
+    <div className="register-page d-flex justify-content-center align-items-center min-vh-100">
         <div className="card shadow rounded-4 p-4 register-card">
           <h2 className="display-6 text-center fw-bold text-primary mb-3">Cozymov</h2>
           <h1 className="text-center mb-3">Crear cuenta</h1>
@@ -197,8 +188,7 @@ function Register() {
             </div>
           </div>
         </div>
-      </div>
-    </>
+    </div>
   );
 }
 
