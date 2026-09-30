@@ -1,7 +1,11 @@
+"use client";
 import { useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import './Login.css';
 
 function Login() {
+    const router = useRouter();
     const [correo, setCorreo] = useState('');
     const [contrasena, setContrasena] = useState('');
 
@@ -26,9 +30,7 @@ function Login() {
             contrasenaIngresada === datosUsuario.contrasena
         ) {
             alert('Inicio de sesión exitoso.');
-            window.location.href = 'menu_principal.html';
-            // Si usas react-router-dom, reemplaza la línea de arriba por:
-            // navigate('/menu-principal');
+            router.push('/menu-principal');
         } else {
             alert('Correo o contraseña incorrectos.');
         }
@@ -91,9 +93,9 @@ function Login() {
                             Iniciar sesión
                         </button>
 
-                        <a href="register.html" className="btn btn-crear">
+                        <Link href="/register" className="btn btn-crear">
                             Registrarse
-                        </a>
+                        </Link>
                     </div>
 
                 </form>

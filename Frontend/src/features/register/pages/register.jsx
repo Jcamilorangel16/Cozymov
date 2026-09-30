@@ -1,9 +1,12 @@
+"use client";
 import { useRef, useState } from 'react';
-import Head from 'next/head';
+import { useRouter } from 'next/navigation';
+import './register.css';
 
 const CAMPOS = ['nombre', 'apellido', 'documento', 'numero', 'correo', 'contrasena', 'confirmar-contrasena'];
 
 function Register() {
+  const router = useRouter();
   const refs = useRef({}); // { nombre: <input>, apellido: <input>, ... }
 
   const [datosUsuario, setDatosUsuario] = useState({
@@ -57,8 +60,7 @@ function Register() {
     }
 
     localStorage.setItem('usuarioRegistrado', JSON.stringify(datosUsuario));
-    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-    window.location.assign('/login');
+    router.push('/');
   }
 
   return (
