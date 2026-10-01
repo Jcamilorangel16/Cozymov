@@ -1,9 +1,12 @@
+"use client";
 import { useRef, useState } from 'react';
-import Head from 'next/head';
+import { useRouter } from 'next/navigation';
+import './register.css';
 
 const CAMPOS = ['nombre', 'apellido', 'documento', 'numero', 'correo', 'contrasena', 'confirmar-contrasena'];
 
 function Register() {
+  const router = useRouter();
   const refs = useRef({}); // { nombre: <input>, apellido: <input>, ... }
 
   const [datosUsuario, setDatosUsuario] = useState({
@@ -57,20 +60,11 @@ function Register() {
     }
 
     localStorage.setItem('usuarioRegistrado', JSON.stringify(datosUsuario));
-    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-    window.location.assign('/login');
+    router.push('/');
   }
 
   return (
     <>
-      <Head>
-        <title>register</title>
-        <link
-          href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
-          rel="stylesheet"
-        />
-      </Head>
-
       <div className="register-page d-flex justify-content-center align-items-center min-vh-100">
         <div className="card shadow rounded-4 p-4 register-card">
           <h2 className="display-6 text-center fw-bold text-primary mb-3">Cozymov</h2>
