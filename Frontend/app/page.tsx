@@ -1,11 +1,5 @@
-'use client';
-
-import MenuPrincipal from '../src/features/menu-principal/pages/menu';
+import Login from "../src/features/login/pages/Login";
 
 export default function Home() {
-  return (
-    <div className="d-flex min-vh-100" style={{ backgroundColor: '#341b65' }}>
-      <MenuPrincipal />
-    </div>
-  );
+  return <Login />;
 }
