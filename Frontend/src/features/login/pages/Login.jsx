@@ -1,9 +1,14 @@
+'use client';
+
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import './Login.css';
+import Link from 'next/link';
 
 function Login() {
     const [correo, setCorreo] = useState('');
     const [contrasena, setContrasena] = useState('');
+    const router = useRouter();
 
     const handleSubmit = (event) => {
         event.preventDefault();
@@ -26,7 +31,7 @@ function Login() {
             contrasenaIngresada === datosUsuario.contrasena
         ) {
             alert('Inicio de sesión exitoso.');
-            window.location.href = 'menu_principal.html';
+            router.push('/menu');
             // Si usas react-router-dom, reemplaza la línea de arriba por:
             // navigate('/menu-principal');
         } else {
@@ -91,9 +96,9 @@ function Login() {
                             Iniciar sesión
                         </button>
 
-                        <a href="register.html" className="btn btn-crear">
+                        <Link href="/register" className="btn btn-crear">
                             Registrarse
-                        </a>
+                        </Link>
                     </div>
 
                 </form>
