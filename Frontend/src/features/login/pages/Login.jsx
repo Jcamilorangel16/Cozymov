@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import './Login.css';
 
 function Login() {
+    const router = useRouter();
     const [correo, setCorreo] = useState('');
     const [contrasena, setContrasena] = useState('');
-    const router = useRouter();
 
     const handleSubmit = (event) => {
         event.preventDefault();
@@ -30,7 +30,7 @@ function Login() {
             contrasenaIngresada === datosUsuario.contrasena
         ) {
             alert('Inicio de sesión exitoso.');
-            router.push('/menu-principal');
+            router.push('/menu');
         } else {
             alert('Correo o contraseña incorrectos.');
         }
