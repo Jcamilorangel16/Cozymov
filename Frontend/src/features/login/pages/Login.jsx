@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import './Login.css';
 
 function Login() {
-    const router = useRouter();
     const [correo, setCorreo] = useState('');
     const [contrasena, setContrasena] = useState('');
+    const router = useRouter();
 
     const handleSubmit = (event) => {
         event.preventDefault();
