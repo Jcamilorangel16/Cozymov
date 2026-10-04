@@ -18,6 +18,7 @@ function Register() {
     contrasena: '',
   });
   const [confirmarContrasena, setConfirmarContrasena] = useState('');
+  const [guardando, setGuardando] = useState(false);
 
   // Un solo handler para todos los inputs normales, usando el "name"
   function manejarCambio(evento) {
@@ -41,7 +42,9 @@ function Register() {
   }
 
   // Validación y guardado (misma lógica que register.js, leyendo del estado)
-  function manejarSiguiente() {
+  async function manejarSiguiente() {
+    if (guardando) return;
+
     if (Object.values(datosUsuario).some((valor) => valor === '') || confirmarContrasena === '') {
       alert('Por favor, completa todos los campos.');
       return;
@@ -59,8 +62,32 @@ function Register() {
       return;
     }
 
-    localStorage.setItem('usuarioRegistrado', JSON.stringify(datosUsuario));
-    router.push('/');
+    if (datosUsuario.contrasena.length < 8) {
+      alert('La contraseña debe tener al menos 8 caracteres.');
+      refs.current.contrasena?.focus();
+      return;
+    }
+
+    setGuardando(true);
+    try {
+      const respuesta = await fetch('/api/registro', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(datosUsuario),
+      });
+      const resultado = await respuesta.json();
+
+      if (!respuesta.ok) {
+        alert(resultado.error || 'No se pudo crear la cuenta.');
+        return;
+      }
+
+      router.push('/');
+    } catch {
+      alert('No se pudo conectar con el servidor. Inténtalo de nuevo.');
+    } finally {
+      setGuardando(false);
+    }
   }
 
   return (
@@ -173,8 +200,8 @@ function Register() {
                 ref={(el) => (refs.current['confirmar-contrasena'] = el)}
               />
 
-              <button id="siguiente" type="button" className="btn btn-primary w-100 mt-5" onClick={manejarSiguiente}>
-                Siguiente
+              <button id="siguiente" type="button" className="btn btn-primary w-100 mt-5" onClick={manejarSiguiente} disabled={guardando}>
+                {guardando ? 'Creando cuenta...' : 'Siguiente'}
               </button>
               <button
                 id="volver"
