@@ -105,7 +105,7 @@ function Register() {
                 name="nombre"
                 type="text"
                 className="form-control"
-                placeholder="👤 Sergio David"
+                placeholder="𖨆  Sergio David"
                 value={datosUsuario.nombre}
                 onChange={manejarCambio}
                 onKeyDown={(e) => manejarTeclado(e, 0)}
@@ -120,7 +120,7 @@ function Register() {
                 name="apellido"
                 type="text"
                 className="form-control"
-                placeholder="👤 Gomez Gonzales"
+                placeholder="𖨆  Gomez Gonzales"
                 value={datosUsuario.apellido}
                 onChange={manejarCambio}
                 onKeyDown={(e) => manejarTeclado(e, 1)}
@@ -137,7 +137,7 @@ function Register() {
                 name="documento"
                 type="number"
                 className="form-control"
-                placeholder="🪪 0123456789"
+                placeholder="🜷 0123456789"
                 value={datosUsuario.documento}
                 onChange={manejarCambio}
                 onKeyDown={(e) => manejarTeclado(e, 2)}
@@ -150,7 +150,7 @@ function Register() {
                 name="numero"
                 type="tel"
                 className="form-control"
-                placeholder="📞 3001234567"
+                placeholder="☏  3001234567"
                 value={datosUsuario.numero}
                 onChange={manejarCambio}
                 onKeyDown={(e) => manejarTeclado(e, 3)}
@@ -163,7 +163,7 @@ function Register() {
                 name="correo"
                 type="email"
                 className="form-control"
-                placeholder="📩 Sergio.Gomez@universidad.edu.co"
+                placeholder="✉ Sergio.Gomez@universidad.edu.co"
                 pattern="[^\s@]+@[^\s@]+\.edu\.co"
                 title="Usa un correo institucional que termine en .edu.co"
                 value={datosUsuario.correo}
