@@ -1,77 +1,89 @@
 body {
-    background-color: #382B7D;
+    background-color: #88d2f0;
     min-height: 100vh;
 }
 
 /* Tarjeta principal */
+
 .contenedor {
-    background-color: #cedaee;
+    background-color: #fbf8f8;
     width: 540px;
     min-height: 420px;
     border-radius: 16px;
 }
 
 /* Logo */
+
 .logo {
     font-weight: bold;
     font-size: 18px;
-    color: #0D6EFD;
+    color: #4ec1ed;
 }
 
 /* Título */
+
 .titulo {
-    color: #2a73e1;
+    color: #0b1922;
     font-weight: 600;
 }
 
 /* Formulario */
+
 .formulario {
     width: 70%;
 }
 
 /* Texto de los campos */
+
 .form-label {
-    color: #563d91;
+    color: #0b1922;
     font-size: 14px;
     margin-bottom: 5px;
 }
 
 /* Campos de correo y contraseña */
+
 .form-control {
     border: none;
     border-radius: 20px;
     height: 38px;
     font-size: 13px;
     padding-left: 15px;
+    background-color: #f8fbf9;
 }
 
 /* Cuando seleccionamos un campo */
+
 .form-control:focus {
-    box-shadow: 0 0 0 2px #5794b5;
+    box-shadow: 0 0 0 2px #4fe8e0;
 }
 
 /* Botón Iniciar sesión */
+
 .btn-login {
-    background-color: #9cb8e7;
+    background-color: #a4e4e1;
     border: none;
-    color: #203d4c;
+    color: #0b1922;
     border-radius: 20px;
     height: 38px;
     font-size: 13px;
 }
 
 /* Botón Registrarse */
+
 .btn-crear {
-    background-color: #0D6EFD;
+    background-color: #4ec1ed;
     border: none;
-    color: #cedaee;
+    color: #fbfaf8;
     border-radius: 20px;
     height: 38px;
     font-size: 13px;
 }
 
 /* Efecto al pasar el mouse */
+
 .btn-crear:hover,
 .btn-login:hover {
-    opacity: 0.9;
+    color: #fbfaf8;
+    background-color: #0b1922
 }

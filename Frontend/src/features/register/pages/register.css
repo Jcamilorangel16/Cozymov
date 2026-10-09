@@ -1,5 +1,22 @@
+/*.register-page {
+  min-height: 100vh;
+  background-image: url("/fondoRegister.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.register-card {
+  width: min(850px, calc(100% - 2rem));
+  min-height: 600px;
+}*/
+
 .register-page {
   min-height: 100vh;
+  background-color: #85d8e3;
   background-image: url("/register-background.jpg");
   background-size: cover;
   background-position: center;
@@ -12,4 +29,42 @@
 .register-card {
   width: min(850px, calc(100% - 2rem));
   min-height: 600px;
+  background-color: #fbfaf8;
+}
+
+.register-card h1 {
+  color: #0b1922;
+}
+
+.register-card h2 {
+  color: #4ec1ed !important;
+}
+
+.register-card h5 {
+  color: #0b1922;
+}
+
+.register-card .form-control {
+  border: 2px solid #4ec1ed;
+}
+
+.register-card .form-control:focus {
+  border-color: #4fe8e0;
+  box-shadow: 0 0 0 0.2rem rgba(79, 232, 224, 0.25);
+}
+
+#siguiente {
+  background-color: #4ec1ed;
+  border-color: #4ec1ed;
+  color: #0b1922;
+}
+
+#siguiente:hover {
+  background-color: #73c5e5;
+  border-color: #3a7394;
+}
+
+#volver {
+  background-color: #fbfaf8;
+  color: #0b1922;
 }
