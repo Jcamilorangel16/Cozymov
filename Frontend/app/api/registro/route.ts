@@ -10,7 +10,7 @@ type Registro = {
   numero?: unknown;
   correo?: unknown;
   contrasena?: unknown;
-};
+}; 
 
 function esTextoNoVacio(valor: unknown): valor is string {
   return typeof valor === "string" && valor.trim().length > 0;
