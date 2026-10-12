@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
+import RegistroVehiculo from "./RegistroVehiculo";
 
 const resultadosPasajeros = [
   {
@@ -15,7 +16,7 @@ const resultadosPasajeros = [
   },
 ];
 
-const VEHICULO_STORAGE_KEY = "cozymov-vehiculo";
+const VEHICULO_STORAGE_KEY = "cozymov-vehiculo-v2";
 const suscriptoresVehiculo = new Set();
 let ultimoVehiculoGuardado = null;
 let ultimoVehiculoSerializado = null;
@@ -37,10 +38,8 @@ function obtenerVehiculoGuardado() {
 
   const vehiculoGuardado = JSON.parse(serializado);
   if (
-    typeof vehiculoGuardado.placa !== "string" ||
-    typeof vehiculoGuardado.modelo !== "string" ||
-    typeof vehiculoGuardado.color !== "string" ||
-    typeof vehiculoGuardado.cupos !== "string"
+    typeof vehiculoGuardado.tipo !== "string" ||
+    typeof vehiculoGuardado.rutaCotidiana !== "string"
   ) {
     throw new Error("Los datos guardados del vehículo tienen un formato inválido.");
   }
@@ -65,7 +64,7 @@ export default function OfrecerViajes({
     obtenerVehiculoGuardado,
     () => null,
   );
-  const [vehiculo, setVehiculo] = useState({ placa: "", modelo: "", color: "", cupos: "" });
+  const [vehiculo, setVehiculo] = useState({ tipo: "", rutaCotidiana: "" });
   const [errorVehiculo, setErrorVehiculo] = useState("");
 
   function cambiarCampoVehiculo(campo, valor) {
@@ -93,45 +92,12 @@ export default function OfrecerViajes({
 
   if (vehiculoGuardado === null) {
     return (
-      <div className="vista">
-        <form onSubmit={guardarVehiculo} style={{ maxWidth: 420 }}>
-          <h3 className="letra-contenido mb-3">Registra tu vehículo</h3>
-          {errorVehiculo && <div className="alert alert-danger" role="alert">{errorVehiculo}</div>}
-          <input
-            className="form-control mb-2"
-            placeholder="Placa"
-            required
-            value={vehiculo.placa}
-            onChange={(evento) => cambiarCampoVehiculo("placa", evento.target.value)}
-          />
-          <input
-            className="form-control mb-2"
-            placeholder="Modelo"
-            required
-            value={vehiculo.modelo}
-            onChange={(evento) => cambiarCampoVehiculo("modelo", evento.target.value)}
-          />
-          <input
-            className="form-control mb-2"
-            placeholder="Color"
-            required
-            value={vehiculo.color}
-            onChange={(evento) => cambiarCampoVehiculo("color", evento.target.value)}
-          />
-          <input
-            type="number"
-            min="1"
-            className="form-control mb-3"
-            placeholder="Cupos"
-            required
-            value={vehiculo.cupos}
-            onChange={(evento) => cambiarCampoVehiculo("cupos", evento.target.value)}
-          />
-          <button type="submit" className="btn btn-primary">
-            Guardar vehículo
-          </button>
-        </form>
-      </div>
+      <RegistroVehiculo
+        vehiculo={vehiculo}
+        error={errorVehiculo}
+        onFieldChange={cambiarCampoVehiculo}
+        onSubmit={guardarVehiculo}
+      />
     );
   }
 
