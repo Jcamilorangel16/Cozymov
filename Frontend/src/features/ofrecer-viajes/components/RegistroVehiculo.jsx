@@ -1,4 +1,5 @@
 import "./RegistroVehiculo.css";
+import RutaCotidianaSelect from "./RutaCotidianaSelect";
 
 export default function RegistroVehiculo({ vehiculo, error, onFieldChange, onSubmit }) {
   return (
@@ -47,17 +48,13 @@ export default function RegistroVehiculo({ vehiculo, error, onFieldChange, onSub
 
         <div className="registro-vehiculo__field">
           <label className="form-label" htmlFor="ruta-cotidiana">Ruta cotidiana</label>
-          <input
-            className="form-control"
+          <RutaCotidianaSelect
             id="ruta-cotidiana"
-            type="text"
-            placeholder="Ej. Barrio La Floresta → Centro"
-            required
             value={vehiculo.rutaCotidiana}
-            onChange={(evento) => onFieldChange("rutaCotidiana", evento.target.value)}
+            onChange={(valor) => onFieldChange("rutaCotidiana", valor)}
           />
           <small className="registro-vehiculo__hint">
-            Indica el barrio o sector de origen y el destino que recorres habitualmente.
+            Selecciona el barrio o sector de origen de tu ruta cotidiana hacia la Universidad Popular Del Cesar.
           </small>
         </div>
 
