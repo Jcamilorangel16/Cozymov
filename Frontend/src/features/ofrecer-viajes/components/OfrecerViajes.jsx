@@ -64,18 +64,37 @@ export default function OfrecerViajes({
     obtenerVehiculoGuardado,
     () => null,
   );
-  const [vehiculo, setVehiculo] = useState({ tipo: "", rutaCotidiana: "" });
+  const [vehiculo, setVehiculo] = useState({
+    tipo: "",
+    rutaCotidiana: "",
+    numeroPuertas: "",
+    modalidad: "",
+  });
   const [errorVehiculo, setErrorVehiculo] = useState("");
 
   function cambiarCampoVehiculo(campo, valor) {
-    setVehiculo((anterior) => ({ ...anterior, [campo]: valor }));
+    setVehiculo((anterior) => {
+      if (campo === "tipo") {
+        return { ...anterior, tipo: valor, numeroPuertas: "", modalidad: "" };
+      }
+
+      return { ...anterior, [campo]: valor };
+    });
     setErrorVehiculo("");
   }
 
   function guardarVehiculo(evento) {
     evento.preventDefault();
     try {
-      window.localStorage.setItem(VEHICULO_STORAGE_KEY, JSON.stringify(vehiculo));
+      const vehiculoParaGuardar = {
+        tipo: vehiculo.tipo,
+        rutaCotidiana: vehiculo.rutaCotidiana,
+        ...(vehiculo.tipo === "automovil" && {
+          numeroPuertas: Number(vehiculo.numeroPuertas),
+        }),
+        ...(vehiculo.tipo === "moto" && { modalidad: vehiculo.modalidad }),
+      };
+      window.localStorage.setItem(VEHICULO_STORAGE_KEY, JSON.stringify(vehiculoParaGuardar));
       ultimoVehiculoSerializado = null;
       ultimoVehiculoGuardado = null;
       notificarCambioVehiculo();
