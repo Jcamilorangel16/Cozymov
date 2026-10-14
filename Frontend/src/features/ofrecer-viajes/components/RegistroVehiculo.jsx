@@ -40,9 +40,10 @@ export default function RegistroVehiculo({ vehiculo, error, onFieldChange, onSub
             id="foto-vehiculo"
             type="file"
             accept="image/*"
+            required
           />
           <small className="registro-vehiculo__hint">
-            La foto todavía no se guarda; esta opción es solo para seleccionar el archivo.
+            Debes subir una foto de tu vehículo para continuar. Toma la foto sin que se vea la matrícula.
           </small>
         </div>
 
