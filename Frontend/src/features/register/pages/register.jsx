@@ -1,11 +1,13 @@
 "use client";
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import RegistroExitosoModal from '../../shared/components/RegistroExitosoModal';
 import './register.css';
 
 function Register() {
   const router = useRouter();
   const refs = useRef({});
+  const temporizadorRegistro = useRef(null);
 
   const [datosUsuario, setDatosUsuario] = useState({
     idUsuario: '',
@@ -21,6 +23,12 @@ function Register() {
   const [ocupacionOtro, setOcupacionOtro] = useState('');
   const [confirmarContrasena, setConfirmarContrasena] = useState('');
   const [guardando, setGuardando] = useState(false);
+  const [estadoRegistro, setEstadoRegistro] = useState('inactivo');
+
+  useEffect(
+    () => () => window.clearTimeout(temporizadorRegistro.current),
+    [],
+  );
 
   function manejarCambio(evento) {
     const { name, value } = evento.target;
@@ -111,6 +119,8 @@ function Register() {
     }
 
     setGuardando(true);
+    setEstadoRegistro('cargando');
+    const inicioRegistro = Date.now();
     try {
       const respuesta = await fetch('/api/registro', {
         method: 'POST',
@@ -124,12 +134,20 @@ function Register() {
       const resultado = await respuesta.json();
 
       if (!respuesta.ok) {
+        setEstadoRegistro('inactivo');
         alert(resultado.error || 'No se pudo crear la cuenta.');
         return;
       }
 
-      router.push('/');
+      const tiempoRestante = Math.max(0, 2000 - (Date.now() - inicioRegistro));
+      if (tiempoRestante > 0) {
+        await new Promise((resolve) => {
+          temporizadorRegistro.current = window.setTimeout(resolve, tiempoRestante);
+        });
+      }
+      setEstadoRegistro('exitoso');
     } catch {
+      setEstadoRegistro('inactivo');
       alert('No se pudo conectar con el servidor. Inténtalo de nuevo.');
     } finally {
       setGuardando(false);
@@ -137,7 +155,8 @@ function Register() {
   }
 
   return (
-    <div className="register-page d-flex justify-content-center align-items-center min-vh-100">
+    <>
+      <div className="register-page d-flex justify-content-center align-items-center min-vh-100">
         <div className="card shadow rounded-4 p-4 register-card">
           <h2 className="display-6 text-center fw-bold text-primary mb-3">Cozymov</h2>
           <h1 className="text-center mb-3">Crear cuenta</h1>
@@ -331,7 +350,14 @@ function Register() {
             </div>
           </div>
         </div>
-    </div>
+      </div>
+      <RegistroExitosoModal
+        estado={estadoRegistro}
+        entidad="usuario"
+        mensajeExitoso="Tu cuenta se creó correctamente."
+        onContinuar={() => router.push('/')}
+      />
+    </>
   );
 }
 

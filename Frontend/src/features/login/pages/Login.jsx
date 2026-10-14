@@ -1,20 +1,25 @@
 "use client";
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import RegistroExitosoModal from '../../shared/components/RegistroExitosoModal';
 import './Login.css';
 
 function Login() {
     const router = useRouter();
+    const irAlMenu = useCallback(() => router.push('/menu'), [router]);
     const [correo, setCorreo] = useState('');
     const [contrasena, setContrasena] = useState('');
     const [cargando, setCargando] = useState(false);
+    const [estadoInicioSesion, setEstadoInicioSesion] = useState('inactivo');
 
     const handleSubmit = async (event) => {
         event.preventDefault();
         if (cargando) return;
 
         setCargando(true);
+        setEstadoInicioSesion('cargando');
+        const inicioSolicitud = Date.now();
         try {
             const respuesta = await fetch('/api/login', {
                 method: 'POST',
@@ -24,13 +29,18 @@ function Login() {
             const resultado = await respuesta.json();
 
             if (!respuesta.ok) {
+                setEstadoInicioSesion('inactivo');
                 alert(resultado.error || 'Correo o contraseña incorrectos.');
                 return;
             }
 
-            alert('Inicio de sesión exitoso.');
-            router.push('/menu');
+            const tiempoRestante = Math.max(0, 1000 - (Date.now() - inicioSolicitud));
+            if (tiempoRestante > 0) {
+                await new Promise((resolve) => window.setTimeout(resolve, tiempoRestante));
+            }
+            setEstadoInicioSesion('exitoso');
         } catch {
+            setEstadoInicioSesion('inactivo');
             alert('No se pudo conectar con el servidor. Inténtalo de nuevo.');
         } finally {
             setCargando(false);
@@ -38,6 +48,7 @@ function Login() {
     };
 
     return (
+        <>
         <div className="container min-vh-100 d-flex justify-content-center align-items-center">
             <div className="contenedor d-flex flex-column justify-content-center align-items-center p-4">
 
@@ -103,6 +114,18 @@ function Login() {
 
             </div>
         </div>
+        <RegistroExitosoModal
+            estado={estadoInicioSesion}
+            entidad="sesión"
+            tituloCarga="Iniciando sesión"
+            tituloExitoso="¡Inicio de sesión exitoso!"
+            mensajeCarga="Estamos validando tus datos."
+            mensajeExitoso="Has iniciado sesión correctamente."
+            duracionMs={1000}
+            autoContinuarMs={500}
+            onContinuar={irAlMenu}
+        />
+        </>
     );
 }
 
