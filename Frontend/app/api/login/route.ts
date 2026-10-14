@@ -10,8 +10,10 @@ type Credenciales = {
 
 type UsuarioLogin = {
   id: string;
-  nombres: string;
-  apellidos: string;
+  primer_nombre: string;
+  segundo_nombre: string | null;
+  primer_apellido: string;
+  segundo_apellido: string | null;
   correo: string;
   contrasena: string;
 };
@@ -42,8 +44,9 @@ export async function POST(request: Request) {
 
   try {
     const resultado = await getDbPool().query<UsuarioLogin>(
-      `SELECT id, nombres, apellidos, correo, contrasena
-       FROM usuarios
+      `SELECT id_usuario AS id, primer_nombre, segundo_nombre,
+         primer_apellido, segundo_apellido, correo, contrasena
+       FROM usuario
        WHERE lower(correo) = $1
        LIMIT 1`,
       [correo]
@@ -57,8 +60,8 @@ export async function POST(request: Request) {
     return Response.json({
       usuario: {
         id: usuario.id,
-        nombres: usuario.nombres,
-        apellidos: usuario.apellidos,
+        nombres: [usuario.primer_nombre, usuario.segundo_nombre].filter(Boolean).join(" "),
+        apellidos: [usuario.primer_apellido, usuario.segundo_apellido].filter(Boolean).join(" "),
         correo: usuario.correo,
       },
     });
