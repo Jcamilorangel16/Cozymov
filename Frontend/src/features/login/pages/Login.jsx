@@ -8,31 +8,32 @@ function Login() {
     const router = useRouter();
     const [correo, setCorreo] = useState('');
     const [contrasena, setContrasena] = useState('');
+    const [cargando, setCargando] = useState(false);
 
-    const handleSubmit = (event) => {
+    const handleSubmit = async (event) => {
         event.preventDefault();
+        if (cargando) return;
 
-        const correoIngresado = correo.trim();
-        const contrasenaIngresada = contrasena;
+        setCargando(true);
+        try {
+            const respuesta = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ correo, contrasena }),
+            });
+            const resultado = await respuesta.json();
 
-        // Obtener usuario registrado
-        const usuarioGuardado = localStorage.getItem('usuarioRegistrado');
+            if (!respuesta.ok) {
+                alert(resultado.error || 'Correo o contraseña incorrectos.');
+                return;
+            }
 
-        if (!usuarioGuardado) {
-            alert('No hay ningún usuario registrado.');
-            return;
-        }
-
-        const datosUsuario = JSON.parse(usuarioGuardado);
-
-        if (
-            correoIngresado === datosUsuario.correo &&
-            contrasenaIngresada === datosUsuario.contrasena
-        ) {
             alert('Inicio de sesión exitoso.');
             router.push('/menu');
-        } else {
-            alert('Correo o contraseña incorrectos.');
+        } catch {
+            alert('No se pudo conectar con el servidor. Inténtalo de nuevo.');
+        } finally {
+            setCargando(false);
         }
     };
 
@@ -89,8 +90,8 @@ function Login() {
 
                     {/* Botones */}
                     <div className="d-grid gap-3">
-                        <button type="submit" className="btn btn-login">
-                            Iniciar sesión
+                        <button type="submit" className="btn btn-login" disabled={cargando}>
+                            {cargando ? 'Validando...' : 'Iniciar sesión'}
                         </button>
 
                         <Link href="/register" className="btn btn-crear">

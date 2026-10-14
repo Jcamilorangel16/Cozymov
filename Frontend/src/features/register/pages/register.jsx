@@ -3,35 +3,50 @@ import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import './register.css';
 
-const CAMPOS = ['nombre', 'apellido', 'documento', 'numero', 'correo', 'contrasena', 'confirmar-contrasena'];
-
 function Register() {
   const router = useRouter();
-  const refs = useRef({}); // { nombre: <input>, apellido: <input>, ... }
+  const refs = useRef({});
 
   const [datosUsuario, setDatosUsuario] = useState({
-    nombre: '',
-    apellido: '',
-    documento: '',
-    numero: '',
+    idUsuario: '',
+    primerNombre: '',
+    segundoNombre: '',
+    primerApellido: '',
+    segundoApellido: '',
+    edad: '',
     correo: '',
     contrasena: '',
   });
+  const [tipoOcupacion, setTipoOcupacion] = useState('');
+  const [ocupacionOtro, setOcupacionOtro] = useState('');
   const [confirmarContrasena, setConfirmarContrasena] = useState('');
+  const [guardando, setGuardando] = useState(false);
 
-  // Un solo handler para todos los inputs normales, usando el "name"
   function manejarCambio(evento) {
     const { name, value } = evento.target;
     setDatosUsuario((prev) => ({ ...prev, [name]: value }));
   }
 
-  // Navegación entre campos con Enter / ArrowUp / ArrowDown
-  function manejarTeclado(evento, indice) {
+  function manejarTeclado(evento, campoActual) {
     if (!['Enter', 'ArrowDown', 'ArrowUp'].includes(evento.key)) return;
     evento.preventDefault();
 
+    const campos = [
+      'primerNombre',
+      'segundoNombre',
+      'primerApellido',
+      'segundoApellido',
+      'idUsuario',
+      'edad',
+      'tipoOcupacion',
+      ...(tipoOcupacion === 'otro' ? ['ocupacionOtro'] : []),
+      'correo',
+      'contrasena',
+      'confirmar-contrasena',
+    ];
+    const indice = campos.indexOf(campoActual);
     const desplazamiento = evento.key === 'ArrowUp' ? -1 : 1;
-    const idDestino = CAMPOS[indice + desplazamiento];
+    const idDestino = campos[indice + desplazamiento];
 
     if (idDestino) {
       refs.current[idDestino]?.focus();
@@ -40,10 +55,40 @@ function Register() {
     }
   }
 
-  // Validación y guardado (misma lógica que register.js, leyendo del estado)
-  function manejarSiguiente() {
-    if (Object.values(datosUsuario).some((valor) => valor === '') || confirmarContrasena === '') {
+  async function manejarSiguiente() {
+    if (guardando) return;
+
+    const camposObligatorios = [
+      'primerNombre',
+      'primerApellido',
+      'idUsuario',
+      'edad',
+      'correo',
+      'contrasena',
+    ];
+    if (
+      camposObligatorios.some((campo) => !datosUsuario[campo].trim()) ||
+      !tipoOcupacion ||
+      (tipoOcupacion === 'otro' && !ocupacionOtro.trim()) ||
+      confirmarContrasena === ''
+    ) {
       alert('Por favor, completa todos los campos.');
+      return;
+    }
+
+    if (datosUsuario.idUsuario.trim().length > 20) {
+      alert('La cédula no puede superar los 20 caracteres.');
+      refs.current.idUsuario?.focus();
+      return;
+    }
+
+    if (
+      !Number.isInteger(Number(datosUsuario.edad)) ||
+      Number(datosUsuario.edad) < 16 ||
+      Number(datosUsuario.edad) > 32767
+    ) {
+      alert('La edad debe ser un número entero entre 16 y 32767 años.');
+      refs.current.edad?.focus();
       return;
     }
 
@@ -59,13 +104,40 @@ function Register() {
       return;
     }
 
-    localStorage.setItem('usuarioRegistrado', JSON.stringify(datosUsuario));
-    router.push('/');
+    if (datosUsuario.contrasena.length < 8) {
+      alert('La contraseña debe tener al menos 8 caracteres.');
+      refs.current.contrasena?.focus();
+      return;
+    }
+
+    setGuardando(true);
+    try {
+      const respuesta = await fetch('/api/registro', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...datosUsuario,
+          edad: Number(datosUsuario.edad),
+          ocupacion: tipoOcupacion === 'otro' ? ocupacionOtro.trim() : tipoOcupacion,
+        }),
+      });
+      const resultado = await respuesta.json();
+
+      if (!respuesta.ok) {
+        alert(resultado.error || 'No se pudo crear la cuenta.');
+        return;
+      }
+
+      router.push('/');
+    } catch {
+      alert('No se pudo conectar con el servidor. Inténtalo de nuevo.');
+    } finally {
+      setGuardando(false);
+    }
   }
 
   return (
-    <>
-      <div className="register-page d-flex justify-content-center align-items-center min-vh-100">
+    <div className="register-page d-flex justify-content-center align-items-center min-vh-100">
         <div className="card shadow rounded-4 p-4 register-card">
           <h2 className="display-6 text-center fw-bold text-primary mb-3">Cozymov</h2>
           <h1 className="text-center mb-3">Crear cuenta</h1>
@@ -73,65 +145,135 @@ function Register() {
 
           <div className="row g-3">
             <div className="col-md-6">
-              <label htmlFor="nombre" className="form-label">Nombres</label>
+              <label htmlFor="primerNombre" className="form-label">Primer nombre</label>
               <input
-                id="nombre"
-                name="nombre"
+                id="primerNombre"
+                name="primerNombre"
                 type="text"
                 className="form-control"
-                placeholder="𖨆  Sergio David"
-                value={datosUsuario.nombre}
+                maxLength={50}
+                placeholder="Primer nombre"
+                value={datosUsuario.primerNombre}
                 onChange={manejarCambio}
-                onKeyDown={(e) => manejarTeclado(e, 0)}
-                ref={(el) => (refs.current.nombre = el)}
+                onKeyDown={(e) => manejarTeclado(e, 'primerNombre')}
+                ref={(el) => (refs.current.primerNombre = el)}
               />
             </div>
-
             <div className="col-md-6">
-              <label htmlFor="apellido" className="form-label">Apellidos</label>
+              <label htmlFor="segundoNombre" className="form-label">Segundo nombre (opcional)</label>
               <input
-                id="apellido"
-                name="apellido"
+                id="segundoNombre"
+                name="segundoNombre"
                 type="text"
                 className="form-control"
-                placeholder="𖨆  Gomez Gonzales"
-                value={datosUsuario.apellido}
+                maxLength={50}
+                value={datosUsuario.segundoNombre}
                 onChange={manejarCambio}
-                onKeyDown={(e) => manejarTeclado(e, 1)}
-                ref={(el) => (refs.current.apellido = el)}
+                onKeyDown={(e) => manejarTeclado(e, 'segundoNombre')}
+                ref={(el) => (refs.current.segundoNombre = el)}
               />
             </div>
-          </div>
-
-          <div className="row g-3 mt-1">
             <div className="col-md-6">
-              <label htmlFor="documento" className="form-label">Documento de Identidad</label>
+              <label htmlFor="primerApellido" className="form-label">Primer apellido</label>
               <input
-                id="documento"
-                name="documento"
+                id="primerApellido"
+                name="primerApellido"
+                type="text"
+                className="form-control"
+                maxLength={50}
+                placeholder="Primer apellido"
+                value={datosUsuario.primerApellido}
+                onChange={manejarCambio}
+                onKeyDown={(e) => manejarTeclado(e, 'primerApellido')}
+                ref={(el) => (refs.current.primerApellido = el)}
+              />
+            </div>
+            <div className="col-md-6">
+              <label htmlFor="segundoApellido" className="form-label">Segundo apellido (opcional)</label>
+              <input
+                id="segundoApellido"
+                name="segundoApellido"
+                type="text"
+                className="form-control"
+                maxLength={50}
+                value={datosUsuario.segundoApellido}
+                onChange={manejarCambio}
+                onKeyDown={(e) => manejarTeclado(e, 'segundoApellido')}
+                ref={(el) => (refs.current.segundoApellido = el)}
+              />
+            </div>
+            <div className="col-md-6">
+              <label htmlFor="idUsuario" className="form-label">Cédula</label>
+              <input
+                id="idUsuario"
+                name="idUsuario"
+                type="text"
+                inputMode="numeric"
+                className="form-control"
+                maxLength={20}
+                placeholder="Número de cédula"
+                value={datosUsuario.idUsuario}
+                onChange={manejarCambio}
+                onKeyDown={(e) => manejarTeclado(e, 'idUsuario')}
+                ref={(el) => (refs.current.idUsuario = el)}
+              />
+            </div>
+            <div className="col-md-6">
+              <label htmlFor="edad" className="form-label">Edad</label>
+              <input
+                id="edad"
+                name="edad"
                 type="number"
                 className="form-control"
-                placeholder="🜷 0123456789"
-                value={datosUsuario.documento}
+                min="16"
+                max="32767"
+                step="1"
+                value={datosUsuario.edad}
                 onChange={manejarCambio}
-                onKeyDown={(e) => manejarTeclado(e, 2)}
-                ref={(el) => (refs.current.documento = el)}
+                onKeyDown={(e) => manejarTeclado(e, 'edad')}
+                ref={(el) => (refs.current.edad = el)}
               />
-
-              <label htmlFor="numero" className="form-label mt-3">Número de Teléfono</label>
-              <input
-                id="numero"
-                name="numero"
-                type="tel"
-                className="form-control"
-                placeholder="☏  3001234567"
-                value={datosUsuario.numero}
-                onChange={manejarCambio}
-                onKeyDown={(e) => manejarTeclado(e, 3)}
-                ref={(el) => (refs.current.numero = el)}
-              />
-
-              <label htmlFor="correo" className="form-label mt-3">Correo Institucional</label>
+            </div>
+            <div className="col-md-6">
+              <label htmlFor="tipoOcupacion" className="form-label">Ocupación</label>
+              <select
+                id="tipoOcupacion"
+                className="form-select"
+                required
+                value={tipoOcupacion}
+                onChange={(evento) => setTipoOcupacion(evento.target.value)}
+                onKeyDown={(evento) => {
+                  if (evento.key === 'Enter') {
+                    evento.preventDefault();
+                    refs.current[tipoOcupacion === 'otro' ? 'ocupacionOtro' : 'correo']?.focus();
+                  }
+                }}
+                ref={(el) => (refs.current.tipoOcupacion = el)}
+              >
+                <option value="" disabled>Selecciona una ocupación</option>
+                <option value="estudiante">Estudiante</option>
+                <option value="profesor">Profesor</option>
+                <option value="otro">Otro</option>
+              </select>
+              {tipoOcupacion === 'otro' && (
+                <input
+                  id="ocupacionOtro"
+                  name="ocupacionOtro"
+                  type="text"
+                  className="form-control mt-2"
+                  maxLength={50}
+                  placeholder="Escribe tu ocupación"
+                  value={ocupacionOtro}
+                  onChange={(evento) => setOcupacionOtro(evento.target.value)}
+                  onKeyDown={(evento) => manejarTeclado(evento, 'ocupacionOtro')}
+                  ref={(el) => (refs.current.ocupacionOtro = el)}
+                  required
+                  aria-label="Especifica tu ocupación"
+                />
+              )}
+            </div>
+            <div className="col-md-6">
+              <label htmlFor="correo" className="form-label">Correo Institucional</label>
               <input
                 id="correo"
                 name="correo"
@@ -140,13 +282,13 @@ function Register() {
                 placeholder="✉ Sergio.Gomez@universidad.edu.co"
                 pattern="[^\s@]+@[^\s@]+\.edu\.co"
                 title="Usa un correo institucional que termine en .edu.co"
+                maxLength={150}
                 value={datosUsuario.correo}
                 onChange={manejarCambio}
-                onKeyDown={(e) => manejarTeclado(e, 4)}
+                onKeyDown={(e) => manejarTeclado(e, 'correo')}
                 ref={(el) => (refs.current.correo = el)}
               />
             </div>
-
             <div className="col-md-6">
               <label htmlFor="contrasena" className="form-label">Contraseña</label>
               <input
@@ -157,7 +299,7 @@ function Register() {
                 placeholder=" 🔒 Ingrese su contraseña"
                 value={datosUsuario.contrasena}
                 onChange={manejarCambio}
-                onKeyDown={(e) => manejarTeclado(e, 5)}
+                onKeyDown={(e) => manejarTeclado(e, 'contrasena')}
                 ref={(el) => (refs.current.contrasena = el)}
               />
 
@@ -170,12 +312,12 @@ function Register() {
                 placeholder=" 🔒 Confirme su contraseña"
                 value={confirmarContrasena}
                 onChange={(e) => setConfirmarContrasena(e.target.value)}
-                onKeyDown={(e) => manejarTeclado(e, 6)}
+                onKeyDown={(e) => manejarTeclado(e, 'confirmar-contrasena')}
                 ref={(el) => (refs.current['confirmar-contrasena'] = el)}
               />
 
-              <button id="siguiente" type="button" className="btn btn-primary w-100 mt-5" onClick={manejarSiguiente}>
-                Siguiente
+              <button id="siguiente" type="button" className="btn btn-primary w-100 mt-5" onClick={manejarSiguiente} disabled={guardando}>
+                {guardando ? 'Creando cuenta...' : 'Siguiente'}
               </button>
               <button
                 id="volver"
@@ -189,8 +331,7 @@ function Register() {
             </div>
           </div>
         </div>
-      </div>
-    </>
+    </div>
   );
 }
 
