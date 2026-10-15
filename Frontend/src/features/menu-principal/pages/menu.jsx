@@ -114,7 +114,7 @@ export default function MenuPrincipal() {
         {/* Perfil del usuario y configuración */}
         <div
           className="sidebar-user d-flex align-items-center justify-content-between p-2 rounded"
-          style={{ backgroundColor: "rgba(255, 255, 255, 0.05)" }}
+          style={{ backgroundColor: "rgba(0, 70, 132, 0.87)" }}
         >
           <div className="d-flex align-items-center gap-2">
             <div className="user-avatar">A</div>
@@ -129,19 +129,19 @@ export default function MenuPrincipal() {
               aria-expanded="false"
               title="Configuración"
             >
-              ⚙️
+              <img src="tuerca.png" alt="Configuración" style={{ width: 20, height: 20 }} />
             </button>
             <ul className="dropdown-menu dropdown-menu-dark dropdown-menu-end shadow" aria-labelledby="dropdownConfig">
               <li>
                 <a
-                  className="dropdown-item text-danger fw-semibold"
+                  className="dropdown-item text-danger fw-semibold d-flex align-items-center gap-2"
                   href="#"
                   onClick={(evento) => {
                     evento.preventDefault();
                     // TODO: conectar con la lógica real de cierre de sesión
                   }}
                 >
-                  🚪 Cerrar sesión
+                  <img src="puerta.png" alt="Cerrar sesión" style={{ width: 20, height: 20}} /> Cerrar sesión
                 </a>
               </li>
             </ul>
@@ -191,22 +191,7 @@ export default function MenuPrincipal() {
                     ))}
                   </div>
                 </div>
-
-                <div className="col-md-4">
-                  <h5 className="mb-3 letra-contenido">Mis Próximos Viajes</h5>
-                  <div className="d-flex flex-column gap-2">
-                    {proximosViajes.map((viaje, indice) => (
-                      <div className="card p-3 d-flex flex-row justify-content-between align-items-center color-card" key={indice}>
-                        <div>
-                          <div className="fw-semibold">{viaje.ruta}</div>
-                          <small className="text-muted">{viaje.horario}</small>
-                        </div>
-                        <span className="badge bg-success">Agendado</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
+                
                 <h5 className="mt-4 mb-3 letra-contenido">Feed de notificaciones y actividad</h5>
                 <div className="d-flex flex-column gap-2">
                   {feedNotificaciones.map((item, indice) => (
