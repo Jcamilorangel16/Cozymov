@@ -66,6 +66,7 @@ export default function OfrecerViajes({
   );
   const [vehiculo, setVehiculo] = useState({
     tipo: "",
+    modelo: "",
     rutaCotidiana: "",
     numeroPuertas: "",
     modalidad: "",
@@ -88,6 +89,7 @@ export default function OfrecerViajes({
     try {
       const vehiculoParaGuardar = {
         tipo: vehiculo.tipo,
+        modelo: vehiculo.modelo,
         rutaCotidiana: vehiculo.rutaCotidiana,
         ...(vehiculo.tipo === "automovil" && {
           numeroPuertas: Number(vehiculo.numeroPuertas),
