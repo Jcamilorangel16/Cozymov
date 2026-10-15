@@ -70,6 +70,13 @@ export default function EsperandoPasajeros({
           </strong>
         </div>
 
+        {viaje.informacionAdicional && (
+          <div className="rounded-3 bg-light p-3 mb-4">
+            <small className="d-block text-secondary">Información adicional</small>
+            <p className="mb-0 text-break">{viaje.informacionAdicional}</p>
+          </div>
+        )}
+
         <p className="texto-secundario mb-4" role="status">
           Tu viaje queda en estado de espera mientras los pasajeros revisan el recorrido.
         </p>

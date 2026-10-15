@@ -11,6 +11,7 @@ const VEHICULO_STORAGE_KEY = "cozymov-vehiculo-v2";
 const PRECIOS_SUGERIDOS = [3000, 4000, 5000];
 const UNIVERSIDAD_POPULAR_CESAR = "Universidad Popular Del Cesar";
 const LUGARES_ADICIONALES = [UNIVERSIDAD_POPULAR_CESAR];
+const MINUTOS_POR_DEFECTO_SALIDA = 5;
 
 function formatearPrecio(precio) {
   return new Intl.NumberFormat("es-CO", {
@@ -84,9 +85,10 @@ export default function OfrecerViajes({
   const [puntoEncuentro, setPuntoEncuentro] = useState("");
   const [precioPasaje, setPrecioPasaje] = useState("");
   const [cuposDisponibles, setCuposDisponibles] = useState("1");
+  const [informacionAdicional, setInformacionAdicional] = useState("");
   const [fechaSalida, setFechaSalida] = useState("");
   const [horaSalida, setHoraSalida] = useState("");
-  const [atajoSalida, setAtajoSalida] = useState("0");
+  const [atajoSalida, setAtajoSalida] = useState(String(MINUTOS_POR_DEFECTO_SALIDA));
   const [errorPublicacion, setErrorPublicacion] = useState("");
   const [estadoPublicacion, setEstadoPublicacion] = useState("inactivo");
   const [viajeBorrador, setViajeBorrador] = useState(null);
@@ -103,9 +105,12 @@ export default function OfrecerViajes({
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
-      const fechaHoraActual = obtenerPartesFechaHora(new Date());
-      setFechaSalida(fechaHoraActual.fecha);
-      setHoraSalida(fechaHoraActual.hora);
+      const salidaPredeterminada = new Date(
+        Date.now() + MINUTOS_POR_DEFECTO_SALIDA * 60 * 1000,
+      );
+      const partesSalida = obtenerPartesFechaHora(salidaPredeterminada);
+      setFechaSalida(partesSalida.fecha);
+      setHoraSalida(partesSalida.hora);
     });
     return () => window.cancelAnimationFrame(frame);
   }, []);
@@ -185,6 +190,7 @@ export default function OfrecerViajes({
       cuposDisponibles: cupos,
       fechaSalida,
       horaSalida,
+      informacionAdicional: informacionAdicional.trim(),
     });
     setEstadoPublicacion("cargando");
     temporizadorPublicacion.current = window.setTimeout(() => {
@@ -203,6 +209,7 @@ export default function OfrecerViajes({
     setPuntoEncuentro(viajePublicado.puntoEncuentro);
     setPrecioPasaje(String(viajePublicado.precioPasaje));
     setCuposDisponibles(String(viajePublicado.cuposDisponibles));
+    setInformacionAdicional(viajePublicado.informacionAdicional || "");
     setFechaSalida(viajePublicado.fechaSalida);
     setHoraSalida(viajePublicado.horaSalida);
     setAtajoSalida("");
@@ -219,10 +226,14 @@ export default function OfrecerViajes({
     setPuntoEncuentro("");
     setPrecioPasaje("");
     setCuposDisponibles("1");
-    const fechaHoraActual = obtenerPartesFechaHora(new Date());
-    setFechaSalida(fechaHoraActual.fecha);
-    setHoraSalida(fechaHoraActual.hora);
-    setAtajoSalida("0");
+    setInformacionAdicional("");
+    const salidaPredeterminada = new Date(
+      Date.now() + MINUTOS_POR_DEFECTO_SALIDA * 60 * 1000,
+    );
+    const partesSalida = obtenerPartesFechaHora(salidaPredeterminada);
+    setFechaSalida(partesSalida.fecha);
+    setHoraSalida(partesSalida.hora);
+    setAtajoSalida(String(MINUTOS_POR_DEFECTO_SALIDA));
     setErrorPublicacion("");
   }
 
@@ -321,16 +332,6 @@ export default function OfrecerViajes({
               </div>
             </div>
 
-            <div className="mb-4">
-              <PuntoEncuentroDropdown
-                value={puntoEncuentro}
-                onChange={(punto) => {
-                  setPuntoEncuentro(punto);
-                  setErrorPublicacion("");
-                }}
-              />
-            </div>
-
             <div className="rounded-3 bg-light p-3 mb-4">
               <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                 <h4 className="h6 fw-semibold mb-0">Fecha y hora de salida</h4>
@@ -356,6 +357,7 @@ export default function OfrecerViajes({
                 >
                   <option value="">Hora rápida...</option>
                   <option value="0">Ahora</option>
+                  <option value="5">En 5 minutos</option>
                   <option value="15">En 15 minutos</option>
                   <option value="30">En 30 minutos</option>
                   <option value="60">En 1 hora</option>
@@ -464,6 +466,35 @@ export default function OfrecerViajes({
               />
               <small className="d-block text-secondary mt-1" id="cupos-disponibles-ayuda">
                 Indica cuántos pasajeros puedes llevar (máximo 7).
+              </small>
+            </div>
+
+            <div className="mb-4">
+              <PuntoEncuentroDropdown
+                value={puntoEncuentro}
+                onChange={(punto) => {
+                  setPuntoEncuentro(punto);
+                  setErrorPublicacion("");
+                }}
+              />
+            </div>
+
+            <div className="mb-4">
+              <label className="form-label fw-semibold" htmlFor="informacion-adicional">
+                Información adicional <span className="text-secondary fw-normal">(opcional)</span>
+              </label>
+              <textarea
+                className="form-control"
+                id="informacion-adicional"
+                rows="3"
+                maxLength="500"
+                placeholder="Agrega indicaciones u otros detalles para tus pasajeros..."
+                value={informacionAdicional}
+                onChange={(evento) => setInformacionAdicional(evento.target.value)}
+                aria-describedby="informacion-adicional-ayuda"
+              />
+              <small className="d-block text-secondary mt-1" id="informacion-adicional-ayuda">
+                Máximo 500 caracteres.
               </small>
             </div>
 
