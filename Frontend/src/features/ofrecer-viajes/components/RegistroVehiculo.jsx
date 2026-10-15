@@ -33,8 +33,54 @@ export default function RegistroVehiculo({ vehiculo, error, onFieldChange, onSub
           </select>
         </div>
 
-        <div className="mb-3">
-          <label className="form-label fw-semibold" htmlFor="foto-vehiculo">Foto del vehículo</label>
+        <div className="registro-vehiculo__field">
+          <label className="form-label" htmlFor="modelo-vehiculo">Modelo</label>
+          <input
+            className="form-control"
+            id="modelo-vehiculo"
+            type="text"
+            required
+            value={vehiculo.modelo}
+            onChange={(evento) => onFieldChange("modelo", evento.target.value)}
+          />
+        </div>
+
+        {vehiculo.tipo === "automovil" && (
+          <div className="registro-vehiculo__field">
+            <label className="form-label" htmlFor="numero-puertas">Número de puertas</label>
+            <input
+              className="form-control"
+              id="numero-puertas"
+              type="number"
+              min="2"
+              max="5"
+              step="1"
+              required
+              value={vehiculo.numeroPuertas}
+              onChange={(evento) => onFieldChange("numeroPuertas", evento.target.value)}
+            />
+          </div>
+        )}
+
+        {vehiculo.tipo === "moto" && (
+          <div className="registro-vehiculo__field">
+            <label className="form-label" htmlFor="modalidad-moto">Modalidad</label>
+            <select
+              className="form-select"
+              id="modalidad-moto"
+              required
+              value={vehiculo.modalidad}
+              onChange={(evento) => onFieldChange("modalidad", evento.target.value)}
+            >
+              <option value="" disabled>Selecciona una modalidad</option>
+              <option value="automatica">Automática</option>
+              <option value="mecanica">Mecánica</option>
+            </select>
+          </div>
+        )}
+
+        <div className="registro-vehiculo__field">
+          <label className="form-label" htmlFor="foto-vehiculo">Foto del vehículo</label>
           <input
             className="form-control rounded-3"
             id="foto-vehiculo"

@@ -65,7 +65,13 @@ export default function OfrecerViajes({
     obtenerVehiculoGuardado,
     () => null,
   );
-  const [vehiculo, setVehiculo] = useState({ tipo: "", rutaCotidiana: "" });
+  const [vehiculo, setVehiculo] = useState({
+    tipo: "",
+    modelo: "",
+    rutaCotidiana: "",
+    numeroPuertas: "",
+    modalidad: "",
+  });
   const [errorVehiculo, setErrorVehiculo] = useState("");
   const [estadoRegistro, setEstadoRegistro] = useState("inactivo");
   const temporizadorRegistro = useRef(null);
@@ -76,27 +82,37 @@ export default function OfrecerViajes({
   );
 
   function cambiarCampoVehiculo(campo, valor) {
-    setVehiculo((anterior) => ({ ...anterior, [campo]: valor }));
+    setVehiculo((anterior) => {
+      if (campo === "tipo") {
+        return { ...anterior, tipo: valor, numeroPuertas: "", modalidad: "" };
+      }
+
+      return { ...anterior, [campo]: valor };
+    });
     setErrorVehiculo("");
   }
 
   function guardarVehiculo(evento) {
     evento.preventDefault();
-    setEstadoRegistro("cargando");
-    temporizadorRegistro.current = window.setTimeout(() => {
-      try {
-        window.localStorage.setItem(VEHICULO_STORAGE_KEY, JSON.stringify(vehiculo));
-        ultimoVehiculoSerializado = null;
-        ultimoVehiculoGuardado = null;
-        notificarCambioVehiculo();
-        setErrorVehiculo("");
-        setEstadoRegistro("exitoso");
-      } catch (error) {
-        console.error("No se pudo guardar el vehículo en localStorage:", error);
-        setErrorVehiculo("No se pudo guardar el vehículo. Inténtalo de nuevo.");
-        setEstadoRegistro("inactivo");
-      }
-    }, 2000);
+    try {
+      const vehiculoParaGuardar = {
+        tipo: vehiculo.tipo,
+        modelo: vehiculo.modelo,
+        rutaCotidiana: vehiculo.rutaCotidiana,
+        ...(vehiculo.tipo === "automovil" && {
+          numeroPuertas: Number(vehiculo.numeroPuertas),
+        }),
+        ...(vehiculo.tipo === "moto" && { modalidad: vehiculo.modalidad }),
+      };
+      window.localStorage.setItem(VEHICULO_STORAGE_KEY, JSON.stringify(vehiculoParaGuardar));
+      ultimoVehiculoSerializado = null;
+      ultimoVehiculoGuardado = null;
+      notificarCambioVehiculo();
+      setErrorVehiculo("");
+    } catch (error) {
+      console.error("No se pudo guardar el vehículo en localStorage:", error);
+      setErrorVehiculo("No se pudo guardar el vehículo. Inténtalo de nuevo.");
+    }
   }
 
   const ventanaRegistro = (
