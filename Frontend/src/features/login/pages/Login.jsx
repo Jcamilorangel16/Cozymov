@@ -11,6 +11,7 @@ function Login() {
     const [correo, setCorreo] = useState('');
     const [contrasena, setContrasena] = useState('');
     const [cargando, setCargando] = useState(false);
+    const [errorLogin, setErrorLogin] = useState('');
     const [estadoInicioSesion, setEstadoInicioSesion] = useState('inactivo');
 
     const handleSubmit = async (event) => {
@@ -18,7 +19,7 @@ function Login() {
         if (cargando) return;
 
         setCargando(true);
-        setEstadoInicioSesion('cargando');
+        setErrorLogin('');
         const inicioSolicitud = Date.now();
         try {
             const respuesta = await fetch('/api/login', {
@@ -29,19 +30,22 @@ function Login() {
             const resultado = await respuesta.json();
 
             if (!respuesta.ok) {
-                setEstadoInicioSesion('inactivo');
-                alert(resultado.error || 'Correo o contraseña incorrectos.');
+                setErrorLogin(
+                    respuesta.status === 401
+                        ? 'El correo o la contraseña son incorrectos. Verifica los datos e inténtalo de nuevo.'
+                        : resultado.error || 'No se pudo iniciar sesión. Inténtalo de nuevo.',
+                );
                 return;
             }
 
+            setEstadoInicioSesion('cargando');
             const tiempoRestante = Math.max(0, 1000 - (Date.now() - inicioSolicitud));
             if (tiempoRestante > 0) {
                 await new Promise((resolve) => window.setTimeout(resolve, tiempoRestante));
             }
             setEstadoInicioSesion('exitoso');
         } catch {
-            setEstadoInicioSesion('inactivo');
-            alert('No se pudo conectar con el servidor. Inténtalo de nuevo.');
+            setErrorLogin('No se pudo conectar con el servidor. Inténtalo de nuevo.');
         } finally {
             setCargando(false);
         }
@@ -77,7 +81,12 @@ function Login() {
                             id="correo"
                             placeholder="Ingrese su correo"
                             value={correo}
-                            onChange={(e) => setCorreo(e.target.value)}
+                            onChange={(e) => {
+                                setCorreo(e.target.value);
+                                setErrorLogin('');
+                            }}
+                            aria-invalid={Boolean(errorLogin)}
+                            aria-describedby={errorLogin ? 'error-inicio-sesion' : undefined}
                             required
                         />
                     </div>
@@ -94,15 +103,30 @@ function Login() {
                             id="contrasena"
                             placeholder="Ingrese su contraseña"
                             value={contrasena}
-                            onChange={(e) => setContrasena(e.target.value)}
+                            onChange={(e) => {
+                                setContrasena(e.target.value);
+                                setErrorLogin('');
+                            }}
+                            aria-invalid={Boolean(errorLogin)}
+                            aria-describedby={errorLogin ? 'error-inicio-sesion' : undefined}
                             required
                         />
                     </div>
 
+                    {errorLogin && (
+                        <p
+                            className="small text-danger mb-3"
+                            id="error-inicio-sesion"
+                            role="alert"
+                        >
+                            {errorLogin}
+                        </p>
+                    )}
+
                     {/* Botones */}
                     <div className="d-grid gap-3">
-                        <button type="submit" className="btn btn-login" disabled={cargando}>
-                            {cargando ? 'Validando...' : 'Iniciar sesión'}
+                        <button type="submit" className="btn btn-login" disabled={cargando} aria-busy={cargando}>
+                            Iniciar sesión
                         </button>
 
                         <Link href="/register" className="btn btn-crear">
