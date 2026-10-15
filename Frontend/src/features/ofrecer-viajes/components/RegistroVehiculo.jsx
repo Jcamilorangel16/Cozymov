@@ -1,14 +1,15 @@
 import "./RegistroVehiculo.css";
+import RutaCotidianaSelect from "./RutaCotidianaSelect";
 
 export default function RegistroVehiculo({ vehiculo, error, onFieldChange, onSubmit }) {
   return (
-    <div className="vista registro-vehiculo">
-      <form className="registro-vehiculo__card" onSubmit={onSubmit}>
-        <div className="registro-vehiculo__heading">
-          <span className="registro-vehiculo__icon" aria-hidden="true">🚘</span>
+    <div className="vista d-flex justify-content-center py-4">
+      <form className="registro-vehiculo__card w-100 p-4 p-md-5 border rounded-4 shadow" onSubmit={onSubmit}>
+        <div className="d-flex align-items-center gap-3 mb-4">
+          <span className="registro-vehiculo__icon d-flex align-items-center justify-content-center flex-shrink-0 rounded-4" aria-hidden="true">🚘</span>
           <div>
-            <h3 className="registro-vehiculo__title">Registra tu vehículo</h3>
-            <p className="registro-vehiculo__description">
+            <h3 className="h4 fw-bold mb-1">Registra tu vehículo</h3>
+            <p className="text-secondary mb-0">
               Completa los datos para empezar a ofrecer viajes.
             </p>
           </div>
@@ -16,10 +17,10 @@ export default function RegistroVehiculo({ vehiculo, error, onFieldChange, onSub
 
         {error && <div className="alert alert-danger" role="alert">{error}</div>}
 
-        <div className="registro-vehiculo__field">
-          <label className="form-label" htmlFor="tipo-vehiculo">Tipo de vehículo</label>
+        <div className="mb-3">
+          <label className="form-label fw-semibold" htmlFor="tipo-vehiculo">Tipo de vehículo</label>
           <select
-            className="form-select"
+            className="form-select rounded-3"
             id="tipo-vehiculo"
             required
             value={vehiculo.tipo}
@@ -69,33 +70,30 @@ export default function RegistroVehiculo({ vehiculo, error, onFieldChange, onSub
         <div className="registro-vehiculo__field">
           <label className="form-label" htmlFor="foto-vehiculo">Foto del vehículo</label>
           <input
-            className="form-control"
+            className="form-control rounded-3"
             id="foto-vehiculo"
             type="file"
             accept="image/*"
-          />
-          <small className="registro-vehiculo__hint">
-            La foto todavía no se guarda; esta opción es solo para seleccionar el archivo.
-          </small>
-        </div>
-
-        <div className="registro-vehiculo__field">
-          <label className="form-label" htmlFor="ruta-cotidiana">Ruta cotidiana</label>
-          <input
-            className="form-control"
-            id="ruta-cotidiana"
-            type="text"
-            placeholder="Ej. Barrio La Floresta → Centro"
             required
-            value={vehiculo.rutaCotidiana}
-            onChange={(evento) => onFieldChange("rutaCotidiana", evento.target.value)}
           />
-          <small className="registro-vehiculo__hint">
-            Indica el barrio o sector de origen y el destino que recorres habitualmente.
+          <small className="d-block mt-1 text-secondary">
+            Debes subir una foto de tu vehículo para continuar. Toma la foto sin que se vea la matrícula.
           </small>
         </div>
 
-        <button type="submit" className="btn registro-vehiculo__submit">
+        <div className="mb-3">
+          <label className="form-label fw-semibold" htmlFor="ruta-cotidiana">Ruta cotidiana</label>
+          <RutaCotidianaSelect
+            id="ruta-cotidiana"
+            value={vehiculo.rutaCotidiana}
+            onChange={(valor) => onFieldChange("rutaCotidiana", valor)}
+          />
+          <small className="d-block mt-1 text-secondary">
+            Selecciona el barrio o sector de origen de tu ruta cotidiana hacia la Universidad Popular Del Cesar.
+          </small>
+        </div>
+
+        <button type="submit" className="btn btn-primary w-100 fw-bold py-2">
           Guardar vehículo
         </button>
       </form>

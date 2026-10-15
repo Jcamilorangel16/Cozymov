@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import RegistroVehiculo from "./RegistroVehiculo";
+import RegistroExitosoModal from "../../shared/components/RegistroExitosoModal";
 
 const resultadosPasajeros = [
   {
@@ -71,6 +72,13 @@ export default function OfrecerViajes({
     modalidad: "",
   });
   const [errorVehiculo, setErrorVehiculo] = useState("");
+  const [estadoRegistro, setEstadoRegistro] = useState("inactivo");
+  const temporizadorRegistro = useRef(null);
+
+  useEffect(
+    () => () => window.clearTimeout(temporizadorRegistro.current),
+    [],
+  );
 
   function cambiarCampoVehiculo(campo, valor) {
     setVehiculo((anterior) => {
@@ -85,25 +93,39 @@ export default function OfrecerViajes({
 
   function guardarVehiculo(evento) {
     evento.preventDefault();
-    try {
-      const vehiculoParaGuardar = {
-        tipo: vehiculo.tipo,
-        rutaCotidiana: vehiculo.rutaCotidiana,
-        ...(vehiculo.tipo === "automovil" && {
-          numeroPuertas: Number(vehiculo.numeroPuertas),
-        }),
-        ...(vehiculo.tipo === "moto" && { modalidad: vehiculo.modalidad }),
-      };
-      window.localStorage.setItem(VEHICULO_STORAGE_KEY, JSON.stringify(vehiculoParaGuardar));
-      ultimoVehiculoSerializado = null;
-      ultimoVehiculoGuardado = null;
-      notificarCambioVehiculo();
-      setErrorVehiculo("");
-    } catch (error) {
-      console.error("No se pudo guardar el vehículo en localStorage:", error);
-      setErrorVehiculo("No se pudo guardar el vehículo. Inténtalo de nuevo.");
-    }
+    setEstadoRegistro("cargando");
+    temporizadorRegistro.current = window.setTimeout(() => {
+      try {
+        const vehiculoParaGuardar = {
+          tipo: vehiculo.tipo,
+          rutaCotidiana: vehiculo.rutaCotidiana,
+          ...(vehiculo.tipo === "automovil" && {
+            numeroPuertas: Number(vehiculo.numeroPuertas),
+          }),
+          ...(vehiculo.tipo === "moto" && { modalidad: vehiculo.modalidad }),
+        };
+        window.localStorage.setItem(VEHICULO_STORAGE_KEY, JSON.stringify(vehiculoParaGuardar));
+        ultimoVehiculoSerializado = null;
+        ultimoVehiculoGuardado = null;
+        notificarCambioVehiculo();
+        setErrorVehiculo("");
+        setEstadoRegistro("exitoso");
+      } catch (error) {
+        console.error("No se pudo guardar el vehículo en localStorage:", error);
+        setErrorVehiculo("No se pudo guardar el vehículo. Inténtalo de nuevo.");
+        setEstadoRegistro("inactivo");
+      }
+    }, 2000);
   }
+
+  const ventanaRegistro = (
+    <RegistroExitosoModal
+      estado={estadoRegistro}
+      entidad="vehículo"
+      mensajeExitoso="Tu vehículo se registró correctamente."
+      onContinuar={() => setEstadoRegistro("inactivo")}
+    />
+  );
 
   function aceptarPasajero() {
     setMensajeAccion(`Has aceptado la solicitud de ${pasajeroSeleccionado.nombre}.`);
@@ -111,17 +133,21 @@ export default function OfrecerViajes({
 
   if (vehiculoGuardado === null) {
     return (
-      <RegistroVehiculo
-        vehiculo={vehiculo}
-        error={errorVehiculo}
-        onFieldChange={cambiarCampoVehiculo}
-        onSubmit={guardarVehiculo}
-      />
+      <>
+        <RegistroVehiculo
+          vehiculo={vehiculo}
+          error={errorVehiculo}
+          onFieldChange={cambiarCampoVehiculo}
+          onSubmit={guardarVehiculo}
+        />
+        {ventanaRegistro}
+      </>
     );
   }
 
   return (
     <div className="vista">
+      {ventanaRegistro}
       {pasajeroSeleccionado === null ? (
         <div>
           <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
