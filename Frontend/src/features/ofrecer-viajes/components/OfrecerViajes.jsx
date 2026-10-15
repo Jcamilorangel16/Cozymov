@@ -1,23 +1,33 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import BarrioDropdown from "./BarrioDropdown";
+import EsperandoPasajeros from "./EsperandoPasajeros";
+import PuntoEncuentroDropdown from "./PuntoEncuentroDropdown";
 import RegistroVehiculo from "./RegistroVehiculo";
 import RegistroExitosoModal from "../../shared/components/RegistroExitosoModal";
 
-const resultadosPasajeros = [
-  {
-    nombre: "Camila Castro", iniciales: "CC", avatarColor: "bg-success",
-    rating: "4.8", viajes: "37", ruta: "Norte → Campus Sur",
-    horario: "Hoy · 6:50 AM", punto: "Entrada Norte", personas: "2",
-  },
-  {
-    nombre: "Luis Herrera", iniciales: "LH", avatarColor: "bg-warning",
-    rating: "4.5", viajes: "12", ruta: "Norte → Campus Sur",
-    horario: "Hoy · 7:10 AM", punto: "Entrada Norte", personas: "1",
-  },
-];
-
 const VEHICULO_STORAGE_KEY = "cozymov-vehiculo-v2";
+const PRECIOS_SUGERIDOS = [3000, 4000, 5000];
+const UNIVERSIDAD_POPULAR_CESAR = "Universidad Popular Del Cesar";
+const LUGARES_ADICIONALES = [UNIVERSIDAD_POPULAR_CESAR];
+
+function formatearPrecio(precio) {
+  return new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency: "COP",
+    maximumFractionDigits: 0,
+  }).format(precio);
+}
+
+function obtenerPartesFechaHora(fecha) {
+  const dosDigitos = (numero) => String(numero).padStart(2, "0");
+  return {
+    fecha: `${fecha.getFullYear()}-${dosDigitos(fecha.getMonth() + 1)}-${dosDigitos(fecha.getDate())}`,
+    hora: `${dosDigitos(fecha.getHours())}:${dosDigitos(fecha.getMinutes())}`,
+  };
+}
+
 const suscriptoresVehiculo = new Set();
 let ultimoVehiculoGuardado = null;
 let ultimoVehiculoSerializado = null;
@@ -69,11 +79,36 @@ export default function OfrecerViajes({
   const [errorVehiculo, setErrorVehiculo] = useState("");
   const [estadoRegistro, setEstadoRegistro] = useState("inactivo");
   const temporizadorRegistro = useRef(null);
+  const [origen, setOrigen] = useState(UNIVERSIDAD_POPULAR_CESAR);
+  const [destino, setDestino] = useState(UNIVERSIDAD_POPULAR_CESAR);
+  const [puntoEncuentro, setPuntoEncuentro] = useState("");
+  const [precioPasaje, setPrecioPasaje] = useState("");
+  const [cuposDisponibles, setCuposDisponibles] = useState("1");
+  const [fechaSalida, setFechaSalida] = useState("");
+  const [horaSalida, setHoraSalida] = useState("");
+  const [atajoSalida, setAtajoSalida] = useState("0");
+  const [errorPublicacion, setErrorPublicacion] = useState("");
+  const [estadoPublicacion, setEstadoPublicacion] = useState("inactivo");
+  const [viajeBorrador, setViajeBorrador] = useState(null);
+  const [viajePublicado, setViajePublicado] = useState(null);
+  const temporizadorPublicacion = useRef(null);
 
   useEffect(
-    () => () => window.clearTimeout(temporizadorRegistro.current),
+    () => () => {
+      window.clearTimeout(temporizadorRegistro.current);
+      window.clearTimeout(temporizadorPublicacion.current);
+    },
     [],
   );
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      const fechaHoraActual = obtenerPartesFechaHora(new Date());
+      setFechaSalida(fechaHoraActual.fecha);
+      setHoraSalida(fechaHoraActual.hora);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
 
   function cambiarCampoVehiculo(campo, valor) {
     setVehiculo((anterior) => ({ ...anterior, [campo]: valor }));
@@ -99,12 +134,116 @@ export default function OfrecerViajes({
     }, 2000);
   }
 
+  function publicarViaje(evento) {
+    evento.preventDefault();
+    if (origen === destino) {
+      setErrorPublicacion("El origen y el destino deben ser diferentes.");
+      return;
+    }
+
+    if (!puntoEncuentro) {
+      setErrorPublicacion("Selecciona un punto específico de encuentro.");
+      return;
+    }
+
+    if (!origen || !destino) {
+      setErrorPublicacion("Selecciona un barrio de origen y uno de destino.");
+      return;
+    }
+
+    const precio = Number(precioPasaje);
+    if (!Number.isSafeInteger(precio) || precio <= 0) {
+      setErrorPublicacion("Ingresa un precio válido, mayor que cero pesos.");
+      return;
+    }
+
+    const cupos = Number(cuposDisponibles);
+    if (!Number.isInteger(cupos) || cupos < 1 || cupos > 7) {
+      setErrorPublicacion("Los cupos disponibles deben estar entre 1 y 7.");
+      return;
+    }
+
+    if (!fechaSalida || !horaSalida) {
+      setErrorPublicacion("Selecciona la fecha y la hora de salida.");
+      return;
+    }
+
+    const salida = new Date(`${fechaSalida}T${horaSalida}`);
+    const ahora = new Date();
+    ahora.setSeconds(0, 0);
+    if (Number.isNaN(salida.getTime()) || salida < ahora) {
+      setErrorPublicacion("La fecha y hora de salida no pueden estar en el pasado.");
+      return;
+    }
+
+    setErrorPublicacion("");
+    setViajeBorrador({
+      origen,
+      destino,
+      puntoEncuentro,
+      precioPasaje: precio,
+      cuposDisponibles: cupos,
+      fechaSalida,
+      horaSalida,
+    });
+    setEstadoPublicacion("cargando");
+    temporizadorPublicacion.current = window.setTimeout(() => {
+      setEstadoPublicacion("exitoso");
+    }, 2000);
+  }
+
+  function confirmarPublicacion() {
+    setViajePublicado(viajeBorrador);
+    setEstadoPublicacion("inactivo");
+  }
+
+  function editarViajePublicado() {
+    setOrigen(viajePublicado.origen);
+    setDestino(viajePublicado.destino);
+    setPuntoEncuentro(viajePublicado.puntoEncuentro);
+    setPrecioPasaje(String(viajePublicado.precioPasaje));
+    setCuposDisponibles(String(viajePublicado.cuposDisponibles));
+    setFechaSalida(viajePublicado.fechaSalida);
+    setHoraSalida(viajePublicado.horaSalida);
+    setAtajoSalida("");
+    setViajeBorrador(null);
+    setViajePublicado(null);
+    setErrorPublicacion("");
+  }
+
+  function prepararOtroViaje() {
+    setViajePublicado(null);
+    setViajeBorrador(null);
+    setOrigen(UNIVERSIDAD_POPULAR_CESAR);
+    setDestino(UNIVERSIDAD_POPULAR_CESAR);
+    setPuntoEncuentro("");
+    setPrecioPasaje("");
+    setCuposDisponibles("1");
+    const fechaHoraActual = obtenerPartesFechaHora(new Date());
+    setFechaSalida(fechaHoraActual.fecha);
+    setHoraSalida(fechaHoraActual.hora);
+    setAtajoSalida("0");
+    setErrorPublicacion("");
+  }
+
   const ventanaRegistro = (
     <RegistroExitosoModal
       estado={estadoRegistro}
       entidad="vehículo"
       mensajeExitoso="Tu vehículo se registró correctamente."
       onContinuar={() => setEstadoRegistro("inactivo")}
+    />
+  );
+  const ventanaPublicacion = (
+    <RegistroExitosoModal
+      estado={estadoPublicacion}
+      entidad="viaje"
+      tituloCarga="Publicando viaje"
+      tituloExitoso="¡Viaje publicado!"
+      mensajeCarga="Estamos publicando tu recorrido. Esto tomará unos segundos."
+      mensajeExitoso="Tu viaje ya está publicado. Ahora puedes esperar pasajeros."
+      duracionMs={2000}
+      onContinuar={confirmarPublicacion}
     />
   );
 
@@ -129,54 +268,218 @@ export default function OfrecerViajes({
   return (
     <div className="vista">
       {ventanaRegistro}
-      {pasajeroSeleccionado === null ? (
-        <div>
-          <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-            <h3 className="mb-0 letra-contenido">Ofrecer Viaje</h3>
-          </div>
+      {ventanaPublicacion}
+      {viajePublicado ? (
+        <EsperandoPasajeros
+          viaje={viajePublicado}
+          onEditarViaje={editarViajePublicado}
+          onPublicarOtro={prepararOtroViaje}
+        />
+      ) : pasajeroSeleccionado === null ? (
+        <section className="card color-card mx-auto w-100" style={{ maxWidth: 720 }}>
+          <form className="card-body p-4 p-md-5" onSubmit={publicarViaje}>
+            <div className="d-flex align-items-center gap-3 mb-4">
+              <span className="fs-2" aria-hidden="true">🗺️</span>
+              <div>
+                <h3 className="h4 letra-contenido mb-1">Ruta y puntos de recorrido</h3>
+                <p className="texto-secundario mb-0">Elige el barrio de origen y el de destino.</p>
+              </div>
+            </div>
 
-          <p className="texto-secundario fw-semibold mb-3">{resultadosPasajeros.length} Posibles pasajeros</p>
-
-          <div className="row g-3">
-            {resultadosPasajeros.map((pasajero, indice) => (
-              <div className="col-12 col-sm-6 col-md-4 col-lg-3" key={indice}>
-                <div
-                  className="card p-3 color-card h-100"
-                  style={{ cursor: "pointer" }}
-                  onClick={() => {
-                    setPasajeroSeleccionado(pasajero);
-                    setMensajeAccion("");
+            <div className="row g-3 mb-4">
+              <div className="col-md-6">
+                <BarrioDropdown
+                  id="origen-viaje"
+                  label="Origen"
+                  value={origen}
+                  opcionesAdicionales={LUGARES_ADICIONALES}
+                  onChange={(barrio) => {
+                    setOrigen(barrio);
+                    setErrorPublicacion(
+                      barrio === destino
+                        ? "El origen y el destino deben ser diferentes."
+                        : "",
+                    );
                   }}
+                />
+              </div>
+              <div className="col-md-6">
+                <BarrioDropdown
+                  id="destino-viaje"
+                  label="Destino"
+                  value={destino}
+                  opcionesAdicionales={LUGARES_ADICIONALES}
+                  onChange={(barrio) => {
+                    setDestino(barrio);
+                    setErrorPublicacion(
+                      barrio === origen
+                        ? "El origen y el destino deben ser diferentes."
+                        : "",
+                    );
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <PuntoEncuentroDropdown
+                value={puntoEncuentro}
+                onChange={(punto) => {
+                  setPuntoEncuentro(punto);
+                  setErrorPublicacion("");
+                }}
+              />
+            </div>
+
+            <div className="rounded-3 bg-light p-3 mb-4">
+              <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                <h4 className="h6 fw-semibold mb-0">Fecha y hora de salida</h4>
+                <label className="visually-hidden" htmlFor="atajo-salida">
+                  Seleccionar hora rápida de salida
+                </label>
+                <select
+                  className="form-select form-select-sm"
+                  id="atajo-salida"
+                  value={atajoSalida}
+                  onChange={(evento) => {
+                    const minutosAdelante = Number(evento.target.value);
+                    const salida = new Date();
+                    salida.setSeconds(0, 0);
+                    salida.setMinutes(salida.getMinutes() + minutosAdelante);
+                    const partes = obtenerPartesFechaHora(salida);
+                    setFechaSalida(partes.fecha);
+                    setHoraSalida(partes.hora);
+                    setAtajoSalida(evento.target.value);
+                    setErrorPublicacion("");
+                  }}
+                  style={{ maxWidth: 220 }}
                 >
-                  <div className="d-flex justify-content-between align-items-center">
-                    <div className="d-flex align-items-center gap-2">
-                      <div
-                        className={"user-avatar " + pasajero.avatarColor}
-                        style={{ width: 38, height: 38, fontSize: 13 }}
-                      >
-                        {pasajero.iniciales}
-                      </div>
-                      <div>
-                        <div className="fw-bold letra-contenido">{pasajero.nombre}</div>
-                        <small className="texto-secundario">★ {pasajero.rating} · {pasajero.viajes} viajes</small>
-                      </div>
-                    </div>
-                    <span className="fs-4 texto-secundario">›</span>
-                  </div>
-
-                  <div className="texto-secundario small mt-2">
-                    <span>◉ {pasajero.ruta}</span>
-                  </div>
-
-                  <div className="mt-2 d-flex justify-content-between align-items-center">
-                    <span className="badge bg-primary">{pasajero.personas} persona(s)</span>
-                    <small className="texto-secundario">{pasajero.horario}</small>
-                  </div>
+                  <option value="">Hora rápida...</option>
+                  <option value="0">Ahora</option>
+                  <option value="15">En 15 minutos</option>
+                  <option value="30">En 30 minutos</option>
+                  <option value="60">En 1 hora</option>
+                  <option value="120">En 2 horas</option>
+                </select>
+              </div>
+              <div className="row g-3">
+                <div className="col-sm-6">
+                  <label className="form-label" htmlFor="fecha-salida">Fecha</label>
+                  <input
+                    className="form-control"
+                    id="fecha-salida"
+                    type="date"
+                    min={fechaSalida || undefined}
+                    value={fechaSalida}
+                    onChange={(evento) => {
+                      setFechaSalida(evento.target.value);
+                      setAtajoSalida("");
+                      setErrorPublicacion("");
+                    }}
+                    required
+                  />
+                </div>
+                <div className="col-sm-6">
+                  <label className="form-label" htmlFor="hora-salida">Hora</label>
+                  <input
+                    className="form-control"
+                    id="hora-salida"
+                    type="time"
+                    value={horaSalida}
+                    onChange={(evento) => {
+                      setHoraSalida(evento.target.value);
+                      setAtajoSalida("");
+                      setErrorPublicacion("");
+                    }}
+                    required
+                  />
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
+            </div>
+
+            <div className="rounded-3 bg-light p-3 mb-4">
+              <label className="form-label fw-semibold" htmlFor="precio-pasaje">
+                Precio del pasaje
+              </label>
+              <div className="input-group mb-3">
+                <span className="input-group-text">$</span>
+                <input
+                  className="form-control"
+                  id="precio-pasaje"
+                  type="number"
+                  min="1"
+                  step="1"
+                  inputMode="numeric"
+                  placeholder="Escribe el precio que quieras"
+                  value={precioPasaje}
+                  onChange={(evento) => {
+                    setPrecioPasaje(evento.target.value);
+                    setErrorPublicacion("");
+                  }}
+                  aria-describedby="precio-pasaje-ayuda"
+                  required
+                />
+                <span className="input-group-text">COP</span>
+              </div>
+              <small className="d-block text-secondary mb-2" id="precio-pasaje-ayuda">
+                Escribe el precio que cobrarás o selecciona una sugerencia:
+              </small>
+              <div className="d-flex flex-wrap gap-2" aria-label="Precios sugeridos">
+                {PRECIOS_SUGERIDOS.map((precio) => (
+                  <button
+                    key={precio}
+                    type="button"
+                    className={`btn btn-sm ${Number(precioPasaje) === precio ? "btn-primary" : "btn-outline-primary"}`}
+                    aria-pressed={Number(precioPasaje) === precio}
+                    onClick={() => {
+                      setPrecioPasaje(String(precio));
+                      setErrorPublicacion("");
+                    }}
+                  >
+                    {formatearPrecio(precio)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <label className="form-label fw-semibold" htmlFor="cupos-disponibles">
+                Cupos disponibles
+              </label>
+              <input
+                className="form-control"
+                id="cupos-disponibles"
+                type="number"
+                min="1"
+                max="7"
+                step="1"
+                inputMode="numeric"
+                value={cuposDisponibles}
+                onChange={(evento) => {
+                  setCuposDisponibles(evento.target.value);
+                  setErrorPublicacion("");
+                }}
+                aria-describedby="cupos-disponibles-ayuda"
+                required
+              />
+              <small className="d-block text-secondary mt-1" id="cupos-disponibles-ayuda">
+                Indica cuántos pasajeros puedes llevar (máximo 7).
+              </small>
+            </div>
+
+            {errorPublicacion && (
+              <p className="small text-danger mb-3" role="alert">
+                {errorPublicacion}
+              </p>
+            )}
+
+            <div className="d-flex justify-content-end">
+              <button type="submit" className="btn btn-primary fw-bold px-4">
+                Publicar viaje
+              </button>
+            </div>
+          </form>
+        </section>
       ) : (
         <div>
           <button

@@ -1,0 +1,26 @@
+.barrio-dropdown__opciones {
+  max-height: 14rem;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.barrio-dropdown__opcion,
+.barrio-dropdown__sin-resultados {
+  padding: 0.5rem 0.75rem;
+}
+
+.barrio-dropdown__opcion {
+  border-radius: 0.25rem;
+  cursor: pointer;
+}
+
+.barrio-dropdown__opcion:hover,
+.barrio-dropdown__opcion--activa {
+  background-color: #e8f5fb;
+}
+
+.barrio-dropdown__sin-resultados {
+  color: #6c757d;
+}
