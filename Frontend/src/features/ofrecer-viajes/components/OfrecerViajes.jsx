@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import RegistroVehiculo from "./RegistroVehiculo";
+import RegistroExitosoModal from "../../shared/components/RegistroExitosoModal";
 
 const resultadosPasajeros = [
   {
@@ -72,6 +73,13 @@ export default function OfrecerViajes({
     modalidad: "",
   });
   const [errorVehiculo, setErrorVehiculo] = useState("");
+  const [estadoRegistro, setEstadoRegistro] = useState("inactivo");
+  const temporizadorRegistro = useRef(null);
+
+  useEffect(
+    () => () => window.clearTimeout(temporizadorRegistro.current),
+    [],
+  );
 
   function cambiarCampoVehiculo(campo, valor) {
     setVehiculo((anterior) => {
@@ -107,23 +115,36 @@ export default function OfrecerViajes({
     }
   }
 
+  const ventanaRegistro = (
+    <RegistroExitosoModal
+      estado={estadoRegistro}
+      entidad="vehículo"
+      mensajeExitoso="Tu vehículo se registró correctamente."
+      onContinuar={() => setEstadoRegistro("inactivo")}
+    />
+  );
+
   function aceptarPasajero() {
     setMensajeAccion(`Has aceptado la solicitud de ${pasajeroSeleccionado.nombre}.`);
   }
 
   if (vehiculoGuardado === null) {
     return (
-      <RegistroVehiculo
-        vehiculo={vehiculo}
-        error={errorVehiculo}
-        onFieldChange={cambiarCampoVehiculo}
-        onSubmit={guardarVehiculo}
-      />
+      <>
+        <RegistroVehiculo
+          vehiculo={vehiculo}
+          error={errorVehiculo}
+          onFieldChange={cambiarCampoVehiculo}
+          onSubmit={guardarVehiculo}
+        />
+        {ventanaRegistro}
+      </>
     );
   }
 
   return (
     <div className="vista">
+      {ventanaRegistro}
       {pasajeroSeleccionado === null ? (
         <div>
           <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">

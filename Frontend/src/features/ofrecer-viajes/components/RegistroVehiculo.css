@@ -1,95 +1,17 @@
-.registro-vehiculo {
-  display: flex;
-  justify-content: center;
-  padding: 1.5rem 0;
-}
-
 .registro-vehiculo__card {
-  width: min(100%, 560px);
-  padding: clamp(1.25rem, 4vw, 2rem);
-  border: 1px solid rgba(56, 103, 169, 0.18);
-  border-radius: 20px;
-  background: linear-gradient(145deg, #ffffff 0%, #f1faff 100%);
-  box-shadow: 0 16px 40px rgba(11, 25, 34, 0.12);
+  max-width: 560px;
+  background: linear-gradient(145deg, #fff 0%, #f1faff 100%);
 }
 
-.registro-vehiculo__heading {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+.registro-vehiculo__card .form-control,
+.registro-vehiculo__card .form-select {
+  min-height: 48px;
 }
 
 .registro-vehiculo__icon {
-  display: grid;
   width: 56px;
   height: 56px;
-  flex: 0 0 56px;
-  place-items: center;
-  border-radius: 16px;
+  flex-basis: 56px;
   background-color: #88d2f0;
   font-size: 1.7rem;
-}
-
-.registro-vehiculo__title {
-  margin: 0 0 0.25rem;
-  color: #0b1922;
-  font-size: 1.4rem;
-  font-weight: 700;
-}
-
-.registro-vehiculo__description {
-  margin: 0;
-  color: #526b7a;
-}
-
-.registro-vehiculo__field {
-  margin-bottom: 1.15rem;
-}
-
-.registro-vehiculo__field .form-label {
-  margin-bottom: 0.4rem;
-  color: #0b1922;
-  font-weight: 600;
-}
-
-.registro-vehiculo__field .form-control,
-.registro-vehiculo__field .form-select {
-  min-height: 48px;
-  border: 1px solid #b9dff0;
-  border-radius: 10px;
-  background-color: #fff;
-}
-
-.registro-vehiculo__field .form-control:focus,
-.registro-vehiculo__field .form-select:focus {
-  border-color: #3867a9;
-  box-shadow: 0 0 0 0.22rem rgba(136, 210, 240, 0.45);
-}
-
-.registro-vehiculo__hint {
-  display: block;
-  margin-top: 0.4rem;
-  color: #526b7a;
-}
-
-.registro-vehiculo__submit {
-  width: 100%;
-  min-height: 48px;
-  border: 0;
-  border-radius: 10px;
-  background-color: #3867a9;
-  color: #fff;
-  font-weight: 700;
-  transition: background-color 0.15s ease, transform 0.15s ease;
-}
-
-.registro-vehiculo__submit:hover,
-.registro-vehiculo__submit:focus-visible {
-  background-color: #0b1922;
-  color: #fff;
-}
-
-.registro-vehiculo__submit:active {
-  transform: translateY(1px);
 }
