@@ -33,6 +33,18 @@ export default function RegistroVehiculo({ vehiculo, error, onFieldChange, onSub
           </select>
         </div>
 
+        <div className="registro-vehiculo__field">
+          <label className="form-label" htmlFor="modelo-vehiculo">Modelo</label>
+          <input
+            className="form-control"
+            id="modelo-vehiculo"
+            type="text"
+            required
+            value={vehiculo.modelo}
+            onChange={(evento) => onFieldChange("modelo", evento.target.value)}
+          />
+        </div>
+
         {vehiculo.tipo === "automovil" && (
           <div className="registro-vehiculo__field">
             <label className="form-label" htmlFor="numero-puertas">Número de puertas</label>
