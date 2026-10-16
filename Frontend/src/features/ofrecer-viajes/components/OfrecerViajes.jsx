@@ -76,7 +76,13 @@ export default function OfrecerViajes({
     obtenerVehiculoGuardado,
     () => null,
   );
-  const [vehiculo, setVehiculo] = useState({ tipo: "", rutaCotidiana: "" });
+  const [vehiculo, setVehiculo] = useState({
+    tipo: "",
+    modelo: "",
+    rutaCotidiana: "",
+    numeroPuertas: "",
+    modalidad: "",
+  });
   const [errorVehiculo, setErrorVehiculo] = useState("");
   const temporizadorRegistro = useRef(null);
   const [origen, setOrigen] = useState(UNIVERSIDAD_POPULAR_CESAR);
@@ -114,7 +120,13 @@ export default function OfrecerViajes({
   }, []);
 
   function cambiarCampoVehiculo(campo, valor) {
-    setVehiculo((anterior) => ({ ...anterior, [campo]: valor }));
+    setVehiculo((anterior) => {
+      if (campo === "tipo") {
+        return { ...anterior, tipo: valor, numeroPuertas: "", modalidad: "" };
+      }
+
+      return { ...anterior, [campo]: valor };
+    });
     setErrorVehiculo("");
   }
 
