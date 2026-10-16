@@ -19,3 +19,7 @@ build/
 # Sistema operativo
 .DS_Store
 Thumbs.db
+
+# Scripts de Base de datos
+
+Database/*
