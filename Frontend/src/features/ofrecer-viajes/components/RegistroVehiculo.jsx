@@ -89,7 +89,7 @@ export default function RegistroVehiculo({ vehiculo, error, onFieldChange, onSub
             required
           />
           <small className="d-block mt-1 text-secondary">
-            Debes subir una foto de tu vehículo para continuar. Toma la foto sin que se vea la matrícula.
+            Debes subir una foto de tu vehículo (máximo 2 MB). Tómala sin que se vea la matrícula.
           </small>
         </div>
 

@@ -37,17 +37,24 @@ function obtenerVehiculoGuardado() {
   if (serializado === null) return null;
   if (serializado === ultimoVehiculoSerializado) return ultimoVehiculoGuardado;
 
-  const vehiculoGuardado = JSON.parse(serializado);
-  if (
-    typeof vehiculoGuardado.tipo !== "string" ||
-    typeof vehiculoGuardado.rutaCotidiana !== "string"
-  ) {
-    throw new Error("Los datos guardados del vehículo tienen un formato inválido.");
-  }
+  try {
+    const vehiculoGuardado = JSON.parse(serializado);
+    if (
+      typeof vehiculoGuardado.tipo !== "string" ||
+      typeof vehiculoGuardado.rutaCotidiana !== "string"
+    ) {
+      throw new Error("Los datos guardados del vehículo tienen un formato inválido.");
+    }
 
-  ultimoVehiculoSerializado = serializado;
-  ultimoVehiculoGuardado = vehiculoGuardado;
-  return vehiculoGuardado;
+    ultimoVehiculoSerializado = serializado;
+    ultimoVehiculoGuardado = vehiculoGuardado;
+    return vehiculoGuardado;
+  } catch (error) {
+    console.error("No se pudieron leer los datos del vehículo:", error);
+    ultimoVehiculoSerializado = serializado;
+    ultimoVehiculoGuardado = null;
+    return null;
+  }
 }
 
 function notificarCambioVehiculo() {
@@ -92,13 +99,30 @@ export default function OfrecerViajes({
     setErrorVehiculo("");
   }
 
-  function guardarVehiculo(evento) {
+  async function guardarVehiculo(evento) {
     evento.preventDefault();
+    setEstadoRegistro("cargando");
+
     try {
+      const foto = evento.currentTarget.elements.namedItem("foto-vehiculo")?.files?.[0];
+      if (!foto) {
+        throw new Error("Debes seleccionar una foto del vehículo.");
+      }
+      if (foto.size > 2 * 1024 * 1024) {
+        throw new Error("La foto debe pesar menos de 2 MB para guardarla en este navegador.");
+      }
+
+      const fotoComoDataUrl = await new Promise((resolve, reject) => {
+        const lector = new FileReader();
+        lector.onload = () => resolve(lector.result);
+        lector.onerror = () => reject(new Error("No se pudo leer la foto seleccionada."));
+        lector.readAsDataURL(foto);
+      });
       const vehiculoParaGuardar = {
         tipo: vehiculo.tipo,
         modelo: vehiculo.modelo,
         rutaCotidiana: vehiculo.rutaCotidiana,
+        foto: fotoComoDataUrl,
         ...(vehiculo.tipo === "automovil" && {
           numeroPuertas: Number(vehiculo.numeroPuertas),
         }),
@@ -109,9 +133,13 @@ export default function OfrecerViajes({
       ultimoVehiculoGuardado = null;
       notificarCambioVehiculo();
       setErrorVehiculo("");
+      setEstadoRegistro("exitoso");
     } catch (error) {
       console.error("No se pudo guardar el vehículo en localStorage:", error);
-      setErrorVehiculo("No se pudo guardar el vehículo. Inténtalo de nuevo.");
+      setErrorVehiculo(error instanceof Error
+        ? error.message
+        : "No se pudo guardar el vehículo. Inténtalo de nuevo.");
+      setEstadoRegistro("inactivo");
     }
   }
 
