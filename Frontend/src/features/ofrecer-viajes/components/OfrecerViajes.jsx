@@ -5,7 +5,7 @@ import BarrioDropdown from "./BarrioDropdown";
 import EsperandoPasajeros from "./EsperandoPasajeros";
 import PuntoEncuentroDropdown from "./PuntoEncuentroDropdown";
 import RegistroVehiculo from "./RegistroVehiculo";
-import RegistroExitosoModal from "../../shared/components/RegistroExitosoModal";
+import Swal from "sweetalert2";
 
 const VEHICULO_STORAGE_KEY = "cozymov-vehiculo-v2";
 const PRECIOS_SUGERIDOS = [3000, 4000, 5000];
@@ -78,7 +78,6 @@ export default function OfrecerViajes({
   );
   const [vehiculo, setVehiculo] = useState({ tipo: "", rutaCotidiana: "" });
   const [errorVehiculo, setErrorVehiculo] = useState("");
-  const [estadoRegistro, setEstadoRegistro] = useState("inactivo");
   const temporizadorRegistro = useRef(null);
   const [origen, setOrigen] = useState(UNIVERSIDAD_POPULAR_CESAR);
   const [destino, setDestino] = useState(UNIVERSIDAD_POPULAR_CESAR);
@@ -90,8 +89,6 @@ export default function OfrecerViajes({
   const [horaSalida, setHoraSalida] = useState("");
   const [atajoSalida, setAtajoSalida] = useState(String(MINUTOS_POR_DEFECTO_SALIDA));
   const [errorPublicacion, setErrorPublicacion] = useState("");
-  const [estadoPublicacion, setEstadoPublicacion] = useState("inactivo");
-  const [viajeBorrador, setViajeBorrador] = useState(null);
   const [viajePublicado, setViajePublicado] = useState(null);
   const temporizadorPublicacion = useRef(null);
 
@@ -99,6 +96,7 @@ export default function OfrecerViajes({
     () => () => {
       window.clearTimeout(temporizadorRegistro.current);
       window.clearTimeout(temporizadorPublicacion.current);
+      Swal.close();
     },
     [],
   );
@@ -122,7 +120,13 @@ export default function OfrecerViajes({
 
   function guardarVehiculo(evento) {
     evento.preventDefault();
-    setEstadoRegistro("cargando");
+    void Swal.fire({
+      title: "Registrando vehículo",
+      text: "Estamos guardando tu información. Esto tomará unos segundos.",
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      didOpen: () => Swal.showLoading(),
+    });
     temporizadorRegistro.current = window.setTimeout(() => {
       try {
         window.localStorage.setItem(VEHICULO_STORAGE_KEY, JSON.stringify(vehiculo));
@@ -130,11 +134,21 @@ export default function OfrecerViajes({
         ultimoVehiculoGuardado = null;
         notificarCambioVehiculo();
         setErrorVehiculo("");
-        setEstadoRegistro("exitoso");
+        void Swal.fire({
+          icon: "success",
+          title: "¡Registro exitoso!",
+          text: "Tu vehículo se registró correctamente.",
+          confirmButtonText: "Continuar",
+          allowOutsideClick: false,
+          allowEscapeKey: false,
+        });
       } catch (error) {
         console.error("No se pudo guardar el vehículo en localStorage:", error);
         setErrorVehiculo("No se pudo guardar el vehículo. Inténtalo de nuevo.");
-        setEstadoRegistro("inactivo");
+        void Swal.fire({
+          icon: "error",
+          text: "No se pudo guardar el vehículo. Inténtalo de nuevo.",
+        });
       }
     }, 2000);
   }
@@ -182,7 +196,7 @@ export default function OfrecerViajes({
     }
 
     setErrorPublicacion("");
-    setViajeBorrador({
+    const viajeBorrador = {
       origen,
       destino,
       puntoEncuentro,
@@ -191,16 +205,30 @@ export default function OfrecerViajes({
       fechaSalida,
       horaSalida,
       informacionAdicional: informacionAdicional.trim(),
+    };
+    void Swal.fire({
+      title: "Publicando viaje",
+      text: "Estamos publicando tu recorrido. Esto tomará unos segundos.",
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      didOpen: () => Swal.showLoading(),
     });
-    setEstadoPublicacion("cargando");
     temporizadorPublicacion.current = window.setTimeout(() => {
-      setEstadoPublicacion("exitoso");
+      void Swal.fire({
+        icon: "success",
+        title: "¡Viaje publicado!",
+        text: "Tu viaje ya está publicado. Ahora puedes esperar pasajeros.",
+        confirmButtonText: "Continuar",
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+      }).then(({ isConfirmed }) => {
+        if (isConfirmed) confirmarPublicacion(viajeBorrador);
+      });
     }, 2000);
   }
 
-  function confirmarPublicacion() {
-    setViajePublicado(viajeBorrador);
-    setEstadoPublicacion("inactivo");
+  function confirmarPublicacion(viaje) {
+    setViajePublicado(viaje);
   }
 
   function editarViajePublicado() {
@@ -213,14 +241,12 @@ export default function OfrecerViajes({
     setFechaSalida(viajePublicado.fechaSalida);
     setHoraSalida(viajePublicado.horaSalida);
     setAtajoSalida("");
-    setViajeBorrador(null);
     setViajePublicado(null);
     setErrorPublicacion("");
   }
 
   function prepararOtroViaje() {
     setViajePublicado(null);
-    setViajeBorrador(null);
     setOrigen(UNIVERSIDAD_POPULAR_CESAR);
     setDestino(UNIVERSIDAD_POPULAR_CESAR);
     setPuntoEncuentro("");
@@ -237,27 +263,6 @@ export default function OfrecerViajes({
     setErrorPublicacion("");
   }
 
-  const ventanaRegistro = (
-    <RegistroExitosoModal
-      estado={estadoRegistro}
-      entidad="vehículo"
-      mensajeExitoso="Tu vehículo se registró correctamente."
-      onContinuar={() => setEstadoRegistro("inactivo")}
-    />
-  );
-  const ventanaPublicacion = (
-    <RegistroExitosoModal
-      estado={estadoPublicacion}
-      entidad="viaje"
-      tituloCarga="Publicando viaje"
-      tituloExitoso="¡Viaje publicado!"
-      mensajeCarga="Estamos publicando tu recorrido. Esto tomará unos segundos."
-      mensajeExitoso="Tu viaje ya está publicado. Ahora puedes esperar pasajeros."
-      duracionMs={2000}
-      onContinuar={confirmarPublicacion}
-    />
-  );
-
   function aceptarPasajero() {
     setMensajeAccion(`Has aceptado la solicitud de ${pasajeroSeleccionado.nombre}.`);
   }
@@ -271,15 +276,12 @@ export default function OfrecerViajes({
           onFieldChange={cambiarCampoVehiculo}
           onSubmit={guardarVehiculo}
         />
-        {ventanaRegistro}
       </>
     );
   }
 
   return (
     <div className="vista">
-      {ventanaRegistro}
-      {ventanaPublicacion}
       {viajePublicado ? (
         <EsperandoPasajeros
           viaje={viajePublicado}
