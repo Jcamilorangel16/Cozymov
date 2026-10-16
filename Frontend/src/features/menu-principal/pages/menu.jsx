@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import OfrecerViajes from "../../ofrecer-viajes/components/OfrecerViajes";
 import "./menu-principal.css";
 
 // Datos de ejemplo mantenidos al integrar los cambios del menú principal.
@@ -49,19 +50,6 @@ const resultadosViajes = [
     rating: "4.5", viajes: "19", ruta: "Norte → Campus Sur",
     horario: "Mañana · 6:00 AM", vehiculo: "Renault Logan blanco (KLO-456)",
     punto: "Portal Norte", cupos: "1 lugar libre",
-  },
-];
-
-const resultadosPasajeros = [
-  {
-    nombre: "Camila Castro", iniciales: "CC", avatarColor: "bg-success",
-    rating: "4.8", viajes: "37", ruta: "Norte → Campus Sur",
-    horario: "Hoy · 6:50 AM", punto: "Entrada Norte", personas: "2",
-  },
-  {
-    nombre: "Luis Herrera", iniciales: "LH", avatarColor: "bg-warning",
-    rating: "4.5", viajes: "12", ruta: "Norte → Campus Sur",
-    horario: "Hoy · 7:10 AM", punto: "Entrada Norte", personas: "1",
   },
 ];
 
@@ -333,110 +321,12 @@ export default function MenuPrincipal() {
           )}
 
           {vistaActiva === "ofrecer" && (
-            <div className="vista">
-              {pasajeroSeleccionado === null ? (
-                <div>
-                  <div className="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
-                    <h3 className="mb-0 letra-contenido">Encontrar Pasajeros</h3>
-
-                    <div className="d-flex flex-wrap gap-2">
-                      <div className="input-group" style={{ width: 220 }}>
-                        <span className="input-group-text">◉ Punto</span>
-                        <input type="text" className="form-control" placeholder="Norte" />
-                      </div>
-                      <div className="input-group" style={{ width: 220 }}>
-                        <span className="input-group-text">◎ Destino</span>
-                        <input type="text" className="form-control" placeholder="Campus Sur" />
-                      </div>
-                      <div className="input-group" style={{ width: 170 }}>
-                        <span className="input-group-text"># Personas</span>
-                        <input type="number" className="form-control" placeholder="2" min="1" />
-                      </div>
-                      <button type="button" className="btn btn-primary px-3">Buscar</button>
-                    </div>
-                  </div>
-
-                  <p className="texto-secundario fw-semibold mb-3">{resultadosPasajeros.length} Posibles pasajeros</p>
-
-                  <div className="row g-3">
-                    {resultadosPasajeros.map((pasajero, indice) => (
-                      <div className="col-12 col-sm-6 col-md-4 col-lg-3" key={indice}>
-                        <div
-                          className="card p-3 color-card h-100"
-                          style={{ cursor: "pointer" }}
-                          onClick={() => setPasajeroSeleccionado(pasajero)}
-                        >
-                          <div className="d-flex justify-content-between align-items-center">
-                            <div className="d-flex align-items-center gap-2">
-                              <div className={"user-avatar " + pasajero.avatarColor} style={{ width: 38, height: 38, fontSize: 13 }}>
-                                {pasajero.iniciales}
-                              </div>
-                              <div>
-                                <div className="fw-bold letra-contenido">{pasajero.nombre}</div>
-                                <small className="texto-secundario">★ {pasajero.rating} · {pasajero.viajes} viajes</small>
-                              </div>
-                            </div>
-                            <span className="fs-4 texto-secundario">›</span>
-                          </div>
-
-                          <div className="texto-secundario small mt-2">
-                            <span>◉ Norte</span> → <span>◎ Campus Sur</span>
-                          </div>
-
-                          <div className="mt-2 d-flex justify-content-between align-items-center">
-                            <span className="badge bg-primary">{pasajero.personas} persona(s)</span>
-                            <small className="texto-secundario">{pasajero.horario}</small>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <button
-                    type="button"
-                    className="btn btn-link texto-secundario ps-0 mb-3"
-                    onClick={() => setPasajeroSeleccionado(null)}
-                  >
-                    ‹ Volver a pasajeros
-                  </button>
-
-                  <div className="row g-3">
-                    <div className="col-lg-5">
-                      <div className="card p-3 color-card">
-                        <h5 className="letra-contenido mb-0">{pasajeroSeleccionado.ruta}</h5>
-                        <small className="texto-secundario d-block mb-3">{pasajeroSeleccionado.horario}</small>
-
-                        <div className="d-flex align-items-center gap-2 mb-3">
-                          <div className={"user-avatar " + pasajeroSeleccionado.avatarColor} style={{ width: 42, height: 42 }}>
-                            {pasajeroSeleccionado.iniciales}
-                          </div>
-                          <div>
-                            <div className="fw-semibold letra-contenido">{pasajeroSeleccionado.nombre}</div>
-                            <small className="texto-secundario">★ {pasajeroSeleccionado.rating} · {pasajeroSeleccionado.viajes} viajes</small>
-                          </div>
-                        </div>
-
-                        <small className="texto-secundario d-block">Punto de encuentro</small>
-                        <p className="fw-semibold mb-2" style={{ color: "#a03c3c" }}>{pasajeroSeleccionado.punto}</p>
-
-                        <small className="texto-secundario d-block">Personas que viajan</small>
-                        <p className="fw-semibold mb-3" style={{ color: "#1457e7" }}>{pasajeroSeleccionado.personas} persona(s)</p>
-
-                        <button type="button" className="btn btn-primary w-100">Aceptar Pasajero</button>
-                      </div>
-                    </div>
-
-                    <div className="col-lg-7">
-                      <div className="card color-card p-3 h-100 d-flex align-items-center justify-content-center text-center">
-                        <div style={{ fontSize: "3.5rem" }}>🗺️</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+            <OfrecerViajes
+              pasajeroSeleccionado={pasajeroSeleccionado}
+              setPasajeroSeleccionado={setPasajeroSeleccionado}
+              mensajeAccion={mensajePasajero}
+              setMensajeAccion={setMensajePasajero}
+            />
           )}
 
           {vistaActiva === "mensajes" && <div className="vista"></div>}
