@@ -70,7 +70,6 @@ export default function OfrecerViajes({
     modelo: "",
     rutaCotidiana: "",
     numeroPuertas: "",
-    modalidad: "",
   });
   const [errorVehiculo, setErrorVehiculo] = useState("");
   const [estadoRegistro, setEstadoRegistro] = useState("inactivo");
@@ -84,7 +83,7 @@ export default function OfrecerViajes({
   function cambiarCampoVehiculo(campo, valor) {
     setVehiculo((anterior) => {
       if (campo === "tipo") {
-        return { ...anterior, tipo: valor, numeroPuertas: "", modalidad: "" };
+        return { ...anterior, tipo: valor, numeroPuertas: "" };
       }
 
       return { ...anterior, [campo]: valor };
@@ -102,7 +101,6 @@ export default function OfrecerViajes({
         ...(vehiculo.tipo === "automovil" && {
           numeroPuertas: Number(vehiculo.numeroPuertas),
         }),
-        ...(vehiculo.tipo === "moto" && { modalidad: vehiculo.modalidad }),
       };
       window.localStorage.setItem(VEHICULO_STORAGE_KEY, JSON.stringify(vehiculoParaGuardar));
       ultimoVehiculoSerializado = null;

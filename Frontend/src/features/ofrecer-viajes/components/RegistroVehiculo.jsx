@@ -62,23 +62,6 @@ export default function RegistroVehiculo({ vehiculo, error, onFieldChange, onSub
           </div>
         )}
 
-        {vehiculo.tipo === "moto" && (
-          <div className="registro-vehiculo__field">
-            <label className="form-label" htmlFor="modalidad-moto">Modalidad</label>
-            <select
-              className="form-select"
-              id="modalidad-moto"
-              required
-              value={vehiculo.modalidad}
-              onChange={(evento) => onFieldChange("modalidad", evento.target.value)}
-            >
-              <option value="" disabled>Selecciona una modalidad</option>
-              <option value="automatica">Automática</option>
-              <option value="mecanica">Mecánica</option>
-            </select>
-          </div>
-        )}
-
         <div className="registro-vehiculo__field">
           <label className="form-label" htmlFor="foto-vehiculo">Foto del vehículo</label>
           <input
