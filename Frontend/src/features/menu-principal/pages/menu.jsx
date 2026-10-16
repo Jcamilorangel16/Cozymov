@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import "./menu-principal.css";
 
 // --- Datos de ejemplo (antes escritos a mano en el HTML) ---
@@ -129,7 +130,7 @@ export default function MenuPrincipal() {
               aria-expanded="false"
               title="Configuración"
             >
-              <img src="tuerca.png" alt="Configuración" style={{ width: 20, height: 20 }} />
+              <Image src="/tuerca.png" alt="Configuración" width={20} height={20} />
             </button>
             <ul className="dropdown-menu dropdown-menu-dark dropdown-menu-end shadow" aria-labelledby="dropdownConfig">
               <li>
@@ -141,7 +142,7 @@ export default function MenuPrincipal() {
                     // TODO: conectar con la lógica real de cierre de sesión
                   }}
                 >
-                  <img src="puerta.png" alt="Cerrar sesión" style={{ width: 20, height: 20}} /> Cerrar sesión
+                  <Image src="/puerta.png" alt="Cerrar sesión" width={20} height={20} /> Cerrar sesión
                 </a>
               </li>
             </ul>
@@ -173,6 +174,7 @@ export default function MenuPrincipal() {
               </div>
 
               <div className="row g-4">
+                {/* Columna izquierda: viajes destacados */}
                 <div className="col-md-8">
                   <h5 className="mb-3 letra-contenido">Viajes destacados para ti</h5>
                   <div className="row g-3">
@@ -191,18 +193,31 @@ export default function MenuPrincipal() {
                     ))}
                   </div>
                 </div>
-                
-                <h5 className="mt-4 mb-3 letra-contenido">Feed de notificaciones y actividad</h5>
-                <div className="d-flex flex-column gap-2">
-                  {feedNotificaciones.map((item, indice) => (
-                    <div className="d-flex align-items-center gap-2" key={indice}>
-                      <span className="fs-5">{item.icono}</span>
-                      <div>
-                        <span className="fw-semibold letra-contenido">{item.texto}</span>
-                        <span className="texto-secundario"> · {item.detalle}</span>
+
+                {/* Columna derecha: próximos viajes + notificaciones */}
+                <div className="col-md-4">
+                  <h5 className="mb-3 letra-contenido">Próximos viajes</h5>
+                  <div className="d-flex flex-column gap-2 mb-4">
+                    {proximosViajes.map((viaje, indice) => (
+                      <div className="card p-2 color-card" key={indice}>
+                        <div className="fw-semibold letra-contenido">{viaje.ruta}</div>
+                        <small className="texto-secundario">{viaje.horario}</small>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+
+                  <h5 className="mb-3 letra-contenido">Feed de notificaciones y actividad</h5>
+                  <div className="d-flex flex-column gap-2">
+                    {feedNotificaciones.map((item, indice) => (
+                      <div className="d-flex align-items-center gap-2" key={indice}>
+                        <span className="fs-5">{item.icono}</span>
+                        <div>
+                          <span className="fw-semibold letra-contenido">{item.texto}</span>
+                          <span className="texto-secundario"> · {item.detalle}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
