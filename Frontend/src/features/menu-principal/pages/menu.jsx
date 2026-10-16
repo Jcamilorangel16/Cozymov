@@ -4,8 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import "./menu-principal.css";
 
-// --- Datos de ejemplo (antes escritos a mano en el HTML) ---
-
+// Datos de ejemplo mantenidos al integrar los cambios del menú principal.
 const enlacesMenu = [
   { id: "inicio", label: "Inicio" },
   { id: "buscar", label: "Buscar" },
@@ -71,19 +70,22 @@ export default function MenuPrincipal() {
     import("bootstrap/dist/js/bootstrap.bundle.min.js");
   }, []);
 
-  // Reemplaza a mostrarVista(): en vez de tocar el DOM, guardamos la vista activa en estado.
   const [vistaActiva, setVistaActiva] = useState("inicio");
-
-  // Reemplazan a los data-* + llenarDetalleViaje/llenarDetallePasajero:
-  // si es null, se muestran los resultados; si tiene un objeto, se muestra el detalle.
   const [viajeSeleccionado, setViajeSeleccionado] = useState(null);
+  const [mensajeBusqueda, setMensajeBusqueda] = useState("");
   const [pasajeroSeleccionado, setPasajeroSeleccionado] = useState(null);
+  const [mensajePasajero, setMensajePasajero] = useState("");
 
   function irAVista(id) {
     setVistaActiva(id);
-    // Al reingresar a Buscar/Ofrecer, siempre se arranca en resultados, no en el detalle.
-    if (id === "buscar") setViajeSeleccionado(null);
-    if (id === "ofrecer") setPasajeroSeleccionado(null);
+    if (id === "buscar") {
+      setViajeSeleccionado(null);
+      setMensajeBusqueda("");
+    }
+    if (id === "ofrecer") {
+      setPasajeroSeleccionado(null);
+      setMensajePasajero("");
+    }
   }
 
   return (
@@ -130,6 +132,7 @@ export default function MenuPrincipal() {
               aria-expanded="false"
               title="Configuración"
             >
+              {/* Cambio de main: usar next/image y rutas públicas absolutas para los iconos. */}
               <Image src="/tuerca.png" alt="Configuración" width={20} height={20} />
             </button>
             <ul className="dropdown-menu dropdown-menu-dark dropdown-menu-end shadow" aria-labelledby="dropdownConfig">
@@ -142,6 +145,7 @@ export default function MenuPrincipal() {
                     // TODO: conectar con la lógica real de cierre de sesión
                   }}
                 >
+                  {/* Cambio de main: optimizar también el icono de cierre con next/image. */}
                   <Image src="/puerta.png" alt="Cerrar sesión" width={20} height={20} /> Cerrar sesión
                 </a>
               </li>
@@ -169,7 +173,9 @@ export default function MenuPrincipal() {
                     <input type="date" className="form-control" />
                   </div>
 
-                  <button type="button" className="btn btn-primary">+ Ofrecer viaje</button>
+                  <button type="button" className="btn btn-primary" onClick={() => irAVista("ofrecer")}>
+                    + Ofrecer viaje
+                  </button>
                 </div>
               </div>
 
@@ -206,6 +212,7 @@ export default function MenuPrincipal() {
                     ))}
                   </div>
 
+                  {/* Cambio de main: mantener el feed dentro de la columna derecha para respetar la cuadrícula. */}
                   <h5 className="mb-3 letra-contenido">Feed de notificaciones y actividad</h5>
                   <div className="d-flex flex-column gap-2">
                     {feedNotificaciones.map((item, indice) => (
@@ -435,7 +442,6 @@ export default function MenuPrincipal() {
           {vistaActiva === "mensajes" && <div className="vista"></div>}
 
           {vistaActiva === "en-curso" && <div className="vista"></div>}
-
         </div>
       </main>
     </>

@@ -1,0 +1,17 @@
+.registro-vehiculo__card {
+  max-width: 560px;
+  background: linear-gradient(145deg, #fff 0%, #f1faff 100%);
+}
+
+.registro-vehiculo__card .form-control,
+.registro-vehiculo__card .form-select {
+  min-height: 48px;
+}
+
+.registro-vehiculo__icon {
+  width: 56px;
+  height: 56px;
+  flex-basis: 56px;
+  background-color: #88d2f0;
+  font-size: 1.7rem;
+}
