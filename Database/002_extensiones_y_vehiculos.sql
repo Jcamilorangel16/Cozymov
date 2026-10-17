@@ -34,7 +34,7 @@ CREATE TABLE VEHICULO (
 );
 
 CREATE TABLE AUTOMOVIL (
-    id_vehiculo BIGINT PRIMARY KEY,
+    id_vehiculo BIGINT,
     numero_puertas SMALLINT NOT NULL CHECK (numero_puertas IN (2, 3, 4, 5)),
     CONSTRAINT fk_automovil_vehiculo 
         FOREIGN KEY (id_vehiculo) 
@@ -43,7 +43,7 @@ CREATE TABLE AUTOMOVIL (
 );
 
 CREATE TABLE MOTO (
-    id_vehiculo BIGINT PRIMARY KEY,
+    id_vehiculo BIGINT,
     modalidad VARCHAR(20) NOT NULL,
     CONSTRAINT fk_moto_vehiculo 
         FOREIGN KEY (id_vehiculo) 
@@ -52,7 +52,7 @@ CREATE TABLE MOTO (
 );
 
 CREATE TABLE BICICLETA_ELECTRICA (
-    id_vehiculo BIGINT PRIMARY KEY,
+    id_vehiculo BIGINT,
     CONSTRAINT fk_bicicleta_electrica_vehiculo 
         FOREIGN KEY (id_vehiculo) 
         REFERENCES VEHICULO(id_vehiculo) 

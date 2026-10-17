@@ -45,6 +45,21 @@ export default function RegistroVehiculo({ vehiculo, error, onFieldChange, onSub
           />
         </div>
 
+        <div className="registro-vehiculo__field">
+          <label className="form-label" htmlFor="capacidad-vehiculo">Capacidad de pasajeros</label>
+          <input
+            className="form-control"
+            id="capacidad-vehiculo"
+            type="number"
+            min="1"
+            max="32767"
+            step="1"
+            required
+            value={vehiculo.capacidad}
+            onChange={(evento) => onFieldChange("capacidad", evento.target.value)}
+          />
+        </div>
+
         {vehiculo.tipo === "automovil" && (
           <div className="registro-vehiculo__field">
             <label className="form-label" htmlFor="numero-puertas">Número de puertas</label>

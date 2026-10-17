@@ -75,6 +75,15 @@ La contraseña debe tener al menos 8 caracteres y no superar el límite de 72 by
 
 El hash se mantiene en el servidor y no se incluye en la respuesta del login.
 
+## Registro de vehículos
+
+1. Al iniciar sesión, el navegador conserva el identificador del usuario en `sessionStorage` durante esa sesión.
+2. Al abrir la opción para ofrecer viajes, `src/features/ofrecer-viajes/components/OfrecerViajes.jsx` consulta `GET /api/vehiculo?id_usuario=...` para recuperar el vehículo guardado.
+3. El formulario envía el vehículo con `POST /api/vehiculo`. La API valida los datos y guarda el vehículo y, para automóviles o motos, sus datos específicos en una transacción de PostgreSQL.
+4. La API de vehículos requiere las tablas `VEHICULO`, `AUTOMOVIL` y `MOTO` del esquema `Database/002_extensiones_y_vehiculos.sql`.
+
+La capacidad de pasajeros, el tipo, el modelo, la ruta cotidiana, el número de puertas (automóvil) y la modalidad (moto) se guardan en la base. La foto seleccionada en el formulario no se carga a la nube: la aplicación aún no tiene configurado un servicio de almacenamiento de archivos.
+
 ## Archivos de conexión y API
 
 | Archivo | Responsabilidad |
@@ -82,6 +91,8 @@ El hash se mantiene en el servidor y no se incluye en la respuesta del login.
 | `src/lib/db.ts` | Construye y reutiliza el pool `pg`; informa si falta `DATABASE_URL`. |
 | `app/api/registro/route.ts` | Valida e inserta usuarios, hasheando la contraseña. |
 | `app/api/login/route.ts` | Lee al usuario por correo y compara su hash bcrypt. |
+| `app/api/vehiculo/route.ts` | Consulta y registra vehículos en PostgreSQL. |
+| `src/features/ofrecer-viajes/components/OfrecerViajes.jsx` | Consulta y envía los datos del vehículo a la API. |
 | `src/features/register/pages/register.jsx` | Envía el formulario de registro a la API. |
 | `src/features/login/pages/Login.jsx` | Envía el formulario de login a la API. |
 

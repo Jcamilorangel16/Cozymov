@@ -7,11 +7,18 @@ import PuntoEncuentroDropdown from "./PuntoEncuentroDropdown";
 import RegistroVehiculo from "./RegistroVehiculo";
 import Swal from "sweetalert2";
 
-const VEHICULO_STORAGE_KEY = "cozymov-vehiculo-v2";
 const PRECIOS_SUGERIDOS = [3000, 4000, 5000];
 const UNIVERSIDAD_POPULAR_CESAR = "Universidad Popular Del Cesar";
 const LUGARES_ADICIONALES = [UNIVERSIDAD_POPULAR_CESAR];
 const MINUTOS_POR_DEFECTO_SALIDA = 5;
+
+function suscribirSesion() {
+  return () => {};
+}
+
+function obtenerIdUsuario() {
+  return window.sessionStorage.getItem("cozymov-usuario-id") || "";
+}
 
 function formatearPrecio(precio) {
   return new Intl.NumberFormat("es-CO", {
@@ -29,62 +36,26 @@ function obtenerPartesFechaHora(fecha) {
   };
 }
 
-const suscriptoresVehiculo = new Set();
-let ultimoVehiculoGuardado = null;
-let ultimoVehiculoSerializado = null;
-
-function suscribirVehiculo(callback) {
-  suscriptoresVehiculo.add(callback);
-  window.addEventListener("storage", callback);
-
-  return () => {
-    suscriptoresVehiculo.delete(callback);
-    window.removeEventListener("storage", callback);
-  };
-}
-
-function obtenerVehiculoGuardado() {
-  const serializado = window.localStorage.getItem(VEHICULO_STORAGE_KEY);
-  if (serializado === null) return null;
-  if (serializado === ultimoVehiculoSerializado) return ultimoVehiculoGuardado;
-
-  const vehiculoGuardado = JSON.parse(serializado);
-  if (
-    typeof vehiculoGuardado.tipo !== "string" ||
-    typeof vehiculoGuardado.rutaCotidiana !== "string"
-  ) {
-    throw new Error("Los datos guardados del vehículo tienen un formato inválido.");
-  }
-
-  ultimoVehiculoSerializado = serializado;
-  ultimoVehiculoGuardado = vehiculoGuardado;
-  return vehiculoGuardado;
-}
-
-function notificarCambioVehiculo() {
-  suscriptoresVehiculo.forEach((callback) => callback());
-}
-
 export default function OfrecerViajes({
   pasajeroSeleccionado,
   setPasajeroSeleccionado,
   mensajeAccion,
   setMensajeAccion,
 }) {
-  const vehiculoGuardado = useSyncExternalStore(
-    suscribirVehiculo,
-    obtenerVehiculoGuardado,
-    () => null,
-  );
+  const [vehiculoGuardado, setVehiculoGuardado] = useState(null);
+  const idUsuario = useSyncExternalStore(suscribirSesion, obtenerIdUsuario, () => "");
+  const [cargandoVehiculo, setCargandoVehiculo] = useState(true);
+  const [consultaFallida, setConsultaFallida] = useState(false);
+  const [intentoConsulta, setIntentoConsulta] = useState(0);
   const [vehiculo, setVehiculo] = useState({
     tipo: "",
     modelo: "",
+    capacidad: "",
     rutaCotidiana: "",
     numeroPuertas: "",
     modalidad: "",
   });
   const [errorVehiculo, setErrorVehiculo] = useState("");
-  const temporizadorRegistro = useRef(null);
   const [origen, setOrigen] = useState(UNIVERSIDAD_POPULAR_CESAR);
   const [destino, setDestino] = useState(UNIVERSIDAD_POPULAR_CESAR);
   const [puntoEncuentro, setPuntoEncuentro] = useState("");
@@ -100,12 +71,44 @@ export default function OfrecerViajes({
 
   useEffect(
     () => () => {
-      window.clearTimeout(temporizadorRegistro.current);
       window.clearTimeout(temporizadorPublicacion.current);
       Swal.close();
     },
     [],
   );
+
+  useEffect(() => {
+    if (!idUsuario) return;
+    const controlador = new AbortController();
+
+    async function cargarVehiculo() {
+      try {
+        const respuesta = await fetch(
+          `/api/vehiculo?id_usuario=${encodeURIComponent(idUsuario)}`,
+          { signal: controlador.signal },
+        );
+        const resultado = await respuesta.json();
+        if (!respuesta.ok) {
+          throw new Error(resultado.error || "No se pudo consultar el vehículo.");
+        }
+
+        setVehiculoGuardado(resultado.vehiculo);
+        setConsultaFallida(false);
+      } catch (error) {
+        if (error.name === "AbortError") return;
+        console.error("No se pudo consultar el vehículo en la nube:", error);
+        setConsultaFallida(true);
+        setErrorVehiculo(
+          error.message || "No se pudo consultar tu vehículo. Inténtalo de nuevo.",
+        );
+      } finally {
+        if (!controlador.signal.aborted) setCargandoVehiculo(false);
+      }
+    }
+
+    void cargarVehiculo();
+    return () => controlador.abort();
+  }, [idUsuario, intentoConsulta]);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -122,7 +125,13 @@ export default function OfrecerViajes({
   function cambiarCampoVehiculo(campo, valor) {
     setVehiculo((anterior) => {
       if (campo === "tipo") {
-        return { ...anterior, tipo: valor, numeroPuertas: "", modalidad: "" };
+        return {
+          ...anterior,
+          tipo: valor,
+          capacidad: "",
+          numeroPuertas: "",
+          modalidad: "",
+        };
       }
 
       return { ...anterior, [campo]: valor };
@@ -130,39 +139,64 @@ export default function OfrecerViajes({
     setErrorVehiculo("");
   }
 
-  function guardarVehiculo(evento) {
+  async function guardarVehiculo(evento) {
     evento.preventDefault();
+    if (!idUsuario) {
+      setErrorVehiculo("Inicia sesión para registrar tu vehículo.");
+      return;
+    }
+
     void Swal.fire({
       title: "Registrando vehículo",
-      text: "Estamos guardando tu información. Esto tomará unos segundos.",
+      text: "Estamos guardando tu información en la nube.",
       allowOutsideClick: false,
       allowEscapeKey: false,
       didOpen: () => Swal.showLoading(),
     });
-    temporizadorRegistro.current = window.setTimeout(() => {
-      try {
-        window.localStorage.setItem(VEHICULO_STORAGE_KEY, JSON.stringify(vehiculo));
-        ultimoVehiculoSerializado = null;
-        ultimoVehiculoGuardado = null;
-        notificarCambioVehiculo();
-        setErrorVehiculo("");
-        void Swal.fire({
-          icon: "success",
-          title: "¡Registro exitoso!",
-          text: "Tu vehículo se registró correctamente.",
-          confirmButtonText: "Continuar",
-          allowOutsideClick: false,
-          allowEscapeKey: false,
-        });
-      } catch (error) {
-        console.error("No se pudo guardar el vehículo en localStorage:", error);
-        setErrorVehiculo("No se pudo guardar el vehículo. Inténtalo de nuevo.");
-        void Swal.fire({
-          icon: "error",
-          text: "No se pudo guardar el vehículo. Inténtalo de nuevo.",
-        });
+
+    const tiposVehiculo = {
+      automovil: "Automovil",
+      moto: "Moto",
+      "bicicleta-electrica": "Bicicleta electrica",
+    };
+
+    try {
+      const respuesta = await fetch("/api/vehiculo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id_usuario: idUsuario,
+          tipo: tiposVehiculo[vehiculo.tipo],
+          modelo: vehiculo.modelo,
+          capacidad: Number(vehiculo.capacidad),
+          ruta_cotidiana: vehiculo.rutaCotidiana,
+          numero_puertas:
+            vehiculo.tipo === "automovil" ? Number(vehiculo.numeroPuertas) : null,
+          modalidad: vehiculo.tipo === "moto" ? vehiculo.modalidad : null,
+        }),
+      });
+      const resultado = await respuesta.json();
+      if (!respuesta.ok) {
+        throw new Error(resultado.error || "No se pudo guardar el vehículo.");
       }
-    }, 2000);
+
+      setVehiculoGuardado(resultado.vehiculo);
+      setErrorVehiculo("");
+      void Swal.fire({
+        icon: "success",
+        title: "¡Registro exitoso!",
+        text: "Tu vehículo se registró correctamente en la nube.",
+        confirmButtonText: "Continuar",
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+      });
+    } catch (error) {
+      console.error("No se pudo guardar el vehículo en la nube:", error);
+      const mensaje =
+        error.message || "No se pudo guardar el vehículo. Inténtalo de nuevo.";
+      setErrorVehiculo(mensaje);
+      void Swal.fire({ icon: "error", text: mensaje });
+    }
   }
 
   function publicarViaje(evento) {
@@ -279,7 +313,41 @@ export default function OfrecerViajes({
     setMensajeAccion(`Has aceptado la solicitud de ${pasajeroSeleccionado.nombre}.`);
   }
 
+  if (!idUsuario) {
+    return (
+      <div className="vista">
+        <div className="alert alert-danger" role="alert">
+          Inicia sesión para registrar y consultar tu vehículo.
+        </div>
+      </div>
+    );
+  }
+
+  if (cargandoVehiculo) {
+    return <div className="vista" role="status">Consultando tu vehículo...</div>;
+  }
+
   if (vehiculoGuardado === null) {
+    if (consultaFallida) {
+      return (
+        <div className="vista">
+          <div className="alert alert-danger" role="alert">
+            {errorVehiculo}
+            <button
+              className="btn btn-outline-danger d-block mt-3"
+              type="button"
+              onClick={() => {
+                setCargandoVehiculo(true);
+                setIntentoConsulta((intento) => intento + 1);
+              }}
+            >
+              Volver a consultar
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <>
         <RegistroVehiculo
