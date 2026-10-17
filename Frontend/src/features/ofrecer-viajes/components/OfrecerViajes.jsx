@@ -53,7 +53,6 @@ export default function OfrecerViajes({
     capacidad: "",
     rutaCotidiana: "",
     numeroPuertas: "",
-    modalidad: "",
   });
   const [errorVehiculo, setErrorVehiculo] = useState("");
   const [origen, setOrigen] = useState(UNIVERSIDAD_POPULAR_CESAR);
@@ -125,6 +124,7 @@ export default function OfrecerViajes({
   function cambiarCampoVehiculo(campo, valor) {
     setVehiculo((anterior) => {
       if (campo === "tipo") {
+<<<<<<< HEAD
         return {
           ...anterior,
           tipo: valor,
@@ -132,6 +132,9 @@ export default function OfrecerViajes({
           numeroPuertas: "",
           modalidad: "",
         };
+=======
+        return { ...anterior, tipo: valor, numeroPuertas: "" };
+>>>>>>> 36c1219ed95a0dd510a0d48d1ab0771d804f717e
       }
 
       return { ...anterior, [campo]: valor };
@@ -174,6 +177,7 @@ export default function OfrecerViajes({
             vehiculo.tipo === "automovil" ? Number(vehiculo.numeroPuertas) : null,
           modalidad: vehiculo.tipo === "moto" ? vehiculo.modalidad : null,
         }),
+<<<<<<< HEAD
       });
       const resultado = await respuesta.json();
       if (!respuesta.ok) {
@@ -181,6 +185,13 @@ export default function OfrecerViajes({
       }
 
       setVehiculoGuardado(resultado.vehiculo);
+=======
+      };
+      window.localStorage.setItem(VEHICULO_STORAGE_KEY, JSON.stringify(vehiculoParaGuardar));
+      ultimoVehiculoSerializado = null;
+      ultimoVehiculoGuardado = null;
+      notificarCambioVehiculo();
+>>>>>>> 36c1219ed95a0dd510a0d48d1ab0771d804f717e
       setErrorVehiculo("");
       void Swal.fire({
         icon: "success",
