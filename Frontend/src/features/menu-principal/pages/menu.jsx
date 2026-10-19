@@ -117,7 +117,7 @@ export default function MenuPrincipal() {
               title="Configuración"
             >
               {/* Cambio de main: usar next/image y rutas públicas absolutas para los iconos. */}
-              <Image src="/tuerca.png" alt="Configuración" width={20} height={20} />
+              <Image src="/icons/tuerca.png" alt="Configuración" width={20} height={20} />
             </button>
             <ul className="dropdown-menu dropdown-menu-dark dropdown-menu-end shadow" aria-labelledby="dropdownConfig">
               <li>
@@ -130,7 +130,7 @@ export default function MenuPrincipal() {
                   }}
                 >
                   {/* Cambio de main: optimizar también el icono de cierre con next/image. */}
-                  <Image src="/puerta.png" alt="Cerrar sesión" width={20} height={20} /> Cerrar sesión
+                  <Image src="/icons/puerta.png" alt="Cerrar sesión" width={20} height={20} /> Cerrar sesión
                 </a>
               </li>
             </ul>
