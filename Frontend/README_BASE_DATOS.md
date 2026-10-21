@@ -84,6 +84,39 @@ El hash se mantiene en el servidor y no se incluye en la respuesta del login.
 
 La capacidad de pasajeros, el tipo, el modelo, la ruta cotidiana, el número de puertas (automóvil) y la modalidad (moto) se guardan en la base. La foto seleccionada en el formulario no se carga a la nube: la aplicación aún no tiene configurado un servicio de almacenamiento de archivos.
 
+## Publicación de viajes
+
+1. Con el vehículo registrado, el conductor ingresa origen, destino, punto específico de encuentro, precio del pasaje, cupos disponibles, fecha y hora de salida, e información adicional.
+2. Al presionar **"Publicar viaje"**, `src/features/ofrecer-viajes/components/OfrecerViajes.jsx` envía los datos vía `POST /api/viajes`.
+3. `app/api/viajes/route.ts` valida en el servidor que el usuario y vehículo existan, que el origen y destino difieran, los rangos de precio (>0), cupos (1 a 7) y coherencia temporal de la salida.
+4. El registro se inserta en la tabla `public.viaje` con estado `'activo'`.
+5. Si la inserción es exitosa, se responde HTTP `201` con el registro persistido y la UI muestra la confirmación pasando a `EsperandoPasajeros.jsx`.
+6. Al recargar la página, `OfrecerViajes.jsx` consulta `GET /api/viajes?id_usuario=...` para restaurar automáticamente el viaje activo si existe.
+
+## Tabla de viajes
+
+```sql
+CREATE TABLE public.viaje (
+    id_viaje BIGSERIAL PRIMARY KEY,
+    id_usuario VARCHAR(20) NOT NULL REFERENCES public.usuario(id_usuario) ON DELETE CASCADE,
+    id_vehiculo BIGINT NOT NULL REFERENCES public.vehiculo(id_vehiculo) ON DELETE CASCADE,
+    origen VARCHAR(150) NOT NULL,
+    destino VARCHAR(150) NOT NULL,
+    punto_encuentro VARCHAR(200) NOT NULL,
+    precio_pasaje INTEGER NOT NULL CHECK (precio_pasaje > 0),
+    cupos_disponibles SMALLINT NOT NULL CHECK (cupos_disponibles >= 1 AND cupos_disponibles <= 7),
+    fecha_salida DATE NOT NULL,
+    hora_salida TIME NOT NULL,
+    informacion_adicional VARCHAR(500),
+    estado VARCHAR(20) NOT NULL DEFAULT 'activo' CHECK (estado IN ('activo', 'en_curso', 'finalizado', 'cancelado')),
+    fecha_creacion TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_viaje_usuario ON public.viaje (id_usuario);
+CREATE INDEX idx_viaje_estado ON public.viaje (estado);
+CREATE INDEX idx_viaje_fecha ON public.viaje (fecha_salida);
+```
+
 ## Archivos de conexión y API
 
 | Archivo | Responsabilidad |
@@ -92,7 +125,8 @@ La capacidad de pasajeros, el tipo, el modelo, la ruta cotidiana, el número de 
 | `app/api/registro/route.ts` | Valida e inserta usuarios, hasheando la contraseña. |
 | `app/api/login/route.ts` | Lee al usuario por correo y compara su hash bcrypt. |
 | `app/api/vehiculo/route.ts` | Consulta y registra vehículos en PostgreSQL. |
-| `src/features/ofrecer-viajes/components/OfrecerViajes.jsx` | Consulta y envía los datos del vehículo a la API. |
+| `app/api/viajes/route.ts` | Valida, inserta y consulta viajes en PostgreSQL. |
+| `src/features/ofrecer-viajes/components/OfrecerViajes.jsx` | Consulta y envía los datos del vehículo y viaje a la API. |
 | `src/features/register/pages/register.jsx` | Envía el formulario de registro a la API. |
 | `src/features/login/pages/Login.jsx` | Envía el formulario de login a la API. |
 
@@ -109,6 +143,7 @@ Para comprobar la tabla desde el editor SQL de Supabase sin leer datos de usuari
 
 ```sql
 SELECT * FROM public.usuario LIMIT 0;
+SELECT * FROM public.viaje LIMIT 0;
 ```
 
 ## Límites actuales
