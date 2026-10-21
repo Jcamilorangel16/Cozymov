@@ -82,13 +82,13 @@ El hash se mantiene en el servidor y no se incluye en la respuesta del login.
 3. El formulario envía el vehículo con `POST /api/vehiculo`. La API valida los datos y guarda el vehículo y, para automóviles o motos, sus datos específicos en una transacción de PostgreSQL.
 4. La API de vehículos requiere las tablas `VEHICULO`, `AUTOMOVIL` y `MOTO` del esquema `Database/002_extensiones_y_vehiculos.sql`.
 
-La capacidad de pasajeros, el tipo, el modelo, la ruta cotidiana, el número de puertas (automóvil) y la modalidad (moto) se guardan en la base. La foto seleccionada en el formulario no se carga a la nube: la aplicación aún no tiene configurado un servicio de almacenamiento de archivos.
+La capacidad de pasajeros, el tipo, el modelo, la ruta cotidiana, el número de puertas (automóvil) y la modalidad (moto) se guardan en la base. La carga de fotos aún no está disponible y no es necesaria para registrar el vehículo.
 
 ## Publicación de viajes
 
 1. Con el vehículo registrado, el conductor ingresa origen, destino, punto específico de encuentro, precio del pasaje, cupos disponibles, fecha y hora de salida, e información adicional.
 2. Al presionar **"Publicar viaje"**, `src/features/ofrecer-viajes/components/OfrecerViajes.jsx` envía los datos vía `POST /api/viajes`.
-3. `app/api/viajes/route.ts` recibe la solicitud HTTP y devuelve la respuesta; `src/features/viajes/services/viajesService.ts` coordina las validaciones y operaciones; `src/features/viajes/validations/viajeValidation.ts` valida los datos, y `src/features/viajes/repositories/viajeRepository.ts` contiene las consultas SQL.
+3. `app/api/viajes/route.ts` recibe la solicitud HTTP y devuelve la respuesta; `src/features/viajes/services/viajesService.ts` coordina las operaciones; las validaciones de todos los dominios están centralizadas en `src/validaciones/`, y `src/features/viajes/repositories/viajeRepository.ts` contiene las consultas SQL.
 4. El registro se inserta en la tabla `public.viaje` con estado `'activo'`.
 5. Si la inserción es exitosa, se responde HTTP `201` con el registro persistido y la UI muestra la confirmación pasando a `EsperandoPasajeros.jsx`.
 6. Al recargar la página, `OfrecerViajes.jsx` consulta `GET /api/viajes?id_usuario=...` para restaurar automáticamente el viaje activo si existe.

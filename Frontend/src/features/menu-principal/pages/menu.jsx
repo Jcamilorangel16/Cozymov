@@ -34,6 +34,7 @@ const feedNotificaciones = [
   { icono: "🔔", texto: "Nuevo viaje publicado", detalle: "system" },
 ];
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const resultadosViajes = [
   {
     nombre: "Carlos Monteno", iniciales: "CM", avatarColor: "bg-danger",

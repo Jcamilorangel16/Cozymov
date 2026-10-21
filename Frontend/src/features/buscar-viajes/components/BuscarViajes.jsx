@@ -1,6 +1,110 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import { puedeAceptarViaje } from "../../../validaciones/viajes";
+
+function suscribirSesion() {
+  return () => {};
+}
+
+function obtenerIdUsuario() {
+  return window.sessionStorage.getItem("cozymov-usuario-id") || "";
+}
+
+async function consultarViajes(filtros, signal) {
+  const parametros = new URLSearchParams();
+  if (filtros.origen) parametros.set("origen", filtros.origen);
+  if (filtros.destino) parametros.set("destino", filtros.destino);
+  if (filtros.fecha) parametros.set("fecha", filtros.fecha);
+
+  const respuesta = await fetch(`/api/viajes?${parametros.toString()}`, { signal });
+  const resultado = await respuesta.json();
+  if (!respuesta.ok) {
+    throw new Error(resultado.error || "No se pudieron consultar los viajes.");
+  }
+  if (!Array.isArray(resultado.viajes)) {
+    throw new Error("La respuesta del servidor no contiene una lista de viajes.");
+  }
+
+  return resultado.viajes;
+}
+
+function normalizarTexto(valor) {
+  return String(valor || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("es")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim();
+}
+
+function calcularDistancia(textoA, textoB) {
+  const anterior = Array.from({ length: textoB.length + 1 }, (_, indice) => indice);
+
+  for (let indiceA = 1; indiceA <= textoA.length; indiceA += 1) {
+    let diagonal = anterior[0];
+    anterior[0] = indiceA;
+
+    for (let indiceB = 1; indiceB <= textoB.length; indiceB += 1) {
+      const arriba = anterior[indiceB];
+      const costo = textoA[indiceA - 1] === textoB[indiceB - 1] ? 0 : 1;
+      anterior[indiceB] = Math.min(
+        anterior[indiceB] + 1,
+        anterior[indiceB - 1] + 1,
+        diagonal + costo,
+      );
+      diagonal = arriba;
+    }
+  }
+
+  return anterior[textoB.length];
+}
+
+function calcularSimilitud(consulta, valor) {
+  const textoConsulta = normalizarTexto(consulta);
+  const textoValor = normalizarTexto(valor);
+  if (!textoConsulta || !textoValor) return 0;
+  if (textoConsulta === textoValor) return 1;
+  if (textoValor.includes(textoConsulta)) {
+    return 0.8 + (textoConsulta.length / textoValor.length) * 0.2;
+  }
+
+  const candidatos = [textoValor, ...textoValor.split(" ")];
+  return Math.max(
+    ...candidatos.map((candidato) => {
+      const longitud = Math.max(textoConsulta.length, candidato.length);
+      return longitud ? 1 - calcularDistancia(textoConsulta, candidato) / longitud : 0;
+    }),
+  );
+}
+
+function puntajeViaje(viaje, filtros) {
+  const puntajesTexto = [];
+  if (filtros.origen) {
+    puntajesTexto.push(calcularSimilitud(filtros.origen, viaje.origen));
+  }
+  if (filtros.destino) {
+    puntajesTexto.push(calcularSimilitud(filtros.destino, viaje.destino));
+  }
+
+  const puntajeRuta = puntajesTexto.length
+    ? puntajesTexto.reduce((total, puntaje) => total + puntaje, 0) / puntajesTexto.length
+    : 0;
+  const puntajeFecha =
+    filtros.fecha && String(viaje.fecha_salida).slice(0, 10) === filtros.fecha ? 1 : 0;
+
+  if (filtros.fecha && puntajesTexto.length) {
+    return puntajeRuta * 0.8 + puntajeFecha * 0.2;
+  }
+  return filtros.fecha ? puntajeFecha : puntajeRuta;
+}
+
+function ordenarViajesPorSimilitud(viajes, filtros) {
+  return viajes
+    .map((viaje, indice) => ({ viaje, indice, puntaje: puntajeViaje(viaje, filtros) }))
+    .sort((a, b) => b.puntaje - a.puntaje || a.indice - b.indice)
+    .map(({ viaje }) => viaje);
+}
 
 function formatearPrecio(precio) {
   return new Intl.NumberFormat("es-CO", {
@@ -27,33 +131,76 @@ export default function BuscarViajes() {
   const [destino, setDestino] = useState("");
   const [fecha, setFecha] = useState("");
   const [viajes, setViajes] = useState([]);
-  const [buscando, setBuscando] = useState(false);
+  const [buscando, setBuscando] = useState(true);
   const [busquedaRealizada, setBusquedaRealizada] = useState(false);
   const [error, setError] = useState("");
+  const [tieneViajePublicado, setTieneViajePublicado] = useState(null);
+  const [validacionCompletada, setValidacionCompletada] = useState(false);
+  const idUsuario = useSyncExternalStore(
+    suscribirSesion,
+    obtenerIdUsuario,
+    () => "",
+  );
+
+  useEffect(() => {
+    const controlador = new AbortController();
+    consultarViajes({}, controlador.signal)
+      .then((viajesCargados) => {
+        setViajes(viajesCargados);
+        setBusquedaRealizada(true);
+      })
+      .catch((errorConsulta) => {
+        if (errorConsulta.name !== "AbortError") {
+          setError(errorConsulta.message || "No se pudieron consultar los viajes.");
+        }
+      })
+      .finally(() => {
+        if (!controlador.signal.aborted) setBuscando(false);
+      });
+
+    if (idUsuario) {
+      fetch(`/api/viajes?id_usuario=${encodeURIComponent(idUsuario)}`, {
+        signal: controlador.signal,
+      })
+        .then(async (respuesta) => {
+          const resultado = await respuesta.json();
+          if (!respuesta.ok) {
+            throw new Error(resultado.error || "No se pudo validar tu viaje publicado.");
+          }
+          if (!("viaje" in resultado)) {
+            throw new Error("No se pudo validar tu viaje publicado.");
+          }
+          setTieneViajePublicado(Boolean(resultado.viaje));
+        })
+        .catch((errorConsulta) => {
+          if (errorConsulta.name !== "AbortError") {
+            setTieneViajePublicado(null);
+            setError(
+              errorConsulta.message || "No se pudo validar tu viaje publicado.",
+            );
+          }
+        })
+        .finally(() => {
+          if (!controlador.signal.aborted) setValidacionCompletada(true);
+        });
+    }
+
+    return () => controlador.abort();
+  }, [idUsuario]);
 
   async function handleBuscar(evento) {
     evento.preventDefault();
     setBuscando(true);
-    setBusquedaRealizada(false);
     setError("");
-    setViajes([]);
-
-    const parametros = new URLSearchParams();
-    if (origen.trim()) parametros.set("origen", origen.trim());
-    if (destino.trim()) parametros.set("destino", destino.trim());
-    if (fecha) parametros.set("fecha", fecha);
 
     try {
-      const respuesta = await fetch(`/api/viajes?${parametros.toString()}`);
-      const resultado = await respuesta.json();
-      if (!respuesta.ok) {
-        throw new Error(resultado.error || "No se pudieron consultar los viajes.");
-      }
-      if (!Array.isArray(resultado.viajes)) {
-        throw new Error("La respuesta del servidor no contiene una lista de viajes.");
-      }
-
-      setViajes(resultado.viajes);
+      const todosLosViajes = await consultarViajes({});
+      const filtros = {
+        origen: origen.trim(),
+        destino: destino.trim(),
+        fecha,
+      };
+      setViajes(ordenarViajesPorSimilitud(todosLosViajes, filtros));
       setBusquedaRealizada(true);
     } catch (errorConsulta) {
       setError(errorConsulta.message || "No se pudieron consultar los viajes.");
@@ -159,6 +306,41 @@ export default function BuscarViajes() {
                             <strong>Información adicional:</strong> {viaje.informacion_adicional}
                           </div>
                         )}
+                        <div className="col-12 mt-2">
+                          <button
+                            className="btn btn-success"
+                            type="button"
+                            disabled={!puedeAceptarViaje(
+                              idUsuario,
+                              validacionCompletada,
+                              tieneViajePublicado,
+                            )}
+                            title={
+                              !idUsuario
+                                ? "Inicia sesión para poder aceptar un viaje."
+                                : tieneViajePublicado
+                                  ? "Ya tienes un viaje publicado."
+                                  : undefined
+                            }
+                          >
+                            Aceptar viaje
+                          </button>
+                          {!idUsuario && (
+                            <small className="texto-secundario ms-2">
+                              Inicia sesión para poder aceptar un viaje.
+                            </small>
+                          )}
+                          {tieneViajePublicado && (
+                            <small className="texto-secundario ms-2">
+                              Solo puedes aceptar un viaje si no tienes uno publicado.
+                            </small>
+                          )}
+                          {idUsuario && !validacionCompletada && (
+                            <small className="texto-secundario ms-2" role="status">
+                              Validando tus viajes publicados...
+                            </small>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </article>

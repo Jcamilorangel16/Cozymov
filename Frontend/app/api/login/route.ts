@@ -6,13 +6,9 @@ import {
   NOMBRE_COOKIE_SESION,
   DURACION_SESION_SEGUNDOS,
 } from "../../../src/lib/auth";
+import { validarCredencialesUsuario } from "../../../src/validaciones/autenticacion";
 
 export const runtime = "nodejs";
-
-type Credenciales = {
-  correo?: unknown;
-  contrasena?: unknown;
-};
 
 type UsuarioLogin = {
   id: string;
@@ -25,10 +21,10 @@ type UsuarioLogin = {
 };
 
 export async function POST(request: Request) {
-  let datos: Credenciales;
+  let body: unknown;
 
   try {
-    datos = await request.json();
+    body = await request.json();
   } catch {
     return Response.json(
       { error: "El cuerpo de la solicitud no es válido." },
@@ -36,32 +32,14 @@ export async function POST(request: Request) {
     );
   }
 
-  if (
-    typeof datos.correo !== "string" ||
-    typeof datos.contrasena !== "string"
-  ) {
+  const validacion = validarCredencialesUsuario(body);
+  if (!validacion.valido) {
     return Response.json(
-      { error: "Ingresa tu correo y contraseña." },
-      { status: 400 }
+      { error: validacion.error },
+      { status: validacion.estado }
     );
   }
-
-  const correo = datos.correo.trim().toLowerCase();
-  const contrasena = datos.contrasena;
-
-  if (!correo || !contrasena) {
-    return Response.json(
-      { error: "Ingresa tu correo y contraseña." },
-      { status: 400 }
-    );
-  }
-
-  if (Buffer.byteLength(contrasena, "utf8") > 72) {
-    return Response.json(
-      { error: "Correo o contraseña incorrectos." },
-      { status: 401 }
-    );
-  }
+  const { correo, contrasena } = validacion.datos;
 
   try {
     const resultado = await getDbPool().query<UsuarioLogin>(

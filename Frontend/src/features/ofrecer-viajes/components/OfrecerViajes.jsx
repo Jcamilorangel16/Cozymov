@@ -6,6 +6,10 @@ import EsperandoPasajeros from "./EsperandoPasajeros";
 import PuntoEncuentroDropdown from "./PuntoEncuentroDropdown";
 import RegistroVehiculo from "./RegistroVehiculo";
 import Swal from "sweetalert2";
+import {
+  validarDatosNuevoViaje,
+  validarPermisoPublicarViaje,
+} from "../../../validaciones/viajes";
 
 
 const PRECIOS_SUGERIDOS = [3000, 4000, 5000];
@@ -61,6 +65,7 @@ export default function OfrecerViajes({
     numeroPuertas: "",
   });
   const [errorVehiculo, setErrorVehiculo] = useState("");
+  const [guardandoVehiculo, setGuardandoVehiculo] = useState(false);
   const [origen, setOrigen] = useState(UNIVERSIDAD_POPULAR_CESAR);
   const [destino, setDestino] = useState(UNIVERSIDAD_POPULAR_CESAR);
   const [puntoEncuentro, setPuntoEncuentro] = useState("");
@@ -183,98 +188,85 @@ export default function OfrecerViajes({
   // Valida de forma básica la sesión y envía el vehículo a la API del servidor.
   async function guardarVehiculo(evento) {
     evento.preventDefault();
-    void Swal.fire({
-      title: "Registrando vehículo",
-      text: "Estamos guardando tu información en la nube.",
-      allowOutsideClick: false,
-      allowEscapeKey: false,
-      didOpen: () => Swal.showLoading(),
-    });
-    temporizadorRegistro.current = window.setTimeout(() => {
-      try {
-        const vehiculoParaGuardar = {
-          tipo: vehiculo.tipo,
-          modelo: vehiculo.modelo,
-          rutaCotidiana: vehiculo.rutaCotidiana,
-          ...(vehiculo.tipo === "automovil" && {
-            numeroPuertas: Number(vehiculo.numeroPuertas),
-          }),
-        };
-        window.localStorage.setItem(VEHICULO_STORAGE_KEY, JSON.stringify(vehiculoParaGuardar));
-        ultimoVehiculoSerializado = null;
-        ultimoVehiculoGuardado = null;
-        notificarCambioVehiculo();
-        setErrorVehiculo("");
-        void Swal.fire({
-          icon: "success",
-          title: "¡Registro exitoso!",
-          text: "Tu vehículo se registró correctamente.",
-          confirmButtonText: "Continuar",
-          allowOutsideClick: false,
-          allowEscapeKey: false,
-        });
-      } catch (error) {
-        console.error("No se pudo guardar el vehículo en localStorage:", error);
-        setErrorVehiculo("No se pudo guardar el vehículo. Inténtalo de nuevo.");
-        void Swal.fire({
-          icon: "error",
-          text: "No se pudo guardar el vehículo. Inténtalo de nuevo.",
-        });
+    if (!idUsuario || guardandoVehiculo) return;
+
+    setGuardandoVehiculo(true);
+    setErrorVehiculo("");
+
+    try {
+      const datosVehiculo = {
+        id_usuario: idUsuario,
+        tipo: vehiculo.tipo,
+        modelo: vehiculo.modelo.trim(),
+        capacidad: Number(vehiculo.capacidad),
+        ruta_cotidiana: vehiculo.rutaCotidiana || null,
+        foto_vehiculo: null,
+        ...(vehiculo.tipo === "Automovil" && {
+          numero_puertas: Number(vehiculo.numeroPuertas),
+        }),
+        ...(vehiculo.tipo === "Moto" && {
+          modalidad: vehiculo.modalidad.trim(),
+        }),
+      };
+      const respuesta = await fetch("/api/vehiculo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(datosVehiculo),
+      });
+      const resultado = await respuesta.json();
+      if (!respuesta.ok) {
+        throw new Error(resultado.error || "No se pudo guardar el vehículo.");
       }
-    }, 2000);
+      if (!resultado.vehiculo?.id_vehiculo) {
+        throw new Error("El servidor no confirmó el registro del vehículo.");
+      }
+
+      setVehiculoGuardado(resultado.vehiculo);
+      void Swal.fire({
+        icon: "success",
+        title: "¡Registro exitoso!",
+        text: "Tu vehículo se guardó correctamente en la base de datos.",
+        confirmButtonText: "Continuar",
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+      });
+    } catch (error) {
+      console.error("No se pudo guardar el vehículo en la base de datos:", error);
+      setErrorVehiculo(
+        error.message || "No se pudo guardar el vehículo. Inténtalo de nuevo.",
+      );
+    } finally {
+      setGuardandoVehiculo(false);
+    }
   }
 
   // Comprueba los campos, publica el viaje en la API y adapta la respuesta del
   // servidor al formato que consumen las vistas de confirmación y edición.
   async function publicarViaje(evento) {
     evento.preventDefault();
-    if (!idUsuario) {
-      setErrorPublicacion("Inicia sesión para poder publicar un viaje.");
+    const errorPermiso = validarPermisoPublicarViaje(
+      idUsuario,
+      vehiculoGuardado?.id_vehiculo,
+    );
+    if (errorPermiso) {
+      setErrorPublicacion(errorPermiso);
       return;
     }
 
-    if (!vehiculoGuardado?.id_vehiculo) {
-      setErrorPublicacion("Debes registrar un vehículo antes de publicar un viaje.");
-      return;
-    }
-
-    if (origen === destino) {
-      setErrorPublicacion("El origen y el destino deben ser diferentes.");
-      return;
-    }
-
-    if (!puntoEncuentro) {
-      setErrorPublicacion("Selecciona un punto específico de encuentro.");
-      return;
-    }
-
-    if (!origen || !destino) {
-      setErrorPublicacion("Selecciona un barrio de origen y uno de destino.");
-      return;
-    }
-
-    const precio = Number(precioPasaje);
-    if (!Number.isSafeInteger(precio) || precio <= 0) {
-      setErrorPublicacion("Ingresa un precio válido, mayor que cero pesos.");
-      return;
-    }
-
-    const cupos = Number(cuposDisponibles);
-    if (!Number.isInteger(cupos) || cupos < 1 || cupos > 7) {
-      setErrorPublicacion("Los cupos disponibles deben estar entre 1 y 7.");
-      return;
-    }
-
-    if (!fechaSalida || !horaSalida) {
-      setErrorPublicacion("Selecciona la fecha y la hora de salida.");
-      return;
-    }
-
-    const salida = new Date(`${fechaSalida}T${horaSalida}`);
-    const ahora = new Date();
-    ahora.setSeconds(0, 0);
-    if (Number.isNaN(salida.getTime()) || salida < ahora) {
-      setErrorPublicacion("La fecha y hora de salida no pueden estar en el pasado.");
+    const validacion = validarDatosNuevoViaje({
+      id_usuario: idUsuario,
+      id_vehiculo: vehiculoGuardado.id_vehiculo,
+      origen,
+      destino,
+      punto_encuentro: puntoEncuentro,
+      precio_pasaje: precioPasaje,
+      cupos_disponibles: cuposDisponibles,
+      fecha_salida: fechaSalida,
+      hora_salida: horaSalida,
+      informacion_adicional: informacionAdicional,
+    });
+    if (!validacion.valido) {
+      setErrorPublicacion(validacion.error);
       return;
     }
 
@@ -292,18 +284,7 @@ export default function OfrecerViajes({
       const respuesta = await fetch("/api/viajes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id_usuario: idUsuario,
-          id_vehiculo: Number(vehiculoGuardado.id_vehiculo),
-          origen,
-          destino,
-          punto_encuentro: puntoEncuentro,
-          precio_pasaje: precio,
-          cupos_disponibles: cupos,
-          fecha_salida: fechaSalida,
-          hora_salida: horaSalida,
-          informacion_adicional: informacionAdicional.trim(),
-        }),
+        body: JSON.stringify(validacion.datos),
       });
 
       const resultado = await respuesta.json();
@@ -434,6 +415,7 @@ export default function OfrecerViajes({
         <RegistroVehiculo
           vehiculo={vehiculo}
           error={errorVehiculo}
+          guardando={guardandoVehiculo}
           onFieldChange={cambiarCampoVehiculo}
           onSubmit={guardarVehiculo}
         />

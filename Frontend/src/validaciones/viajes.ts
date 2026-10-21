@@ -163,3 +163,35 @@ export function validarFiltrosViajes(
 
   return { valido: true, datos: { origen, destino, fecha } };
 }
+
+export function validarIdUsuarioViaje(
+  idUsuario: string | null,
+): ResultadoValidacion<string | null> {
+  if (idUsuario === null || idUsuario === "") {
+    return { valido: true, datos: null };
+  }
+  if (!idUsuario.trim() || idUsuario.length > 20) {
+    return {
+      valido: false,
+      error: "id_usuario debe tener máximo 20 caracteres.",
+    };
+  }
+  return { valido: true, datos: idUsuario.trim() };
+}
+
+export function puedeAceptarViaje(
+  idUsuario: string,
+  validacionCompletada: boolean,
+  tieneViajePublicado: boolean | null,
+) {
+  return Boolean(idUsuario) && validacionCompletada && tieneViajePublicado === false;
+}
+
+export function validarPermisoPublicarViaje(
+  idUsuario: string,
+  idVehiculo: unknown,
+): string | null {
+  if (!idUsuario) return "Inicia sesión para poder publicar un viaje.";
+  if (!idVehiculo) return "Debes registrar un vehículo antes de publicar un viaje.";
+  return null;
+}

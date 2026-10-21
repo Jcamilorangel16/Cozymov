@@ -1,18 +1,16 @@
 import { NextResponse } from "next/server";
 import type { PoolClient } from "pg";
 import { getDbPool } from "../../../src/lib/db";
+import {
+	validarIdUsuarioVehiculo,
+	validarNuevoVehiculo,
+} from "../../../src/validaciones/vehiculos";
 
 export const runtime = "nodejs";
 
-const tiposVehiculo = ["Automovil", "Moto", "Bicicleta electrica"] as const;
-
-function esRegistro(valor: unknown): valor is Record<string, unknown> {
-	return typeof valor === "object" && valor !== null && !Array.isArray(valor);
-}
-
 export async function GET(request: Request) {
 	const idUsuario = new URL(request.url).searchParams.get("id_usuario");
-	if (!idUsuario?.trim() || idUsuario.length > 20) {
+	if (!validarIdUsuarioVehiculo(idUsuario)) {
 		return NextResponse.json(
 			{ error: "id_usuario es obligatorio y debe tener máximo 20 caracteres." },
 			{ status: 400 },
@@ -51,51 +49,11 @@ export async function POST(request: Request) {
 		return NextResponse.json({ error: "El cuerpo de solicitud no es válido." }, { status: 400 });
 	}
 
-	if (!esRegistro(body)) {
-		return NextResponse.json({ error: "Cuerpo de solicitud inválido." }, { status: 400 });
+	const validacion = validarNuevoVehiculo(body);
+	if (!validacion.valido) {
+		return NextResponse.json({ error: validacion.error }, { status: 400 });
 	}
-
-	const {
-		id_usuario,
-		tipo,
-		modelo,
-		capacidad,
-		ruta_cotidiana,
-		foto_vehiculo,
-		numero_puertas,
-		modalidad,
-	} = body;
-	if (typeof id_usuario !== "string" || !id_usuario.trim() || id_usuario.length > 20) {
-		return NextResponse.json({ error: "id_usuario es obligatorio y debe tener máximo 20 caracteres." }, { status: 400 });
-	}
-	if (typeof tipo !== "string" || !tiposVehiculo.includes(tipo as (typeof tiposVehiculo)[number])) {
-		return NextResponse.json({ error: "El tipo de vehículo no es válido." }, { status: 400 });
-	}
-	if (typeof modelo !== "string" || !modelo.trim() || modelo.length > 50) {
-		return NextResponse.json({ error: "modelo es obligatorio y debe tener máximo 50 caracteres." }, { status: 400 });
-	}
-	if (typeof capacidad !== "number" || !Number.isInteger(capacidad) || capacidad <= 0 || capacidad > 32767) {
-		return NextResponse.json({ error: "capacidad debe ser un entero positivo (máximo 32767)." }, { status: 400 });
-	}
-	if (ruta_cotidiana != null && (typeof ruta_cotidiana !== "string" || ruta_cotidiana.length > 255)) {
-		return NextResponse.json({ error: "ruta_cotidiana debe tener máximo 255 caracteres." }, { status: 400 });
-	}
-	if (foto_vehiculo != null && (typeof foto_vehiculo !== "string" || foto_vehiculo.length > 255)) {
-		return NextResponse.json({ error: "foto_vehiculo debe tener máximo 255 caracteres." }, { status: 400 });
-	}
-	if (
-		tipo === "Automovil" &&
-		(typeof numero_puertas !== "number" ||
-			![2, 3, 4, 5].includes(numero_puertas))
-	) {
-		return NextResponse.json({ error: "El número de puertas no es válido." }, { status: 400 });
-	}
-	if (
-		tipo === "Moto" &&
-		(typeof modalidad !== "string" || !modalidad.trim() || modalidad.length > 20)
-	) {
-		return NextResponse.json({ error: "La modalidad de la moto es obligatoria." }, { status: 400 });
-	}
+	const datos = validacion.datos;
 
 	let client: PoolClient | null = null;
 	try {
@@ -106,25 +64,25 @@ export async function POST(request: Request) {
 			 VALUES ($1, $2, $3, $4, $5, $6)
 			 RETURNING id_vehiculo, id_usuario, tipo, modelo, capacidad, ruta_cotidiana, foto_vehiculo`,
 			[
-				id_usuario.trim(),
-				tipo,
-				modelo.trim(),
-				capacidad,
-				ruta_cotidiana || null,
-				foto_vehiculo ?? null,
+				datos.id_usuario,
+				datos.tipo,
+				datos.modelo,
+				datos.capacidad,
+				datos.ruta_cotidiana,
+				datos.foto_vehiculo,
 			],
 		);
 		const vehiculo = result.rows[0];
 
-		if (tipo === "Automovil") {
+		if (datos.tipo === "Automovil") {
 			await client.query(
 				"INSERT INTO automovil (id_vehiculo, numero_puertas) VALUES ($1, $2)",
-				[vehiculo.id_vehiculo, numero_puertas],
+				[vehiculo.id_vehiculo, datos.numero_puertas],
 			);
-		} else if (tipo === "Moto") {
+		} else if (datos.tipo === "Moto") {
 			await client.query(
 				"INSERT INTO moto (id_vehiculo, modalidad) VALUES ($1, $2)",
-				[vehiculo.id_vehiculo, modalidad],
+				[vehiculo.id_vehiculo, datos.modalidad],
 			);
 		}
 

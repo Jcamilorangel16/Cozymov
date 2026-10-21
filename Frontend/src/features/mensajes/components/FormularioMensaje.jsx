@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { esMensajeListoParaEnviar } from "../../../validaciones/mensajes";
 
 export default function FormularioMensaje({ onEnviarMensaje }) {
   const [texto, setTexto] = useState("");
@@ -7,7 +8,7 @@ export default function FormularioMensaje({ onEnviarMensaje }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!texto.trim() || enviando) return;
+    if (!esMensajeListoParaEnviar(texto, enviando)) return;
 
     setEnviando(true);
     await onEnviarMensaje(texto);
@@ -29,7 +30,7 @@ export default function FormularioMensaje({ onEnviarMensaje }) {
       <button 
         type="submit" 
         className="btn btn-primary px-4"
-        disabled={!texto.trim() || enviando}
+        disabled={!esMensajeListoParaEnviar(texto, enviando)}
       >
         {enviando ? "Enviando..." : "Enviar"}
       </button>

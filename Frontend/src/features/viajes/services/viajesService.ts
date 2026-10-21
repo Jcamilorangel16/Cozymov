@@ -6,7 +6,8 @@ import {
 import {
   validarDatosNuevoViaje,
   validarFiltrosViajes,
-} from "../validations/viajeValidation";
+  validarIdUsuarioViaje,
+} from "../../../validaciones/viajes";
 
 export async function publicarViaje(body: unknown) {
   const validacion = validarDatosNuevoViaje(body);
@@ -36,9 +37,20 @@ export async function publicarViaje(body: unknown) {
 }
 
 export async function consultarViajes(searchParams: URLSearchParams) {
-  const idUsuario = searchParams.get("id_usuario");
+  const validacionUsuario = validarIdUsuarioViaje(
+    searchParams.get("id_usuario"),
+  );
+  if (!validacionUsuario.valido) {
+    return {
+      valido: false as const,
+      estado: 400,
+      error: validacionUsuario.error,
+    };
+  }
+
+  const idUsuario = validacionUsuario.datos;
   if (idUsuario) {
-    const viaje = await obtenerViajeActivoPorUsuario(idUsuario.trim());
+    const viaje = await obtenerViajeActivoPorUsuario(idUsuario);
     return { valido: true as const, resultado: { viaje } };
   }
 

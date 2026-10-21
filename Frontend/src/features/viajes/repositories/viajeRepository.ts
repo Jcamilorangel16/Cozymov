@@ -1,5 +1,5 @@
 import { getDbPool } from "../../../lib/db";
-import type { DatosNuevoViaje, FiltrosViajes } from "../validations/viajeValidation";
+import type { DatosNuevoViaje, FiltrosViajes } from "../../../validaciones/viajes";
 
 export async function insertarViaje(datos: DatosNuevoViaje) {
   const resultado = await getDbPool().query(

@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Swal from 'sweetalert2';
 import './register.css';
+import { validarFormularioRegistro } from '../../../validaciones/usuarios';
 
 function mostrarError(mensaje) {
   void Swal.fire({ icon: 'error', text: mensaje });
@@ -69,55 +70,15 @@ function Register() {
   async function manejarSiguiente() {
     if (guardando) return;
 
-    const camposObligatorios = [
-      'primerNombre',
-      'primerApellido',
-      'idUsuario',
-      'edad',
-      'correo',
-      'contrasena',
-    ];
-    if (
-      camposObligatorios.some((campo) => !datosUsuario[campo].trim()) ||
-      !tipoOcupacion ||
-      (tipoOcupacion === 'otro' && !ocupacionOtro.trim()) ||
-      confirmarContrasena === ''
-    ) {
-      mostrarError('Por favor, completa todos los campos.');
-      return;
-    }
-
-    if (datosUsuario.idUsuario.trim().length > 20) {
-      mostrarError('La cédula no puede superar los 20 caracteres.');
-      refs.current.idUsuario?.focus();
-      return;
-    }
-
-    if (
-      !Number.isInteger(Number(datosUsuario.edad)) ||
-      Number(datosUsuario.edad) < 16 ||
-      Number(datosUsuario.edad) > 32767
-    ) {
-      mostrarError('La edad debe ser un número entero entre 16 y 32767 años.');
-      refs.current.edad?.focus();
-      return;
-    }
-
-    const correoInstitucional = /^[^\s@]+@[^\s@]+\.edu\.co$/i;
-    if (!correoInstitucional.test(datosUsuario.correo)) {
-      mostrarError('Ingresa un correo válido que termine en .edu.co.');
-      refs.current.correo?.focus();
-      return;
-    }
-
-    if (datosUsuario.contrasena !== confirmarContrasena) {
-      mostrarError('Las contraseñas no coinciden.');
-      return;
-    }
-
-    if (datosUsuario.contrasena.length < 8) {
-      mostrarError('La contraseña debe tener al menos 8 caracteres.');
-      refs.current.contrasena?.focus();
+    const validacion = validarFormularioRegistro(
+      {
+        ...datosUsuario,
+        ocupacion: tipoOcupacion === 'otro' ? ocupacionOtro.trim() : tipoOcupacion,
+      },
+      confirmarContrasena,
+    );
+    if (!validacion.valido) {
+      mostrarError(validacion.error);
       return;
     }
 
@@ -134,11 +95,7 @@ function Register() {
       const respuesta = await fetch('/api/registro', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...datosUsuario,
-          edad: Number(datosUsuario.edad),
-          ocupacion: tipoOcupacion === 'otro' ? ocupacionOtro.trim() : tipoOcupacion,
-        }),
+        body: JSON.stringify(validacion.datos),
       });
       const resultado = await respuesta.json();
 

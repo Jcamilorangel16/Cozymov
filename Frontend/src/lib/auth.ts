@@ -1,4 +1,5 @@
 import { SignJWT, jwtVerify } from "jose";
+import { validarDatosSesion } from "../validaciones/autenticacion";
 
 export const NOMBRE_COOKIE_SESION = "sesion";
 export const DURACION_SESION_SEGUNDOS = 60 * 60 * 2;
@@ -33,11 +34,12 @@ export async function verificarSesion(token: string): Promise<DatosSesion | null
     const id = payload.sub;
     const correo = payload.correo;
 
-    if (typeof id !== "string" || typeof correo !== "string") {
+    const validacion = validarDatosSesion(id, correo);
+    if (!validacion.valido) {
       return null;
     }
 
-    return { id, correo };
+    return validacion.datos;
   } catch {
     return null;
   }

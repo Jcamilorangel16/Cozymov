@@ -1,7 +1,13 @@
 import "../CSS/RegistroVehiculo.css";
 import RutaCotidianaSelect from "./RutaCotidianaSelect";
 
-export default function RegistroVehiculo({ vehiculo, error, onFieldChange, onSubmit }) {
+export default function RegistroVehiculo({
+  vehiculo,
+  error,
+  guardando,
+  onFieldChange,
+  onSubmit,
+}) {
   return (
     <div className="vista d-flex justify-content-center py-4">
       <form className="registro-vehiculo__card w-100 p-4 p-md-5 border rounded-4 shadow" onSubmit={onSubmit}>
@@ -27,9 +33,9 @@ export default function RegistroVehiculo({ vehiculo, error, onFieldChange, onSub
             onChange={(evento) => onFieldChange("tipo", evento.target.value)}
           >
             <option value="" disabled>Selecciona un tipo</option>
-            <option value="bicicleta-electrica">Bicicleta eléctrica</option>
-            <option value="moto">Moto</option>
-            <option value="automovil">Automóvil</option>
+            <option value="Bicicleta electrica">Bicicleta eléctrica</option>
+            <option value="Moto">Moto</option>
+            <option value="Automovil">Automóvil</option>
           </select>
         </div>
 
@@ -60,7 +66,7 @@ export default function RegistroVehiculo({ vehiculo, error, onFieldChange, onSub
           />
         </div>
 
-        {vehiculo.tipo === "automovil" && (
+        {vehiculo.tipo === "Automovil" && (
           <div className="registro-vehiculo__field">
             <label className="form-label" htmlFor="numero-puertas">Número de puertas</label>
             <input
@@ -77,19 +83,24 @@ export default function RegistroVehiculo({ vehiculo, error, onFieldChange, onSub
           </div>
         )}
 
-        <div className="registro-vehiculo__field">
-          <label className="form-label" htmlFor="foto-vehiculo">Foto del vehículo</label>
-          <input
-            className="form-control rounded-3"
-            id="foto-vehiculo"
-            type="file"
-            accept="image/*"
-            required
-          />
-          <small className="d-block mt-1 text-secondary">
-            Debes subir una foto de tu vehículo para continuar. Toma la foto sin que se vea la matrícula.
-          </small>
-        </div>
+        {vehiculo.tipo === "Moto" && (
+          <div className="registro-vehiculo__field">
+            <label className="form-label" htmlFor="modalidad-moto">Modalidad de la moto</label>
+            <input
+              className="form-control"
+              id="modalidad-moto"
+              type="text"
+              maxLength={20}
+              required
+              value={vehiculo.modalidad}
+              onChange={(evento) => onFieldChange("modalidad", evento.target.value)}
+            />
+          </div>
+        )}
+
+        <p className="small text-secondary">
+          La carga de fotos del vehículo todavía no está disponible.
+        </p>
 
         <div className="mb-3">
           <label className="form-label fw-semibold" htmlFor="ruta-cotidiana">Ruta cotidiana</label>
@@ -103,8 +114,12 @@ export default function RegistroVehiculo({ vehiculo, error, onFieldChange, onSub
           </small>
         </div>
 
-        <button type="submit" className="btn btn-primary w-100 fw-bold py-2">
-          Guardar vehículo
+        <button
+          type="submit"
+          className="btn btn-primary w-100 fw-bold py-2"
+          disabled={guardando}
+        >
+          {guardando ? "Guardando vehículo..." : "Guardar vehículo"}
         </button>
       </form>
     </div>
