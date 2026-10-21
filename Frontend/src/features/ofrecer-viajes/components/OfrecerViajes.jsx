@@ -184,14 +184,6 @@ export default function OfrecerViajes({
   // Valida de forma básica la sesión y envía el vehículo a la API del servidor.
   async function guardarVehiculo(evento) {
     evento.preventDefault();
-<<<<<<< HEAD
-    if (!idUsuario) {
-      setErrorVehiculo("Inicia sesión para registrar tu vehículo.");
-      return;
-    }
-
-=======
->>>>>>> 9f64450c288809d8d6db5637968ef647dfabadf6
     void Swal.fire({
       title: "Registrando vehículo",
       text: "Estamos guardando tu información en la nube.",
@@ -199,52 +191,6 @@ export default function OfrecerViajes({
       allowEscapeKey: false,
       didOpen: () => Swal.showLoading(),
     });
-<<<<<<< HEAD
-
-    const tiposVehiculo = {
-      automovil: "Automovil",
-      moto: "Moto",
-      "bicicleta-electrica": "Bicicleta electrica",
-    };
-
-    try {
-      const respuesta = await fetch("/api/vehiculo", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id_usuario: idUsuario,
-          tipo: tiposVehiculo[vehiculo.tipo],
-          modelo: vehiculo.modelo,
-          capacidad: Number(vehiculo.capacidad),
-          ruta_cotidiana: vehiculo.rutaCotidiana,
-          numero_puertas:
-            vehiculo.tipo === "automovil" ? Number(vehiculo.numeroPuertas) : null,
-          modalidad: vehiculo.tipo === "moto" ? vehiculo.modalidad : null,
-        }),
-      });
-      const resultado = await respuesta.json();
-      if (!respuesta.ok) {
-        throw new Error(resultado.error || "No se pudo guardar el vehículo.");
-      }
-
-      setVehiculoGuardado(resultado.vehiculo);
-      setErrorVehiculo("");
-      void Swal.fire({
-        icon: "success",
-        title: "¡Registro exitoso!",
-        text: "Tu vehículo se registró correctamente en la nube.",
-        confirmButtonText: "Continuar",
-        allowOutsideClick: false,
-        allowEscapeKey: false,
-      });
-    } catch (error) {
-      console.error("No se pudo guardar el vehículo en la nube:", error);
-      const mensaje =
-        error.message || "No se pudo guardar el vehículo. Inténtalo de nuevo.";
-      setErrorVehiculo(mensaje);
-      void Swal.fire({ icon: "error", text: mensaje });
-    }
-=======
     temporizadorRegistro.current = window.setTimeout(() => {
       try {
         const vehiculoParaGuardar = {
@@ -277,7 +223,6 @@ export default function OfrecerViajes({
         });
       }
     }, 2000);
->>>>>>> 9f64450c288809d8d6db5637968ef647dfabadf6
   }
 
   // Comprueba los campos, publica el viaje en la API y adapta la respuesta del
