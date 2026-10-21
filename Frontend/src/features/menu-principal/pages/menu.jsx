@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import OfrecerViajes from "../../ofrecer-viajes/components/OfrecerViajes";
+import MensajesView from "../../mensajes/MensajesView";
 import "./menu-principal.css";
 
 // Datos de ejemplo mantenidos al integrar los cambios del menú principal.
@@ -54,7 +55,7 @@ const resultadosViajes = [
   },
 ];
 
-export default function MenuPrincipal() {
+export default function MenuPrincipal({ usuarioId }) {
   useEffect(() => {
     import("bootstrap/dist/js/bootstrap.bundle.min.js");
   }, []);
@@ -328,7 +329,7 @@ export default function MenuPrincipal() {
 
           {vistaActiva === "mensajes" && (
             <div className="vista">
-              <MensajesView usuarioActualId="usuario_actual" receptorId="receptor_ejemplo" />
+              <MensajesView usuarioActualId={usuarioId} receptorId="receptor_ejemplo" />
             </div>
           )}
           {vistaActiva === "en-curso" && <div className="vista"></div>}
