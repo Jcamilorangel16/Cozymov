@@ -20,7 +20,7 @@ export default function FormularioMensaje({ onEnviarMensaje }) {
       <input
         type="text"
         className="form-control"
-        placeholder="Escribe un mensaje (máx 500 caracteres)..."
+        placeholder="Escribe un mensaje ..."
         maxLength={500}
         value={texto}
         onChange={(e) => setTexto(e.target.value)}

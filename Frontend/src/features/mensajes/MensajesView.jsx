@@ -7,7 +7,7 @@ export default function MensajesView({ usuarioActualId = "1" }) {
   const [contactoSeleccionado, setContactoSeleccionado] = useState(null);
   const [mensajes, setMensajes] = useState([]);
 
-  // Contactos de prueba (luego los puedes cargar dinámicamente desde la BD)
+  // Contactos de prueba 
   const contactos = [
     { id: "2", nombre: "Carlos Monteno", rol: "Conductor" },
     { id: "3", nombre: "Sara Tomato", rol: "Pasajera" },
@@ -36,7 +36,7 @@ export default function MensajesView({ usuarioActualId = "1" }) {
     return () => clearInterval(intervalo);
   }, [contactoSeleccionado, usuarioActualId]);
 
-  // Manejar envío de mensaje
+  
   const manejarEnvio = async (contenidoTexto) => {
     try {
       const res = await fetch("/api/mensajes", {
