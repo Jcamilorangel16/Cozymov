@@ -127,6 +127,13 @@ function Login() {
                             aria-describedby={errorLogin ? 'error-inicio-sesion' : undefined}
                             required
                         />
+
+                        {/* Enlace de recuperación de contraseña */}
+                        <div className="text-end mt-1">
+                            <Link href="/recuperar-contrasena" className="small text-muted text-decoration-none">
+                                ¿Olvidaste tu contraseña?
+                            </Link>
+                        </div>
                     </div>
 
                     {errorLogin && (
