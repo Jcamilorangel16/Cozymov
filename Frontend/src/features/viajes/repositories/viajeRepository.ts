@@ -1,6 +1,12 @@
+// Ejecuta las consultas persistentes del dominio de viajes.
 import { getDbPool } from "../../../lib/db";
-import type { DatosNuevoViaje, FiltrosViajes } from "../../../validaciones/viajes";
+import type { DatosNuevoViaje, FiltrosViajes } from "../types/viajes";
 
+/**
+ * Inserta un viaje activo y devuelve la fila creada.
+ * @param datos Datos validados del nuevo viaje.
+ * @returns Fila del viaje insertado.
+ */
 export async function insertarViaje(datos: DatosNuevoViaje) {
   const resultado = await getDbPool().query(
     `INSERT INTO viaje (
@@ -30,6 +36,11 @@ export async function insertarViaje(datos: DatosNuevoViaje) {
   return resultado.rows[0];
 }
 
+/**
+ * Obtiene el viaje activo más reciente de un usuario.
+ * @param idUsuario Identificador del usuario.
+ * @returns Viaje activo o null si no existe.
+ */
 export async function obtenerViajeActivoPorUsuario(idUsuario: string) {
   const resultado = await getDbPool().query(
     `SELECT * FROM viaje
@@ -42,6 +53,11 @@ export async function obtenerViajeActivoPorUsuario(idUsuario: string) {
   return resultado.rows[0] ?? null;
 }
 
+/**
+ * Lista los viajes activos que coinciden con los filtros opcionales.
+ * @param filtros Criterios de origen, destino y fecha.
+ * @returns Filas de viajes con datos públicos del conductor.
+ */
 export async function listarViajesActivos(filtros: FiltrosViajes) {
   const valores: string[] = [];
   const condiciones = ["v.estado = 'activo'"];

@@ -1,4 +1,5 @@
 
+// Endpoint de autenticación: valida credenciales y crea la cookie de sesión.
 import bcrypt from "bcryptjs";
 import { getDbPool } from "../../../src/lib/db";
 import {
@@ -6,10 +7,11 @@ import {
   NOMBRE_COOKIE_SESION,
   DURACION_SESION_SEGUNDOS,
 } from "../../../src/lib/auth";
-import { validarCredencialesUsuario } from "../../../src/validaciones/autenticacion";
+import { validarCredencialesUsuario } from "../../../src/features/login/validations/autenticacion";
 
 export const runtime = "nodejs";
 
+/** Campos mínimos del usuario requeridos para validar el acceso. */
 type UsuarioLogin = {
   id: string;
   primer_nombre: string;
@@ -20,6 +22,11 @@ type UsuarioLogin = {
   contrasena: string;
 };
 
+/**
+ * Valida credenciales y devuelve el usuario autenticado.
+ * @param request Solicitud HTTP con correo y contraseña en JSON.
+ * @returns Respuesta HTTP con el usuario o un error de autenticación.
+ */
 export async function POST(request: Request) {
   let body: unknown;
 

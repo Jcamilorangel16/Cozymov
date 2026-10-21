@@ -1,6 +1,12 @@
-import "../CSS/RegistroVehiculo.css";
+// Presenta el formulario de registro de un vehículo del conductor.
+import "../styles/RegistroVehiculo.css";
 import RutaCotidianaSelect from "./RutaCotidianaSelect";
 
+/**
+ * Renderiza los datos requeridos para guardar el vehículo.
+ * @param {object} props Estado del vehículo, errores y acciones del formulario.
+ * @returns Formulario de registro de vehículo.
+ */
 export default function RegistroVehiculo({
   vehiculo,
   error,

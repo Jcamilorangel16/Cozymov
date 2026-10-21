@@ -1,13 +1,19 @@
+// Endpoints para consultar y registrar el vehículo de un usuario.
 import { NextResponse } from "next/server";
 import type { PoolClient } from "pg";
 import { getDbPool } from "../../../src/lib/db";
 import {
 	validarIdUsuarioVehiculo,
 	validarNuevoVehiculo,
-} from "../../../src/validaciones/vehiculos";
+} from "../../../src/features/ofrecer-viajes/validations/vehiculos";
 
 export const runtime = "nodejs";
 
+/**
+ * Obtiene el último vehículo registrado para el usuario indicado.
+ * @param request Solicitud con el identificador de usuario en la query.
+ * @returns Vehículo encontrado o respuesta de error.
+ */
 export async function GET(request: Request) {
 	const idUsuario = new URL(request.url).searchParams.get("id_usuario");
 	if (!validarIdUsuarioVehiculo(idUsuario)) {
@@ -41,6 +47,11 @@ export async function GET(request: Request) {
 	}
 }
 
+/**
+ * Registra un vehículo y sus datos específicos dentro de una transacción.
+ * @param request Solicitud con los datos del vehículo en JSON.
+ * @returns Vehículo creado o respuesta de error.
+ */
 export async function POST(request: Request) {
 	let body: unknown;
 	try {

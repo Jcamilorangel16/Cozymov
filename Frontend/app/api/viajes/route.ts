@@ -1,3 +1,4 @@
+// Endpoints de publicación y consulta de viajes.
 import { NextResponse } from "next/server";
 import {
   consultarViajes,
@@ -6,6 +7,11 @@ import {
 
 export const runtime = "nodejs";
 
+/**
+ * Valida y publica un viaje.
+ * @param request Solicitud con los datos del viaje en JSON.
+ * @returns Viaje creado o respuesta de error.
+ */
 export async function POST(request: Request) {
   let body: unknown;
   try {
@@ -36,6 +42,11 @@ export async function POST(request: Request) {
   }
 }
 
+/**
+ * Consulta viajes activos o el viaje activo de un usuario.
+ * @param request Solicitud con filtros de viaje en la query.
+ * @returns Resultado de la consulta o respuesta de error.
+ */
 export async function GET(request: Request) {
   try {
     const resultado = await consultarViajes(new URL(request.url).searchParams);

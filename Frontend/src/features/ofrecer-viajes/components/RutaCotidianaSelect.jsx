@@ -1,84 +1,27 @@
+// Presenta la búsqueda accesible de barrio de origen para la ruta cotidiana.
 "use client";
 
-import { useMemo, useRef, useState } from "react";
-import barriosRutaCotidiana from "../JS/barriosRutaCotidiana";
-import "../CSS/RutaCotidianaSelect.css";
+import { useRutaCotidianaSelect } from "../hooks/useRutaCotidianaSelect";
+import "../styles/RutaCotidianaSelect.css";
 
-const destinoRutaCotidiana = "Universidad Popular Del Cesar";
-
-function normalizarTexto(texto) {
-  return texto
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLocaleLowerCase("es")
-    .trim();
-}
-
-function obtenerBarrioSeleccionado(ruta) {
-  const separadorDestino = ` - ${destinoRutaCotidiana}`;
-  return ruta.endsWith(separadorDestino)
-    ? ruta.slice(0, -separadorDestino.length)
-    : "";
-}
-
+/**
+ * Muestra una búsqueda accesible de barrios para la ruta cotidiana.
+ * @param {{id: string, value: string, onChange: (value: string) => void}} props Datos del control.
+ * @returns Selector filtrable de ruta cotidiana.
+ */
 export default function RutaCotidianaSelect({ id, value, onChange }) {
-  const inputRef = useRef(null);
-  const [busqueda, setBusqueda] = useState(() => obtenerBarrioSeleccionado(value));
-  const [abierto, setAbierto] = useState(false);
-  const [indiceActivo, setIndiceActivo] = useState(-1);
-
-  const barriosFiltrados = useMemo(() => {
-    const consulta = normalizarTexto(busqueda);
-    if (!consulta) return barriosRutaCotidiana;
-
-    return barriosRutaCotidiana.filter((barrio) =>
-      normalizarTexto(barrio).includes(consulta),
-    );
-  }, [busqueda]);
-
-  function seleccionarBarrio(barrio) {
-    setBusqueda(barrio);
-    setAbierto(false);
-    setIndiceActivo(-1);
-    onChange(`${barrio} - ${destinoRutaCotidiana}`);
-    inputRef.current?.setCustomValidity("");
-  }
-
-  function manejarCambio(evento) {
-    setBusqueda(evento.target.value);
-    setAbierto(true);
-    setIndiceActivo(-1);
-    onChange("");
-    evento.target.setCustomValidity("Selecciona un barrio de la lista.");
-  }
-
-  function manejarTeclado(evento) {
-    if (evento.key === "Escape") {
-      setAbierto(false);
-      setIndiceActivo(-1);
-      return;
-    }
-
-    if (evento.key === "ArrowDown" && barriosFiltrados.length > 0) {
-      evento.preventDefault();
-      setAbierto(true);
-      setIndiceActivo((actual) => (actual + 1) % barriosFiltrados.length);
-    } else if (evento.key === "ArrowUp" && barriosFiltrados.length > 0) {
-      evento.preventDefault();
-      setAbierto(true);
-      setIndiceActivo((actual) =>
-        actual <= 0 ? barriosFiltrados.length - 1 : actual - 1,
-      );
-    } else if (
-      evento.key === "Enter" &&
-      abierto &&
-      indiceActivo >= 0 &&
-      barriosFiltrados[indiceActivo]
-    ) {
-      evento.preventDefault();
-      seleccionarBarrio(barriosFiltrados[indiceActivo]);
-    }
-  }
+  const {
+    inputRef,
+    busqueda,
+    abierto,
+    setAbierto,
+    indiceActivo,
+    barriosFiltrados,
+    seleccionarBarrio,
+    manejarCambio,
+    manejarTeclado,
+    obtenerBarrioSeleccionado,
+  } = useRutaCotidianaSelect({ value, onChange });
 
   return (
     <div className="ruta-cotidiana">

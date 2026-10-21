@@ -1,13 +1,12 @@
+// Presenta la navegación principal y el acceso a la configuración del perfil.
 import PerfilConfiguracion from "../../perfil-configuracion/components/PerfilConfiguracion";
+import { enlacesMenu } from "../constants/menuPrincipal";
 
-const enlacesMenu = [
-  { id: "inicio", label: "Inicio" },
-  { id: "buscar", label: "Buscar" },
-  { id: "ofrecer", label: "Ofrecer Viaje" },
-  { id: "mensajes", label: "Mensajes" },
-  { id: "en-curso", label: "En Curso" },
-];
-
+/**
+ * Renderiza los enlaces de navegación del menú.
+ * @param {{vistaActiva: string, onNavigate: (id: string) => void}} props Estado y acción de navegación.
+ * @returns Barra lateral de navegación.
+ */
 export default function SidebarMenu({ vistaActiva, onNavigate }) {
   return (
     <aside className="sidebar">

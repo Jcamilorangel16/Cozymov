@@ -1,21 +1,16 @@
-const viajesDestacados = [
-  { ruta: "Campus Sur → Centro", horario: "Hoy 7:00 AM · 3 plazas" },
-  { ruta: "Norte → Campus Sur", horario: "Mañana 6:45 AM · 1 lugar" },
-  { ruta: "Campus Norte → Centro", horario: "Hoy 8:15 AM · 2 plazas" },
-  { ruta: "Campus Sur → Este", horario: "Hoy 9:00 AM · 4 lugares" },
-];
+// Muestra el panel inicial con viajes destacados y actividad de ejemplo.
 
-const proximosViajes = [
-  { ruta: "Campus Norte → Centro", horario: "Mañana 8:00 AM" },
-  { ruta: "Campus Norte → Centro", horario: "Mañana 9:00 AM" },
-];
+import {
+  feedNotificaciones,
+  proximosViajes,
+  viajesDestacados,
+} from "../constants/menuPrincipal";
 
-const feedNotificaciones = [
-  { icono: "📅", texto: "Cita agendada", detalle: "Camila Angel" },
-  { icono: "✉️", texto: "Mensaje recibido", detalle: "Yefersonpazo" },
-  { icono: "🔔", texto: "Nuevo viaje publicado", detalle: "system" },
-];
-
+/**
+ * Renderiza el resumen inicial del menú principal.
+ * @param {{onNavigate: (id: string) => void}} props Acción para abrir otra sección.
+ * @returns Panel de inicio.
+ */
 export default function PanelInicio({ onNavigate }) {
   return (
     <div className="vista">
@@ -43,8 +38,8 @@ export default function PanelInicio({ onNavigate }) {
         <div className="col-md-8">
           <h5 className="mb-3 letra-contenido">Viajes destacados para ti</h5>
           <div className="row g-3">
-            {viajesDestacados.map((viaje) => (
-              <div className="col-md-6" key={viaje.ruta}>
+            {viajesDestacados.map((viaje, indice) => (
+              <div className="col-md-6" key={indice}>
                 <div className="card p-2 color-card">
                   <div className="d-flex align-items-center gap-2">
                     <span className="fs-4">🚗</span>
@@ -60,28 +55,20 @@ export default function PanelInicio({ onNavigate }) {
         </div>
 
         <div className="col-md-4">
-          <h5 className="mb-3 letra-contenido">Mis Próximos Viajes</h5>
-          <div className="d-flex flex-column gap-2">
-            {proximosViajes.map((viaje) => (
-              <div
-                className="card p-3 d-flex flex-row justify-content-between align-items-center color-card"
-                key={viaje.horario}
-              >
-                <div>
-                  <div className="fw-semibold">{viaje.ruta}</div>
-                  <small className="text-muted">{viaje.horario}</small>
-                </div>
-                <span className="badge bg-success">Agendado</span>
+          <h5 className="mb-3 letra-contenido">Próximos viajes</h5>
+          <div className="d-flex flex-column gap-2 mb-4">
+            {proximosViajes.map((viaje, indice) => (
+              <div className="card p-2 color-card" key={indice}>
+                <div className="fw-semibold letra-contenido">{viaje.ruta}</div>
+                <small className="texto-secundario">{viaje.horario}</small>
               </div>
             ))}
           </div>
-        </div>
 
-        <div>
-          <h5 className="mt-4 mb-3 letra-contenido">Feed de notificaciones y actividad</h5>
+          <h5 className="mb-3 letra-contenido">Feed de notificaciones y actividad</h5>
           <div className="d-flex flex-column gap-2">
-            {feedNotificaciones.map((item) => (
-              <div className="d-flex align-items-center gap-2" key={`${item.texto}-${item.detalle}`}>
+            {feedNotificaciones.map((item, indice) => (
+              <div className="d-flex align-items-center gap-2" key={indice}>
                 <span className="fs-5">{item.icono}</span>
                 <div>
                   <span className="fw-semibold letra-contenido">{item.texto}</span>
