@@ -1,5 +1,11 @@
+
 import bcrypt from "bcryptjs";
 import { getDbPool } from "../../../src/lib/db";
+import {
+  firmarSesion,
+  NOMBRE_COOKIE_SESION,
+  DURACION_SESION_SEGUNDOS,
+} from "../../../src/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -24,22 +30,37 @@ export async function POST(request: Request) {
   try {
     datos = await request.json();
   } catch {
-    return Response.json({ error: "El cuerpo de la solicitud no es válido." }, { status: 400 });
+    return Response.json(
+      { error: "El cuerpo de la solicitud no es válido." },
+      { status: 400 }
+    );
   }
 
-  if (typeof datos.correo !== "string" || typeof datos.contrasena !== "string") {
-    return Response.json({ error: "Ingresa tu correo y contraseña." }, { status: 400 });
+  if (
+    typeof datos.correo !== "string" ||
+    typeof datos.contrasena !== "string"
+  ) {
+    return Response.json(
+      { error: "Ingresa tu correo y contraseña." },
+      { status: 400 }
+    );
   }
 
   const correo = datos.correo.trim().toLowerCase();
   const contrasena = datos.contrasena;
 
   if (!correo || !contrasena) {
-    return Response.json({ error: "Ingresa tu correo y contraseña." }, { status: 400 });
+    return Response.json(
+      { error: "Ingresa tu correo y contraseña." },
+      { status: 400 }
+    );
   }
 
   if (Buffer.byteLength(contrasena, "utf8") > 72) {
-    return Response.json({ error: "Correo o contraseña incorrectos." }, { status: 401 });
+    return Response.json(
+      { error: "Correo o contraseña incorrectos." },
+      { status: 401 }
+    );
   }
 
   try {
@@ -51,22 +72,66 @@ export async function POST(request: Request) {
        LIMIT 1`,
       [correo]
     );
+
     const usuario = resultado.rows[0];
 
-    if (!usuario || !(await bcrypt.compare(contrasena, usuario.contrasena))) {
-      return Response.json({ error: "Correo o contraseña incorrectos." }, { status: 401 });
+    if (
+      !usuario ||
+      !(await bcrypt.compare(contrasena, usuario.contrasena))
+    ) {
+      return Response.json(
+        { error: "Correo o contraseña incorrectos." },
+        { status: 401 }
+      );
     }
 
-    return Response.json({
-      usuario: {
-        id: usuario.id,
-        nombres: [usuario.primer_nombre, usuario.segundo_nombre].filter(Boolean).join(" "),
-        apellidos: [usuario.primer_apellido, usuario.segundo_apellido].filter(Boolean).join(" "),
-        correo: usuario.correo,
-      },
+    // Crear el token de sesión después de validar las credenciales.
+    const token = await firmarSesion({
+      id: usuario.id,
+      correo: usuario.correo,
     });
+
+    // Secure se habilita en producción, donde debe utilizarse HTTPS.
+    const secure =
+      process.env.NODE_ENV === "production" ? "; Secure" : "";
+
+    const cookieSesion = [
+      `${NOMBRE_COOKIE_SESION}=${token}`,
+      "Path=/",
+      "HttpOnly",
+      "SameSite=Lax",
+      `Max-Age=${DURACION_SESION_SEGUNDOS}`,
+    ].join("; ") + secure;
+
+    return Response.json(
+      {
+        usuario: {
+          id: usuario.id,
+          nombres: [
+            usuario.primer_nombre,
+            usuario.segundo_nombre,
+          ].filter(Boolean).join(" "),
+          apellidos: [
+            usuario.primer_apellido,
+            usuario.segundo_apellido,
+          ].filter(Boolean).join(" "),
+          correo: usuario.correo,
+        },
+      },
+      {
+        headers: {
+          "Set-Cookie": cookieSesion,
+        },
+      }
+    );
   } catch (error) {
     console.error("Error al iniciar sesión:", error);
-    return Response.json({ error: "No se pudo iniciar sesión. Inténtalo de nuevo." }, { status: 500 });
+
+    return Response.json(
+      {
+        error: "No se pudo iniciar sesión. Inténtalo de nuevo.",
+      },
+      { status: 500 }
+    );
   }
 }

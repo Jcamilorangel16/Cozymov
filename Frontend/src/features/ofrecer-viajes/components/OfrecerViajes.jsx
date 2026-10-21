@@ -184,11 +184,14 @@ export default function OfrecerViajes({
   // Valida de forma básica la sesión y envía el vehículo a la API del servidor.
   async function guardarVehiculo(evento) {
     evento.preventDefault();
+<<<<<<< HEAD
     if (!idUsuario) {
       setErrorVehiculo("Inicia sesión para registrar tu vehículo.");
       return;
     }
 
+=======
+>>>>>>> 9f64450c288809d8d6db5637968ef647dfabadf6
     void Swal.fire({
       title: "Registrando vehículo",
       text: "Estamos guardando tu información en la nube.",
@@ -196,6 +199,7 @@ export default function OfrecerViajes({
       allowEscapeKey: false,
       didOpen: () => Swal.showLoading(),
     });
+<<<<<<< HEAD
 
     const tiposVehiculo = {
       automovil: "Automovil",
@@ -240,6 +244,40 @@ export default function OfrecerViajes({
       setErrorVehiculo(mensaje);
       void Swal.fire({ icon: "error", text: mensaje });
     }
+=======
+    temporizadorRegistro.current = window.setTimeout(() => {
+      try {
+        const vehiculoParaGuardar = {
+          tipo: vehiculo.tipo,
+          modelo: vehiculo.modelo,
+          rutaCotidiana: vehiculo.rutaCotidiana,
+          ...(vehiculo.tipo === "automovil" && {
+            numeroPuertas: Number(vehiculo.numeroPuertas),
+          }),
+        };
+        window.localStorage.setItem(VEHICULO_STORAGE_KEY, JSON.stringify(vehiculoParaGuardar));
+        ultimoVehiculoSerializado = null;
+        ultimoVehiculoGuardado = null;
+        notificarCambioVehiculo();
+        setErrorVehiculo("");
+        void Swal.fire({
+          icon: "success",
+          title: "¡Registro exitoso!",
+          text: "Tu vehículo se registró correctamente.",
+          confirmButtonText: "Continuar",
+          allowOutsideClick: false,
+          allowEscapeKey: false,
+        });
+      } catch (error) {
+        console.error("No se pudo guardar el vehículo en localStorage:", error);
+        setErrorVehiculo("No se pudo guardar el vehículo. Inténtalo de nuevo.");
+        void Swal.fire({
+          icon: "error",
+          text: "No se pudo guardar el vehículo. Inténtalo de nuevo.",
+        });
+      }
+    }, 2000);
+>>>>>>> 9f64450c288809d8d6db5637968ef647dfabadf6
   }
 
   // Comprueba los campos, publica el viaje en la API y adapta la respuesta del
