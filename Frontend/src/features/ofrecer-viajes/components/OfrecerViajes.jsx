@@ -42,38 +42,6 @@ function obtenerPartesFechaHora(fecha) {
   };
 }
 
-<<<<<<< HEAD
-function obtenerVehiculoGuardado() {
-  const serializado = window.localStorage.getItem(VEHICULO_STORAGE_KEY);
-  if (serializado === null) return null;
-  if (serializado === ultimoVehiculoSerializado) return ultimoVehiculoGuardado;
-
-  try {
-    const vehiculoGuardado = JSON.parse(serializado);
-    if (
-      typeof vehiculoGuardado.tipo !== "string" ||
-      typeof vehiculoGuardado.rutaCotidiana !== "string"
-    ) {
-      throw new Error("Los datos guardados del vehículo tienen un formato inválido.");
-    }
-
-    ultimoVehiculoSerializado = serializado;
-    ultimoVehiculoGuardado = vehiculoGuardado;
-    return vehiculoGuardado;
-  } catch (error) {
-    console.error("No se pudieron leer los datos del vehículo:", error);
-    ultimoVehiculoSerializado = serializado;
-    ultimoVehiculoGuardado = null;
-    return null;
-  }
-}
-
-function notificarCambioVehiculo() {
-  suscriptoresVehiculo.forEach((callback) => callback());
-}
-
-=======
->>>>>>> e1349a844230ab81d11fdf47b76fc89238f34f5b
 export default function OfrecerViajes({
   pasajeroSeleccionado,
   setPasajeroSeleccionado,
@@ -212,34 +180,6 @@ export default function OfrecerViajes({
     setErrorVehiculo("");
   }
 
-<<<<<<< HEAD
-  async function guardarVehiculo(evento) {
-    evento.preventDefault();
-    setEstadoRegistro("cargando");
-
-    try {
-      const foto = evento.currentTarget.elements.namedItem("foto-vehiculo")?.files?.[0];
-      if (!foto) {
-        throw new Error("Debes seleccionar una foto del vehículo.");
-      }
-      if (foto.size > 2 * 1024 * 1024) {
-        throw new Error("La foto debe pesar menos de 2 MB para guardarla en este navegador.");
-      }
-
-      const fotoComoDataUrl = await new Promise((resolve, reject) => {
-        const lector = new FileReader();
-        lector.onload = () => resolve(lector.result);
-        lector.onerror = () => reject(new Error("No se pudo leer la foto seleccionada."));
-        lector.readAsDataURL(foto);
-      });
-      const vehiculoParaGuardar = {
-        tipo: vehiculo.tipo,
-        modelo: vehiculo.modelo,
-        rutaCotidiana: vehiculo.rutaCotidiana,
-        foto: fotoComoDataUrl,
-        ...(vehiculo.tipo === "automovil" && {
-          numeroPuertas: Number(vehiculo.numeroPuertas),
-=======
   // Valida de forma básica la sesión y envía el vehículo a la API del servidor.
   async function guardarVehiculo(evento) {
     evento.preventDefault();
@@ -363,7 +303,6 @@ export default function OfrecerViajes({
           fecha_salida: fechaSalida,
           hora_salida: horaSalida,
           informacion_adicional: informacionAdicional.trim(),
->>>>>>> e1349a844230ab81d11fdf47b76fc89238f34f5b
         }),
       });
 
@@ -383,20 +322,6 @@ export default function OfrecerViajes({
         horaSalida: typeof resultado.viaje.hora_salida === "string" ? resultado.viaje.hora_salida.slice(0, 5) : horaSalida,
         informacionAdicional: resultado.viaje.informacion_adicional || "",
       };
-<<<<<<< HEAD
-      window.localStorage.setItem(VEHICULO_STORAGE_KEY, JSON.stringify(vehiculoParaGuardar));
-      ultimoVehiculoSerializado = null;
-      ultimoVehiculoGuardado = null;
-      notificarCambioVehiculo();
-      setErrorVehiculo("");
-      setEstadoRegistro("exitoso");
-    } catch (error) {
-      console.error("No se pudo guardar el vehículo en localStorage:", error);
-      setErrorVehiculo(error instanceof Error
-        ? error.message
-        : "No se pudo guardar el vehículo. Inténtalo de nuevo.");
-      setEstadoRegistro("inactivo");
-=======
 
       void Swal.fire({
         icon: "success",
@@ -417,7 +342,6 @@ export default function OfrecerViajes({
         title: "Error",
         text: mensaje,
       });
->>>>>>> e1349a844230ab81d11fdf47b76fc89238f34f5b
     }
   }
 
