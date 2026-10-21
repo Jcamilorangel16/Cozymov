@@ -1,8 +1,12 @@
 "use client";
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import RegistroExitosoModal from '../../shared/components/RegistroExitosoModal';
+import Swal from 'sweetalert2';
 import './register.css';
+
+function mostrarError(mensaje) {
+  void Swal.fire({ icon: 'error', text: mensaje });
+}
 
 function Register() {
   const router = useRouter();
@@ -23,7 +27,6 @@ function Register() {
   const [ocupacionOtro, setOcupacionOtro] = useState('');
   const [confirmarContrasena, setConfirmarContrasena] = useState('');
   const [guardando, setGuardando] = useState(false);
-  const [estadoRegistro, setEstadoRegistro] = useState('inactivo');
 
   useEffect(
     () => () => window.clearTimeout(temporizadorRegistro.current),
@@ -80,12 +83,12 @@ function Register() {
       (tipoOcupacion === 'otro' && !ocupacionOtro.trim()) ||
       confirmarContrasena === ''
     ) {
-      alert('Por favor, completa todos los campos.');
+      mostrarError('Por favor, completa todos los campos.');
       return;
     }
 
     if (datosUsuario.idUsuario.trim().length > 20) {
-      alert('La cédula no puede superar los 20 caracteres.');
+      mostrarError('La cédula no puede superar los 20 caracteres.');
       refs.current.idUsuario?.focus();
       return;
     }
@@ -95,31 +98,37 @@ function Register() {
       Number(datosUsuario.edad) < 16 ||
       Number(datosUsuario.edad) > 32767
     ) {
-      alert('La edad debe ser un número entero entre 16 y 32767 años.');
+      mostrarError('La edad debe ser un número entero entre 16 y 32767 años.');
       refs.current.edad?.focus();
       return;
     }
 
     const correoInstitucional = /^[^\s@]+@[^\s@]+\.edu\.co$/i;
     if (!correoInstitucional.test(datosUsuario.correo)) {
-      alert('Ingresa un correo válido que termine en .edu.co.');
+      mostrarError('Ingresa un correo válido que termine en .edu.co.');
       refs.current.correo?.focus();
       return;
     }
 
     if (datosUsuario.contrasena !== confirmarContrasena) {
-      alert('Las contraseñas no coinciden.');
+      mostrarError('Las contraseñas no coinciden.');
       return;
     }
 
     if (datosUsuario.contrasena.length < 8) {
-      alert('La contraseña debe tener al menos 8 caracteres.');
+      mostrarError('La contraseña debe tener al menos 8 caracteres.');
       refs.current.contrasena?.focus();
       return;
     }
 
     setGuardando(true);
-    setEstadoRegistro('cargando');
+    void Swal.fire({
+      title: 'Registrando usuario',
+      text: 'Estamos guardando tu información. Esto tomará unos segundos.',
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      didOpen: () => Swal.showLoading(),
+    });
     const inicioRegistro = Date.now();
     try {
       const respuesta = await fetch('/api/registro', {
@@ -134,8 +143,7 @@ function Register() {
       const resultado = await respuesta.json();
 
       if (!respuesta.ok) {
-        setEstadoRegistro('inactivo');
-        alert(resultado.error || 'No se pudo crear la cuenta.');
+        mostrarError(resultado.error || 'No se pudo crear la cuenta.');
         return;
       }
 
@@ -145,10 +153,18 @@ function Register() {
           temporizadorRegistro.current = window.setTimeout(resolve, tiempoRestante);
         });
       }
-      setEstadoRegistro('exitoso');
+      void Swal.fire({
+        icon: 'success',
+        title: '¡Registro exitoso!',
+        text: 'Tu cuenta se creó correctamente.',
+        confirmButtonText: 'Continuar',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+      }).then(({ isConfirmed }) => {
+        if (isConfirmed) router.push('/');
+      });
     } catch {
-      setEstadoRegistro('inactivo');
-      alert('No se pudo conectar con el servidor. Inténtalo de nuevo.');
+      mostrarError('No se pudo conectar con el servidor. Inténtalo de nuevo.');
     } finally {
       setGuardando(false);
     }
@@ -351,12 +367,6 @@ function Register() {
           </div>
         </div>
       </div>
-      <RegistroExitosoModal
-        estado={estadoRegistro}
-        entidad="usuario"
-        mensajeExitoso="Tu cuenta se creó correctamente."
-        onContinuar={() => router.push('/')}
-      />
     </>
   );
 }

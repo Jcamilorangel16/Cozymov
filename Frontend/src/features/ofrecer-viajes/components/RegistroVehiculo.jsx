@@ -1,4 +1,4 @@
-import "./RegistroVehiculo.css";
+import "../CSS/RegistroVehiculo.css";
 import RutaCotidianaSelect from "./RutaCotidianaSelect";
 
 export default function RegistroVehiculo({ vehiculo, error, onFieldChange, onSubmit }) {
@@ -42,6 +42,21 @@ export default function RegistroVehiculo({ vehiculo, error, onFieldChange, onSub
             required
             value={vehiculo.modelo}
             onChange={(evento) => onFieldChange("modelo", evento.target.value)}
+          />
+        </div>
+
+        <div className="registro-vehiculo__field">
+          <label className="form-label" htmlFor="capacidad-vehiculo">Capacidad de pasajeros</label>
+          <input
+            className="form-control"
+            id="capacidad-vehiculo"
+            type="number"
+            min="1"
+            max="32767"
+            step="1"
+            required
+            value={vehiculo.capacidad}
+            onChange={(evento) => onFieldChange("capacidad", evento.target.value)}
           />
         </div>
 

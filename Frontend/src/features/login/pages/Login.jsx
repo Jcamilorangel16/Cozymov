@@ -1,18 +1,16 @@
 "use client";
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import RegistroExitosoModal from '../../shared/components/RegistroExitosoModal';
+import Swal from 'sweetalert2';
 import './Login.css';
 
 function Login() {
     const router = useRouter();
-    const irAlMenu = useCallback(() => router.push('/menu'), [router]);
     const [correo, setCorreo] = useState('');
     const [contrasena, setContrasena] = useState('');
     const [cargando, setCargando] = useState(false);
     const [errorLogin, setErrorLogin] = useState('');
-    const [estadoInicioSesion, setEstadoInicioSesion] = useState('inactivo');
 
     const handleSubmit = async (event) => {
         event.preventDefault();
@@ -38,12 +36,30 @@ function Login() {
                 return;
             }
 
-            setEstadoInicioSesion('cargando');
+            window.sessionStorage.setItem('cozymov-usuario-id', resultado.usuario.id);
+
+            void Swal.fire({
+                title: 'Iniciando sesión',
+                text: 'Estamos validando tus datos.',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                didOpen: () => Swal.showLoading(),
+            });
             const tiempoRestante = Math.max(0, 1000 - (Date.now() - inicioSolicitud));
             if (tiempoRestante > 0) {
                 await new Promise((resolve) => window.setTimeout(resolve, tiempoRestante));
             }
-            setEstadoInicioSesion('exitoso');
+            void Swal.fire({
+                icon: 'success',
+                title: '¡Inicio de sesión exitoso!',
+                text: 'Has iniciado sesión correctamente.',
+                timer: 500,
+                timerProgressBar: true,
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+            }).then(({ dismiss }) => {
+                if (dismiss === Swal.DismissReason.timer) router.push('/menu');
+            });
         } catch {
             setErrorLogin('No se pudo conectar con el servidor. Inténtalo de nuevo.');
         } finally {
@@ -138,17 +154,6 @@ function Login() {
 
             </div>
         </div>
-        <RegistroExitosoModal
-            estado={estadoInicioSesion}
-            entidad="sesión"
-            tituloCarga="Iniciando sesión"
-            tituloExitoso="¡Inicio de sesión exitoso!"
-            mensajeCarga="Estamos validando tus datos."
-            mensajeExitoso="Has iniciado sesión correctamente."
-            duracionMs={1000}
-            autoContinuarMs={500}
-            onContinuar={irAlMenu}
-        />
         </>
     );
 }

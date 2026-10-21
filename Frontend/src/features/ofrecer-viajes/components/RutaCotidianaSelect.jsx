@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import barriosRutaCotidiana from "./barriosRutaCotidiana";
-import "./RutaCotidianaSelect.css";
+import barriosRutaCotidiana from "../JS/barriosRutaCotidiana";
+import "../CSS/RutaCotidianaSelect.css";
 
 const destinoRutaCotidiana = "Universidad Popular Del Cesar";
 

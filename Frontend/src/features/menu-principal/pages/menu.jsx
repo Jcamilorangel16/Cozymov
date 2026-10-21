@@ -325,8 +325,11 @@ export default function MenuPrincipal() {
             />
           )}
 
-          {vistaActiva === "mensajes" && <div className="vista"></div>}
-
+          {vistaActiva === "mensajes" && (
+            <div className="vista">
+              <MensajesView usuarioActualId="usuario_actual" receptorId="receptor_ejemplo" />
+            </div>
+          )}
           {vistaActiva === "en-curso" && <div className="vista"></div>}
         </div>
       </main>
