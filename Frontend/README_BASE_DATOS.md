@@ -88,10 +88,11 @@ La capacidad de pasajeros, el tipo, el modelo, la ruta cotidiana, el número de 
 
 1. Con el vehículo registrado, el conductor ingresa origen, destino, punto específico de encuentro, precio del pasaje, cupos disponibles, fecha y hora de salida, e información adicional.
 2. Al presionar **"Publicar viaje"**, `src/features/ofrecer-viajes/components/OfrecerViajes.jsx` envía los datos vía `POST /api/viajes`.
-3. `app/api/viajes/route.ts` valida en el servidor que el usuario y vehículo existan, que el origen y destino difieran, los rangos de precio (>0), cupos (1 a 7) y coherencia temporal de la salida.
+3. `app/api/viajes/route.ts` recibe la solicitud HTTP y devuelve la respuesta; `src/features/viajes/services/viajesService.ts` coordina las validaciones y operaciones; `src/features/viajes/validations/viajeValidation.ts` valida los datos, y `src/features/viajes/repositories/viajeRepository.ts` contiene las consultas SQL.
 4. El registro se inserta en la tabla `public.viaje` con estado `'activo'`.
 5. Si la inserción es exitosa, se responde HTTP `201` con el registro persistido y la UI muestra la confirmación pasando a `EsperandoPasajeros.jsx`.
 6. Al recargar la página, `OfrecerViajes.jsx` consulta `GET /api/viajes?id_usuario=...` para restaurar automáticamente el viaje activo si existe.
+7. La pantalla `BuscarViajes.jsx` consulta `GET /api/viajes` al buscar; puede enviar `origen`, `destino` y `fecha` como filtros opcionales. La API devuelve los viajes activos que coincidan y el nombre del conductor.
 
 ## Tabla de viajes
 

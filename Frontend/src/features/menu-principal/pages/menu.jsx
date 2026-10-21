@@ -5,6 +5,7 @@ import Image from "next/image";
 import OfrecerViajes from "../../ofrecer-viajes/components/OfrecerViajes";
 import MensajesView from "../../mensajes/MensajesView";
 import "./menu-principal.css";
+import BuscarViajes from "../../buscar-viajes/components/BuscarViajes";
 
 // Datos de ejemplo mantenidos al integrar los cambios del menú principal.
 const enlacesMenu = [
@@ -221,103 +222,12 @@ export default function MenuPrincipal() {
 
           {vistaActiva === "buscar" && (
             <div className="vista">
-              {viajeSeleccionado === null ? (
-                <div>
-                  <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-                    <h3 className="mb-0 letra-contenido">Buscar Viaje</h3>
-
-                    <div className="d-flex flex-wrap gap-2">
-                      <div className="input-group" style={{ width: 150 }}>
-                        <span className="input-group-text">📍</span>
-                        <input type="text" className="form-control" defaultValue="Norte" />
-                      </div>
-                      <div className="input-group" style={{ width: 160 }}>
-                        <span className="input-group-text">🏁</span>
-                        <input type="text" className="form-control" defaultValue="Campus Sur" />
-                      </div>
-                      <div className="input-group" style={{ width: 150 }}>
-                        <span className="input-group-text">📅</span>
-                        <input type="date" className="form-control" />
-                      </div>
-                      <button type="button" className="btn btn-primary">Buscar</button>
-                    </div>
-                  </div>
-
-                  <p className="texto-secundario fw-semibold mb-3">{resultadosViajes.length} resultados encontrados</p>
-
-                  <div className="d-flex flex-column gap-3">
-                    {resultadosViajes.map((viaje, indice) => (
-                      <div
-                        className="card p-3 color-card"
-                        style={{ cursor: "pointer" }}
-                        key={indice}
-                        onClick={() => setViajeSeleccionado(viaje)}
-                      >
-                        <div className="d-flex justify-content-between align-items-center">
-                          <div className="d-flex align-items-center gap-2">
-                            <div className={"user-avatar " + viaje.avatarColor} style={{ width: 38, height: 38, fontSize: 13 }}>
-                              {viaje.iniciales}
-                            </div>
-                            <div>
-                              <div className="fw-bold letra-contenido">{viaje.nombre}</div>
-                              <small className="texto-secundario">★ {viaje.rating} · {viaje.horario}</small>
-                            </div>
-                          </div>
-                          <span className="fs-4 texto-secundario">›</span>
-                        </div>
-                        <div className="texto-secundario small mt-2">{viaje.vehiculo}</div>
-                        <span className="badge bg-success mt-2">{viaje.cupos}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <button
-                    type="button"
-                    className="btn btn-link texto-secundario ps-0 mb-3"
-                    onClick={() => setViajeSeleccionado(null)}
-                  >
-                    ‹ Volver a resultados
-                  </button>
-
-                  <div className="row g-3">
-                    <div className="col-lg-5">
-                      <div className="card p-3 color-card">
-                        <h5 className="letra-contenido mb-0">{viajeSeleccionado.ruta}</h5>
-                        <small className="texto-secundario d-block mb-3">{viajeSeleccionado.horario}</small>
-
-                        <div className="d-flex align-items-center gap-2 mb-3">
-                          <div className={"user-avatar " + viajeSeleccionado.avatarColor} style={{ width: 42, height: 42 }}>
-                            {viajeSeleccionado.iniciales}
-                          </div>
-                          <div>
-                            <div className="fw-semibold letra-contenido">{viajeSeleccionado.nombre}</div>
-                            <small className="texto-secundario">★ {viajeSeleccionado.rating} · {viajeSeleccionado.viajes} viajes</small>
-                          </div>
-                        </div>
-
-                        <small className="texto-secundario d-block">Vehículo</small>
-                        <p className="letra-contenido fw-semibold mb-2">{viajeSeleccionado.vehiculo}</p>
-
-                        <small className="texto-secundario d-block">Punto de encuentro</small>
-                        <p className="fw-semibold mb-2" style={{ color: "#a03c3c" }}>{viajeSeleccionado.punto}</p>
-
-                        <small className="texto-secundario d-block">Lugares disponibles</small>
-                        <p className="fw-semibold mb-3" style={{ color: "#1457e7" }}>{viajeSeleccionado.cupos}</p>
-
-                        <button type="button" className="btn btn-primary w-100">Solicitar unirme</button>
-                      </div>
-                    </div>
-
-                    <div className="col-lg-7">
-                      <div className="card color-card p-3 h-100 d-flex align-items-center justify-content-center text-center">
-                        <div style={{ fontSize: "3.5rem" }}>🗺️</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+              <BuscarViajes
+                viajeSeleccionado={viajeSeleccionado}
+                setViajeSeleccionado={setViajeSeleccionado}
+                mensajeAccion={mensajeBusqueda}
+                setMensajeAccion={setMensajeBusqueda}
+              />
             </div>
           )}
 
