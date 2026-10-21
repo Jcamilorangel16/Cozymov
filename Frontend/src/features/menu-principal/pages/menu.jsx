@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import OfrecerViajes from "../../ofrecer-viajes/components/OfrecerViajes";
+import MensajesView from "../../mensajes/MensajesView";
 import "./menu-principal.css";
 
 // Datos de ejemplo mantenidos al integrar los cambios del menú principal.
@@ -329,8 +330,11 @@ export default function MenuPrincipal() {
             />
           )}
 
-          {vistaActiva === "mensajes" && <div className="vista"></div>}
-
+          {vistaActiva === "mensajes" && (
+            <div className="vista">
+              <MensajesView usuarioActualId="usuario_actual" receptorId="receptor_ejemplo" />
+            </div>
+          )}
           {vistaActiva === "en-curso" && <div className="vista"></div>}
         </div>
       </main>
