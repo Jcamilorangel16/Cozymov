@@ -7,8 +7,7 @@ import PuntoEncuentroDropdown from "./PuntoEncuentroDropdown";
 import RegistroVehiculo from "./RegistroVehiculo";
 import Swal from "sweetalert2";
 
-// Pantalla principal para registrar el vehículo del usuario y publicar un viaje.
-// También muestra el detalle del pasajero cuando el componente padre selecciona uno.
+
 const PRECIOS_SUGERIDOS = [3000, 4000, 5000];
 const UNIVERSIDAD_POPULAR_CESAR = "Universidad Popular Del Cesar";
 const LUGARES_ADICIONALES = [UNIVERSIDAD_POPULAR_CESAR];

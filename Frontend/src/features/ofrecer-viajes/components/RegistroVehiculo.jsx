@@ -1,4 +1,4 @@
-import "./RegistroVehiculo.css";
+import "../CSS/RegistroVehiculo.css";
 import RutaCotidianaSelect from "./RutaCotidianaSelect";
 
 export default function RegistroVehiculo({ vehiculo, error, onFieldChange, onSubmit }) {

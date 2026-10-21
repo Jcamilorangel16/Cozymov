@@ -1,7 +1,7 @@
 "use client";
 
 import BarrioDropdown from "./BarrioDropdown";
-import puntosEncuentro from "./puntosEncuentro";
+import puntosEncuentro from "../JS/puntosEncuentro";
 
 const sinOpcionesAdicionales = [];
 
