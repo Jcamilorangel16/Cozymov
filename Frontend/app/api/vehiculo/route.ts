@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { PoolClient } from "pg";
 import { getDbPool } from "../../../src/lib/db";
+import { obtenerSesionActual } from "../../../src/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -11,11 +12,16 @@ function esRegistro(valor: unknown): valor is Record<string, unknown> {
 }
 
 export async function GET(request: Request) {
+	const sesion = await obtenerSesionActual();
+	if (!sesion) {
+		return NextResponse.json({ error: "Debes iniciar sesión." }, { status: 401 });
+	}
+
 	const idUsuario = new URL(request.url).searchParams.get("id_usuario");
-	if (!idUsuario?.trim() || idUsuario.length > 20) {
+	if (idUsuario !== null && idUsuario.trim() !== sesion.id) {
 		return NextResponse.json(
-			{ error: "id_usuario es obligatorio y debe tener máximo 20 caracteres." },
-			{ status: 400 },
+			{ error: "No puedes consultar el vehículo de otro usuario." },
+			{ status: 403 },
 		);
 	}
 
@@ -30,7 +36,7 @@ export async function GET(request: Request) {
 			 WHERE v.id_usuario = $1
 			 ORDER BY v.id_vehiculo DESC
 			 LIMIT 1`,
-			[idUsuario.trim()],
+			[sesion.id],
 		);
 
 		return NextResponse.json({ vehiculo: result.rows[0] ?? null });
@@ -44,6 +50,11 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+	const sesion = await obtenerSesionActual();
+	if (!sesion) {
+		return NextResponse.json({ error: "Debes iniciar sesión." }, { status: 401 });
+	}
+
 	let body: unknown;
 	try {
 		body = await request.json();
@@ -56,7 +67,6 @@ export async function POST(request: Request) {
 	}
 
 	const {
-		id_usuario,
 		tipo,
 		modelo,
 		capacidad,
@@ -65,9 +75,6 @@ export async function POST(request: Request) {
 		numero_puertas,
 		modalidad,
 	} = body;
-	if (typeof id_usuario !== "string" || !id_usuario.trim() || id_usuario.length > 20) {
-		return NextResponse.json({ error: "id_usuario es obligatorio y debe tener máximo 20 caracteres." }, { status: 400 });
-	}
 	if (typeof tipo !== "string" || !tiposVehiculo.includes(tipo as (typeof tiposVehiculo)[number])) {
 		return NextResponse.json({ error: "El tipo de vehículo no es válido." }, { status: 400 });
 	}
@@ -106,7 +113,7 @@ export async function POST(request: Request) {
 			 VALUES ($1, $2, $3, $4, $5, $6)
 			 RETURNING id_vehiculo, id_usuario, tipo, modelo, capacidad, ruta_cotidiana, foto_vehiculo`,
 			[
-				id_usuario.trim(),
+				sesion.id,
 				tipo,
 				modelo.trim(),
 				capacidad,

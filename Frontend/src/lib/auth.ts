@@ -1,4 +1,5 @@
 import { SignJWT, jwtVerify } from "jose";
+import { cookies } from "next/headers";
 
 export const NOMBRE_COOKIE_SESION = "sesion";
 export const DURACION_SESION_SEGUNDOS = 60 * 60 * 2;
@@ -41,4 +42,9 @@ export async function verificarSesion(token: string): Promise<DatosSesion | null
   } catch {
     return null;
   }
+}
+
+export async function obtenerSesionActual(): Promise<DatosSesion | null> {
+  const token = (await cookies()).get(NOMBRE_COOKIE_SESION)?.value;
+  return token ? verificarSesion(token) : null;
 }

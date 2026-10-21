@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDbPool } from "../../../src/lib/db";
+import { obtenerSesionActual } from "../../../src/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -11,14 +12,18 @@ function esTextoValido(val: unknown): val is string {
 /**
  * Publica un viaje activo en PostgreSQL.
  *
- * Espera un objeto JSON con `id_usuario`, `id_vehiculo`, `origen`, `destino`,
+ * Espera un objeto JSON con `id_vehiculo`, `origen`, `destino`,
  * `punto_encuentro`, `precio_pasaje`, `cupos_disponibles`, `fecha_salida` y
  * `hora_salida`; `informacion_adicional` es opcional. Valida los datos antes
  * de insertar y responde con HTTP 201 y `{ viaje }`, o con `{ error }` y un
- * estado HTTP 400/500. No comprueba una sesión autenticada: los identificadores
- * recibidos no demuestran por sí mismos que quien llama sea ese usuario.
+ * estado HTTP 400/500. El usuario propietario se toma de la sesión verificada.
  */
 export async function POST(request: Request) {
+  const sesion = await obtenerSesionActual();
+  if (!sesion) {
+    return NextResponse.json({ error: "Debes iniciar sesión." }, { status: 401 });
+  }
+
   let body: Record<string, unknown>;
 
   // Un cuerpo que no se pueda interpretar como JSON es una solicitud inválida.
@@ -33,7 +38,6 @@ export async function POST(request: Request) {
 
   // Valida los identificadores y los campos obligatorios del recorrido.
   const {
-    id_usuario,
     id_vehiculo,
     origen,
     destino,
@@ -44,13 +48,6 @@ export async function POST(request: Request) {
     hora_salida,
     informacion_adicional,
   } = body;
-
-  if (!esTextoValido(id_usuario) || id_usuario.length > 20) {
-    return NextResponse.json(
-      { error: "id_usuario es obligatorio y debe tener máximo 20 caracteres." },
-      { status: 400 }
-    );
-  }
 
   const idVehiculo = Number(id_vehiculo);
   if (!Number.isInteger(idVehiculo) || idVehiculo <= 0) {
@@ -131,6 +128,17 @@ export async function POST(request: Request) {
 
   try {
     const pool = getDbPool();
+    const vehiculoPropio = await pool.query(
+      `SELECT 1 FROM vehiculo WHERE id_vehiculo = $1 AND id_usuario = $2 LIMIT 1`,
+      [idVehiculo, sesion.id]
+    );
+    if (vehiculoPropio.rows.length === 0) {
+      return NextResponse.json(
+        { error: "El vehículo no pertenece a tu cuenta." },
+        { status: 403 }
+      );
+    }
+
     // Usa parámetros SQL para no concatenar directamente los datos del usuario.
     const resultado = await pool.query(
       `INSERT INTO viaje (
@@ -144,7 +152,7 @@ export async function POST(request: Request) {
                  fecha_salida, hora_salida, informacion_adicional,
                  estado, fecha_creacion`,
       [
-        id_usuario.trim(),
+        sesion.id,
         idVehiculo,
         origen.trim(),
         destino.trim(),
@@ -187,23 +195,35 @@ export async function POST(request: Request) {
  * `null` si no tiene uno). Sin ese parámetro, devuelve todos los viajes activos
  * junto con el nombre y apellido del conductor, ordenados por fecha y hora.
  * Responde con `{ viaje }` en el primer caso y `{ viajes }` en el segundo.
- * La ruta no exige una sesión autenticada.
+ * Requiere una sesión vigente y no permite consultar el viaje activo de otro usuario.
  */
 export async function GET(request: Request) {
+  const sesion = await obtenerSesionActual();
+  if (!sesion) {
+    return NextResponse.json({ error: "Debes iniciar sesión." }, { status: 401 });
+  }
+
   const { searchParams } = new URL(request.url);
   const idUsuario = searchParams.get("id_usuario");
+
+  if (idUsuario !== null && idUsuario.trim() !== sesion.id) {
+    return NextResponse.json(
+      { error: "No puedes consultar los viajes de otro usuario." },
+      { status: 403 }
+    );
+  }
 
   try {
     const pool = getDbPool();
 
-    if (idUsuario) {
+    if (idUsuario !== null) {
       // Esta consulta es para restaurar el último viaje activo de un usuario.
       const resultado = await pool.query(
         `SELECT * FROM viaje
          WHERE id_usuario = $1 AND estado = 'activo'
          ORDER BY id_viaje DESC
          LIMIT 1`,
-        [idUsuario.trim()]
+        [sesion.id]
       );
       return NextResponse.json({ viaje: resultado.rows[0] ?? null });
     }
