@@ -1,88 +1,110 @@
 "use client";
 import { useState, useEffect } from "react";
+import ListaMensajes from "./components/ListaMensajes";
+import FormularioMensaje from "./components/FormularioMensaje";
 
-export default function MensajesView({ usuarioActualId, receptorId }) {
+export default function MensajesView({ usuarioActualId = "1" }) {
+  const [contactoSeleccionado, setContactoSeleccionado] = useState(null);
   const [mensajes, setMensajes] = useState([]);
-  const [nuevoMensaje, setNuevoMensaje] = useState("");
 
-  // Cargar mensajes entre el usuario actual y el receptor
+  // Contactos de prueba (luego los puedes cargar dinámicamente desde la BD)
+  const contactos = [
+    { id: "2", nombre: "Carlos Monteno", rol: "Conductor" },
+    { id: "3", nombre: "Sara Tomato", rol: "Pasajera" },
+  ];
+
+  // Cargar mensajes al seleccionar un contacto
   useEffect(() => {
-    if (!usuarioActualId || !receptorId) return;
+    if (!contactoSeleccionado) return;
 
     async function cargarMensajes() {
       try {
-        const res = await fetch(`/api/mensajes?usuario1=${usuarioActualId}&usuario2=${receptorId}`);
+        const res = await fetch(
+          `/api/mensajes?usuario1=${usuarioActualId}&usuario2=${contactoSeleccionado.id}`
+        );
         if (res.ok) {
           const data = await res.json();
           setMensajes(data);
         }
       } catch (error) {
-        console.error("Error cargando mensajes:", error);
+        console.error("Error al cargar mensajes:", error);
       }
     }
 
     cargarMensajes();
-    const intervalo = setInterval(cargarMensajes, 5000); // Actualiza cada 5 segundos
+    const intervalo = setInterval(cargarMensajes, 4000); // Polling cada 4s
     return () => clearInterval(intervalo);
-  }, [usuarioActualId, receptorId]);
+  }, [contactoSeleccionado, usuarioActualId]);
 
-  // Enviar mensaje guardándolo en la base de datos
-  async function enviarMensaje(e) {
-    e.preventDefault();
-    if (!nuevoMensaje.trim()) return;
-
+  // Manejar envío de mensaje
+  const manejarEnvio = async (contenidoTexto) => {
     try {
       const res = await fetch("/api/mensajes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id_emisor: usuarioActualId,
-          id_receptor: receptorId,
-          contenido: nuevoMensaje,
+          id_receptor: contactoSeleccionado.id,
+          contenido: contenidoTexto,
         }),
       });
 
       if (res.ok) {
-        const mensajeGuardado = await res.json();
-        setMensajes((prev) => [...prev, mensajeGuardado]);
-        setNuevoMensaje("");
+        const nuevoMensajeGuardado = await res.json();
+        setMensajes((prev) => [...prev, nuevoMensajeGuardado]);
       }
     } catch (error) {
-      console.error("Error al enviar mensaje:", error);
+      console.error("Error al enviar el mensaje:", error);
     }
+  };
+
+  
+  if (!contactoSeleccionado) {
+    return (
+      <div className="card p-3 color-card border-0">
+        <h4 className="letra-contenido mb-3">Mensajes y Conversaciones</h4>
+        
+        <div className="list-group">
+          {contactos.map((contacto) => (
+            <button
+              key={contacto.id}
+              className="list-group-item list-group-item-action d-flex justify-content-between align-items-center p-3 mb-2 rounded shadow-sm border"
+              onClick={() => setContactoSeleccionado(contacto)}
+            >
+              <div>
+                <h5 className="mb-1 fw-bold text-dark">{contacto.nombre}</h5>
+                <small className="text-muted">{contacto.rol}</small>
+              </div>
+              <span className="badge bg-primary rounded-pill">Abrir chat ›</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
   }
 
+ 
   return (
-    <div className="card p-3 color-card">
-      <h4 className="letra-contenido mb-3">Chat</h4>
-      
-      <div className="chat-box mb-3 p-2 border rounded" style={{ height: "350px", overflowY: "auto" }}>
-        {mensajes.map((msg) => {
-          const esMio = msg.id_emisor === usuarioActualId;
-          return (
-            <div key={msg.id_mensaje} className={`mb-2 d-flex ${esMio ? "justify-content-end" : "justify-content-start"}`}>
-              <div className={`p-2 rounded ${esMio ? "bg-primary text-white" : "bg-light text-dark"}`} style={{ maxWidth: "75%" }}>
-                <p className="mb-1">{msg.contenido}</p>
-                <small className={esMio ? "text-light opacity-75" : "text-muted"}>
-                  {new Date(msg.fecha_hora).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </small>
-              </div>
-            </div>
-          );
-        })}
+    <div className="card p-3 color-card border-0">
+      <div className="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+        <button
+          type="button"
+          className="btn btn-sm btn-outline-secondary"
+          onClick={() => {
+            setContactoSeleccionado(null);
+            setMensajes([]);
+          }}
+        >
+          ← Volver a contactos
+        </button>
+        <h5 className="mb-0 letra-contenido fw-bold">
+          Chat con {contactoSeleccionado.nombre}
+        </h5>
+        <div style={{ width: "80px" }}></div>
       </div>
 
-      <form onSubmit={enviarMensaje} className="d-flex gap-2">
-        <input
-          type="text"
-          className="form-control"
-          placeholder="Escribe un mensaje..."
-          maxLength={500}
-          value={nuevoMensaje}
-          onChange={(e) => setNuevoMensaje(e.target.value)}
-        />
-        <button type="submit" className="btn btn-primary">Enviar</button>
-      </form>
+      <ListaMensajes mensajes={mensajes} usuarioActualId={usuarioActualId} />
+      <FormularioMensaje onEnviarMensaje={manejarEnvio} />
     </div>
   );
 }
