@@ -36,6 +36,8 @@ function Login() {
                 return;
             }
 
+            window.sessionStorage.setItem('cozymov-usuario-id', resultado.usuario.id);
+
             void Swal.fire({
                 title: 'Iniciando sesión',
                 text: 'Estamos validando tus datos.',

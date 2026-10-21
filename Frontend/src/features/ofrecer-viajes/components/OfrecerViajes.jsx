@@ -7,12 +7,24 @@ import PuntoEncuentroDropdown from "./PuntoEncuentroDropdown";
 import RegistroVehiculo from "./RegistroVehiculo";
 import Swal from "sweetalert2";
 
-const VEHICULO_STORAGE_KEY = "cozymov-vehiculo-v2";
+
 const PRECIOS_SUGERIDOS = [3000, 4000, 5000];
 const UNIVERSIDAD_POPULAR_CESAR = "Universidad Popular Del Cesar";
 const LUGARES_ADICIONALES = [UNIVERSIDAD_POPULAR_CESAR];
 const MINUTOS_POR_DEFECTO_SALIDA = 5;
 
+// useSyncExternalStore requiere una función de suscripción; sessionStorage no
+// emite cambios entre componentes, así que esta función no registra listeners.
+function suscribirSesion() {
+  return () => {};
+}
+
+// Lee el identificador guardado durante la sesión del navegador.
+function obtenerIdUsuario() {
+  return window.sessionStorage.getItem("cozymov-usuario-id") || "";
+}
+
+// Presenta valores numéricos con el formato de moneda colombiano.
 function formatearPrecio(precio) {
   return new Intl.NumberFormat("es-CO", {
     style: "currency",
@@ -21,6 +33,7 @@ function formatearPrecio(precio) {
   }).format(precio);
 }
 
+// Convierte una fecha local a las cadenas que esperan los controles date y time.
 function obtenerPartesFechaHora(fecha) {
   const dosDigitos = (numero) => String(numero).padStart(2, "0");
   return {
@@ -29,61 +42,25 @@ function obtenerPartesFechaHora(fecha) {
   };
 }
 
-const suscriptoresVehiculo = new Set();
-let ultimoVehiculoGuardado = null;
-let ultimoVehiculoSerializado = null;
-
-function suscribirVehiculo(callback) {
-  suscriptoresVehiculo.add(callback);
-  window.addEventListener("storage", callback);
-
-  return () => {
-    suscriptoresVehiculo.delete(callback);
-    window.removeEventListener("storage", callback);
-  };
-}
-
-function obtenerVehiculoGuardado() {
-  const serializado = window.localStorage.getItem(VEHICULO_STORAGE_KEY);
-  if (serializado === null) return null;
-  if (serializado === ultimoVehiculoSerializado) return ultimoVehiculoGuardado;
-
-  const vehiculoGuardado = JSON.parse(serializado);
-  if (
-    typeof vehiculoGuardado.tipo !== "string" ||
-    typeof vehiculoGuardado.rutaCotidiana !== "string"
-  ) {
-    throw new Error("Los datos guardados del vehículo tienen un formato inválido.");
-  }
-
-  ultimoVehiculoSerializado = serializado;
-  ultimoVehiculoGuardado = vehiculoGuardado;
-  return vehiculoGuardado;
-}
-
-function notificarCambioVehiculo() {
-  suscriptoresVehiculo.forEach((callback) => callback());
-}
-
 export default function OfrecerViajes({
   pasajeroSeleccionado,
   setPasajeroSeleccionado,
   mensajeAccion,
   setMensajeAccion,
 }) {
-  const vehiculoGuardado = useSyncExternalStore(
-    suscribirVehiculo,
-    obtenerVehiculoGuardado,
-    () => null,
-  );
+  const [vehiculoGuardado, setVehiculoGuardado] = useState(null);
+  const idUsuario = useSyncExternalStore(suscribirSesion, obtenerIdUsuario, () => "");
+  const [cargandoVehiculo, setCargandoVehiculo] = useState(true);
+  const [consultaFallida, setConsultaFallida] = useState(false);
+  const [intentoConsulta, setIntentoConsulta] = useState(0);
   const [vehiculo, setVehiculo] = useState({
     tipo: "",
     modelo: "",
+    capacidad: "",
     rutaCotidiana: "",
     numeroPuertas: "",
   });
   const [errorVehiculo, setErrorVehiculo] = useState("");
-  const temporizadorRegistro = useRef(null);
   const [origen, setOrigen] = useState(UNIVERSIDAD_POPULAR_CESAR);
   const [destino, setDestino] = useState(UNIVERSIDAD_POPULAR_CESAR);
   const [puntoEncuentro, setPuntoEncuentro] = useState("");
@@ -97,15 +74,82 @@ export default function OfrecerViajes({
   const [viajePublicado, setViajePublicado] = useState(null);
   const temporizadorPublicacion = useRef(null);
 
+  // Cierra alertas y limpia el temporizador si el componente se desmonta.
   useEffect(
     () => () => {
-      window.clearTimeout(temporizadorRegistro.current);
       window.clearTimeout(temporizadorPublicacion.current);
       Swal.close();
     },
     [],
   );
 
+  // Carga el vehículo del usuario. Si existe, intenta restaurar también su
+  // viaje activo; un fallo de esa consulta opcional no impide usar la pantalla.
+  useEffect(() => {
+    if (!idUsuario) return;
+    const controlador = new AbortController();
+
+    async function cargarVehiculo() {
+      try {
+        const respuesta = await fetch(
+          `/api/vehiculo?id_usuario=${encodeURIComponent(idUsuario)}`,
+          { signal: controlador.signal },
+        );
+        const resultado = await respuesta.json();
+        if (!respuesta.ok) {
+          throw new Error(resultado.error || "No se pudo consultar el vehículo.");
+        }
+
+        setVehiculoGuardado(resultado.vehiculo);
+        setConsultaFallida(false);
+
+        if (resultado.vehiculo) {
+          try {
+            const resViaje = await fetch(
+              `/api/viajes?id_usuario=${encodeURIComponent(idUsuario)}`,
+              { signal: controlador.signal }
+            );
+            if (resViaje.ok) {
+              const dataViaje = await resViaje.json();
+              if (dataViaje.viaje) {
+                setViajePublicado({
+                  idViaje: dataViaje.viaje.id_viaje,
+                  origen: dataViaje.viaje.origen,
+                  destino: dataViaje.viaje.destino,
+                  puntoEncuentro: dataViaje.viaje.punto_encuentro,
+                  precioPasaje: dataViaje.viaje.precio_pasaje,
+                  cuposDisponibles: dataViaje.viaje.cupos_disponibles,
+                  fechaSalida: dataViaje.viaje.fecha_salida
+                    ? String(dataViaje.viaje.fecha_salida).split("T")[0]
+                    : "",
+                  horaSalida: dataViaje.viaje.hora_salida
+                    ? String(dataViaje.viaje.hora_salida).slice(0, 5)
+                    : "",
+                  informacionAdicional: dataViaje.viaje.informacion_adicional || "",
+                });
+              }
+            }
+          } catch {
+            // Ignorar errores de carga inicial opcional
+          }
+        }
+      } catch (error) {
+        if (error.name === "AbortError") return;
+        console.error("No se pudo consultar el vehículo en la nube:", error);
+        setConsultaFallida(true);
+        setErrorVehiculo(
+          error.message || "No se pudo consultar tu vehículo. Inténtalo de nuevo.",
+        );
+      } finally {
+        if (!controlador.signal.aborted) setCargandoVehiculo(false);
+      }
+    }
+
+    void cargarVehiculo();
+    return () => controlador.abort();
+  }, [idUsuario, intentoConsulta]);
+
+  // Inicializa la hora de salida con el valor predeterminado unos minutos adelante.
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
       const salidaPredeterminada = new Date(
@@ -118,10 +162,17 @@ export default function OfrecerViajes({
     return () => window.cancelAnimationFrame(frame);
   }, []);
 
+  // Actualiza el formulario de vehículo y reinicia los campos que dependen del tipo.
   function cambiarCampoVehiculo(campo, valor) {
     setVehiculo((anterior) => {
       if (campo === "tipo") {
-        return { ...anterior, tipo: valor, numeroPuertas: "" };
+        return {
+          ...anterior,
+          tipo: valor,
+          capacidad: "",
+          numeroPuertas: "",
+          modalidad: "",
+        };
       }
 
       return { ...anterior, [campo]: valor };
@@ -129,11 +180,12 @@ export default function OfrecerViajes({
     setErrorVehiculo("");
   }
 
-  function guardarVehiculo(evento) {
+  // Valida de forma básica la sesión y envía el vehículo a la API del servidor.
+  async function guardarVehiculo(evento) {
     evento.preventDefault();
     void Swal.fire({
       title: "Registrando vehículo",
-      text: "Estamos guardando tu información. Esto tomará unos segundos.",
+      text: "Estamos guardando tu información en la nube.",
       allowOutsideClick: false,
       allowEscapeKey: false,
       didOpen: () => Swal.showLoading(),
@@ -172,8 +224,20 @@ export default function OfrecerViajes({
     }, 2000);
   }
 
-  function publicarViaje(evento) {
+  // Comprueba los campos, publica el viaje en la API y adapta la respuesta del
+  // servidor al formato que consumen las vistas de confirmación y edición.
+  async function publicarViaje(evento) {
     evento.preventDefault();
+    if (!idUsuario) {
+      setErrorPublicacion("Inicia sesión para poder publicar un viaje.");
+      return;
+    }
+
+    if (!vehiculoGuardado?.id_vehiculo) {
+      setErrorPublicacion("Debes registrar un vehículo antes de publicar un viaje.");
+      return;
+    }
+
     if (origen === destino) {
       setErrorPublicacion("El origen y el destino deben ser diferentes.");
       return;
@@ -215,41 +279,78 @@ export default function OfrecerViajes({
     }
 
     setErrorPublicacion("");
-    const viajeBorrador = {
-      origen,
-      destino,
-      puntoEncuentro,
-      precioPasaje: precio,
-      cuposDisponibles: cupos,
-      fechaSalida,
-      horaSalida,
-      informacionAdicional: informacionAdicional.trim(),
-    };
+
     void Swal.fire({
-      title: "Publicando viaje",
-      text: "Estamos publicando tu recorrido. Esto tomará unos segundos.",
+      title: "Guardando viaje",
+      text: "Estamos registrando tu viaje en la base de datos...",
       allowOutsideClick: false,
       allowEscapeKey: false,
       didOpen: () => Swal.showLoading(),
     });
-    temporizadorPublicacion.current = window.setTimeout(() => {
+
+    try {
+      const respuesta = await fetch("/api/viajes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id_usuario: idUsuario,
+          id_vehiculo: Number(vehiculoGuardado.id_vehiculo),
+          origen,
+          destino,
+          punto_encuentro: puntoEncuentro,
+          precio_pasaje: precio,
+          cupos_disponibles: cupos,
+          fecha_salida: fechaSalida,
+          hora_salida: horaSalida,
+          informacion_adicional: informacionAdicional.trim(),
+        }),
+      });
+
+      const resultado = await respuesta.json();
+      if (!respuesta.ok) {
+        throw new Error(resultado.error || "No se pudo guardar el viaje.");
+      }
+
+      const viajeGuardadoServidor = {
+        idViaje: resultado.viaje.id_viaje,
+        origen: resultado.viaje.origen,
+        destino: resultado.viaje.destino,
+        puntoEncuentro: resultado.viaje.punto_encuentro,
+        precioPasaje: resultado.viaje.precio_pasaje,
+        cuposDisponibles: resultado.viaje.cupos_disponibles,
+        fechaSalida: typeof resultado.viaje.fecha_salida === "string" ? resultado.viaje.fecha_salida.split("T")[0] : fechaSalida,
+        horaSalida: typeof resultado.viaje.hora_salida === "string" ? resultado.viaje.hora_salida.slice(0, 5) : horaSalida,
+        informacionAdicional: resultado.viaje.informacion_adicional || "",
+      };
+
       void Swal.fire({
         icon: "success",
         title: "¡Viaje publicado!",
-        text: "Tu viaje ya está publicado. Ahora puedes esperar pasajeros.",
+        text: "Tu viaje se ha guardado correctamente en la base de datos.",
         confirmButtonText: "Continuar",
         allowOutsideClick: false,
         allowEscapeKey: false,
       }).then(({ isConfirmed }) => {
-        if (isConfirmed) confirmarPublicacion(viajeBorrador);
+        if (isConfirmed) confirmarPublicacion(viajeGuardadoServidor);
       });
-    }, 2000);
+    } catch (error) {
+      console.error("Error al guardar el viaje:", error);
+      const mensaje = error.message || "No se pudo guardar el viaje. Inténtalo de nuevo.";
+      setErrorPublicacion(mensaje);
+      void Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: mensaje,
+      });
+    }
   }
 
+  // Cambia a la vista de confirmación después de que el usuario acepta el aviso.
   function confirmarPublicacion(viaje) {
     setViajePublicado(viaje);
   }
 
+  // Recupera los datos del viaje publicado para permitir editar el formulario.
   function editarViajePublicado() {
     setOrigen(viajePublicado.origen);
     setDestino(viajePublicado.destino);
@@ -264,6 +365,7 @@ export default function OfrecerViajes({
     setErrorPublicacion("");
   }
 
+  // Reinicia los campos para empezar otro viaje; no elimina el anterior de la base.
   function prepararOtroViaje() {
     setViajePublicado(null);
     setOrigen(UNIVERSIDAD_POPULAR_CESAR);
@@ -282,11 +384,51 @@ export default function OfrecerViajes({
     setErrorPublicacion("");
   }
 
+  // Esta acción solo muestra una confirmación local; no registra una solicitud en el servidor.
   function aceptarPasajero() {
     setMensajeAccion(`Has aceptado la solicitud de ${pasajeroSeleccionado.nombre}.`);
   }
 
+  // Sin identificador de sesión no se intenta cargar ni registrar información.
+  if (!idUsuario) {
+    return (
+      <div className="vista">
+        <div className="alert alert-danger" role="alert">
+          Inicia sesión para registrar y consultar tu vehículo.
+        </div>
+      </div>
+    );
+  }
+
+  // Espera a que termine la consulta inicial del vehículo.
+  if (cargandoVehiculo) {
+    return <div className="vista" role="status">Consultando tu vehículo...</div>;
+  }
+
+  // Si aún no hay vehículo, presenta el formulario o permite reintentar la consulta.
   if (vehiculoGuardado === null) {
+    if (consultaFallida) {
+      return (
+        <div className="vista">
+          <div className="alert alert-danger" role="alert">
+            {errorVehiculo}
+            <button
+              className="btn btn-outline-danger d-block mt-3"
+              type="button"
+              onClick={() => {
+                setCargandoVehiculo(true);
+                setIntentoConsulta((intento) => intento + 1);
+              }}
+            >
+              Volver a consultar
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // Una vez cargado el vehículo, muestra el viaje activo, el formulario de
+    // publicación o el detalle de pasajero según el estado y las props recibidas.
     return (
       <>
         <RegistroVehiculo

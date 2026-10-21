@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import barriosRutaCotidiana from "./barriosRutaCotidiana";
-import "./BarrioDropdown.css";
+import barriosRutaCotidiana from "../JS/barriosRutaCotidiana";
+import "../CSS/BarrioDropdown.css";
 
 function normalizarTexto(texto) {
   return texto
