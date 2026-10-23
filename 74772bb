@@ -1,0 +1,186 @@
+[33m8a72781[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mFrontend-Ashly[m[33m, [m[1;31morigin/Frontend-Ashly[m[33m)[m fix: mergeando el main
+[33mfaf71ba[m style: modificacion experimental de la interfas de inicio; fix: Cambios de acompatibilidad en layout ya que en la interfas de usuario generaba problemas, junto con un import Image de next/image para la compatibilidad de los iconos al usarlos en la interfas
+[33m8095992[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m Delete Database directory
+[33md2ae86e[m Merge pull request #23 from Jcamilorangel16/menu-principal-Rangel
+[33m0809e92[m Merge branch 'main' into menu-principal-Rangel
+[33m470e3fa[m feat: Agregar campo modelo RegistroVehiculo y agregar variable de objeto modelo en OfrecerViaje
+[33m74772bb[m style: Cambio de color de la interfas, eliminacion en un par de elementos del inicio, junto con el uso de iconos nuevos en png en la seccion se salir de cesion y configuracion
+[33m9b28b0e[m Merge pull request #22 from Jcamilorangel16/registerYeferson
+[33m199fd4f[m feat: en caso de tener la contraseña incorrecta muestra un emsjae en rorjo que le pide ingreasarlo mejor
+[33m164dce2[m FEAT: Agregué las ventanas emergenetes para incio de sesion, regiter y registro de vehiculo, tienen un tiempo de respuesta de 2 segundos
+[33me0a91f2[m FEAT: Es obligatorio subir la foto del vehiculo, sin la placa
+[33m3910b9f[m FEAT: Barrios inplememntados en ruta cotidiana al momento de registrar un vehiculo, está seprado por archhivos e importado dentro del registrovehiculo.jsx. tiene un css, una lista, y un archivo selectruta
+[33ma7ee93e[m feat(vehiculo): agregar campos dinámicos según el tipo de vehículo
+[33m38569c1[m feat(Database): Implementacion de Script de datos semilla para la base de datos
+[33md133b5c[m feat(Database): Implementacion de Scripts de creacion de tablas de la base de datos
+[33mb6c6cc7[m Merge pull request #21 from Jcamilorangel16/registerYeferson
+[33meb086fd[m FEAT: Nuevos campos agregados en register, el cargo, y lo appelidos más la edad. También los vincule a la base de datos en la nube que está hecha con supabase
+[33mba26e29[m FEAT: Nueva interfaz registro vehiculo con desplegable de uso apra el tipo de vehiculo y cargar imagen sin guardar aun
+[33mf9a8999[m FEAT: Nueva interfaz ofrecer vaije, con el registro de vehiculo, además organicé las carpetas para que sean mas organizado
+[33ma927fdc[m feat: solcionando probelmas2
+[33mf357aaa[m feat: solcionando probelmas1
+[33mf3cdcf3[m feat: solcionando probelmas
+[33m4c88135[m feat: Actualizandome al main que acaba de subir  Ashly
+[33m30c002c[m feat: Actualizandome al main que acaba de subir  Ashly
+[33m2ceba7d[m Merge pull request #20 from Jcamilorangel16/Frontend-Ashly
+[33mace15ad[m style: Cambio de colores en el menú
+[33mf2886ed[m feat: Borré los archivos de vite que sobraban, son index.css app.jsx que estaban en src de frontend
+[33m534c472[m Cambio de colores en el inicio de secion y el registro, cambios en los iconos y agregaciones minimas para mayor control de las tonalidades de la pestaña, pasar de morados opacos a acua, junto con un nuevo jpg temporal en el registro
+[33m1402c79[m feat: Integrcion de base dedatos postgres con render en la nube
+[33mbb802c7[m feat: Colocando la actualizacion  de camilo por segunda vez
+[33m3f57fbd[m fix: Cambiar ruta del login al main
+[33m759bd3a[m feat: Colocando la actualizacion  de camilo
+[33m7a8b96d[m refactor: eliminar carpeta duplicada menu-principal
+[33m57a74a2[m Merge pull request #19 from Jcamilorangel16/menu-principal-Rangel
+[33m5ed53be[m fix: resolver conflictos de fusion y finalizar merge
+[33mc8816b1[m fix(login): implementar useRouter de next/navigation para redireccion al menu y cambios en el boton registrarse
+[33m8c841e8[m refactor(app): limpiar layout y definir rutas para login y menu principal
+[33maa1a820[m feat: actualizandome al main
+[33m3367128[m Merge pull request #18 from Jcamilorangel16/loginJuanDv
+[33m0125df2[m eliminar estructura obsoleta en la raiz
+[33m9bbb916[m feat: register coregido y corriendo correctamente
+[33m134cfd2[m feat: Trayendo commits de Juan para la conexión de ramas
+[33m879c99f[m fix: Ajuste en el archivo next.config.ts para no mostrar el indicador de desarrollo
+[33m47441b0[m fix(layout): corregir título y descripción por defecto en app/layout.tsx
+[33mc53a4d2[m chore: eliminar package-lock.json duplicado en la raíz del proyecto
+[33m1621d81[m feat: conectar componente MenuPrincipal a la ruta raíz de Next.js y actualizar estilos
+[33m83f099d[m refactor: Cambio de nombre del archivo .jsx del menu principal
+[33mb47164b[m Feat: Eliminando carpeta antigua de menu principal
+[33mf11e0d8[m Feat: Actualizando la conexion con el menu principal
+[33m6d225b7[m Merge remote-tracking branch 'origin/menu-principal-Rangel' into loginJuanDv
+[33m6e1afe3[m Feat: Arreglando los cambios otra vez con el npm run dev
+[33m33a0880[m Feat: volviendo hacer la conexion por problemas de estilos en boostrap
+[33ma33cebd[m Revert "funcionalidad: conectar y estilizar el registro"
+[33m2bbffb3[m funcionalidad: conectar y estilizar el registro
+[33m3c1b352[m Integra el inicio de sesión en el frontend
+[33ma5a653a[m Feat: Borre pages
+[33m36ca60c[m Feat: Organizar carpetas
+[33m02381d1[m Feat: haciando cambios en la amnera de iniciar y que se refleje en el login
+[33mae6bd10[m Feat: cambios en el css de login
+[33m9983548[m feact: borre .next
+[33m1a44e7a[m Feact: actualizacion a main
+[33m237502d[m Bug: error corregido de gitignore
+[33m77577c0[m Merge pull request #17 from Jcamilorangel16/menu-principal-Rangel
+[33m987e6ad[m Merge branch 'main' into menu-principal-Rangel
+[33m14c7e6e[m BUG: .next solucionado
+[33m950a67b[m fix: remover carpeta .next de git
+[33m9c3551b[m FEACT: .next omitido por gitingnore
+[33me477971[m Merge pull request #15 from Jcamilorangel16/loginJuanDv
+[33m9a22c03[m feat: Actualizacion de react menu principal
+[33m7839676[m Feat: transcripción a React
+[33m200a3df[m feat: agregar componente de inicio de sesión
+[33mf23088f[m feat: actualizacion de archivos
+[33m3cd058f[m feact: register terminado
+[33mbfc3c34[m feact: Register en react desplegado
+[33m300fed5[m FEAT: implementacion de Next.js y React
+[33md965869[m feact: .gitgnore actualizado, espero que no de problemas
+[33mb823cbb[m feat: Actualizar rama
+[33m85ea4eb[m FEAT: Agregué la funcion de dar enter y pasar a el siguiente campo.
+[33m0919b2b[m fix: resolucion de conflictos en el merge
+[33m8dc5e4b[m feact: index modificado
+[33m3590337[m feat: Actualizacion de librerias de next.js y react para control de versiones
+[33m2c1427e[m feat: Implementacion de next.js
+[33mbfe7c16[m feact: add src in the frontend
+[33m64739a4[m Actualizado al main
+[33me2aff1f[m Feact: Actualizacion de libreriass en el Next.js y React para control de versiones
+[33m257acc1[m CHORE: dejar de rastrear archivos de compilación de Next.js
+[33m1ccd978[m Merge remote-tracking branch 'origin/roadTrip-Ash' into loginJuanDv
+[33m36e687a[m Remove Next.js build files from tracking
+[33m0b586d9[m Merge menu-principal-Rangel
+[33m517c5c1[m Merge pull request #14 from Jcamilorangel16/registerYeferson
+[33mb8cce05[m feact: .gitgnore actualizado, espero que no de problemas
+[33medc2459[m feat: actualizacion de la rama menu-principal-Rangel con los cambios recientes del main
+[33mb886ae3[m Merge pull request #13 from Jcamilorangel16/registerYeferson
+[33m68a54ed[m text: solucionando problemas de cache
+[33m6699c99[m feact: register exportado a react
+[33mfa2d8dd[m feact: add src in the frontend
+[33ma100dff[m feact: add Frontend
+[33m0bcae83[m feat: Actualizar rama
+[33mee7c67b[m FEAT: Actualizacion de React y Node.js
+[33m529b644[m feat: Actualizar rama
+[33me1043ed[m FEAT: Agregué la valiadcion del correo para que sea solo unicesar.edu.co. Ademas agregue un patter y title en el index y en el js se puede ver la validaion del correo usando un .text
+[33m9c2fd94[m FEAT: Agregué la nueva función de poder pasar con flechas y enenter en el campo registro, está documentado en el js
+[33me1b7fd8[m FEAT: Agregué la funcion de dar enter y pasar a el siguiente campo.
+[33m5bb4934[m FEAT: Agregué la función de redireccionar el registera a login cuando el register sea exitoso
+[33m3a1cd23[m Feat: guardando cambios de Yeferson
+[33m9d08e35[m Feat: guardando cambios de Yeferson
+[33mdc88f2b[m Actualizado al main
+[33m6305192[m fix: resolucion de conflictos en el merge
+[33m84aae33[m Merge pull request #11 from Jcamilorangel16/loginJuanDv
+[33mc6fe3fa[m FIX: Registrar dependencias de React y Next
+[33m9e09090[m FEAT: Actualizacion de React y Node.js
+[33m46090e3[m feat: Actualizacion de librerias de next.js y react para control de versiones
+[33me851338[m Feact: Actualizacion de librerias en el Next.js y React parea el control de versiones
+[33m9260eb5[m Feact: Actualizacion de libreriass en el Next.js y React para control de versiones
+[33m3e59683[m FEAT: implementacion de Next.js y React
+[33mfa1a89d[m FEAT: inplementacion de Next.js y React
+[33mb4d3216[m feat: Implementacion de next.js
+[33mefe842f[m FEAT: Agregué la valiadcion del correo para que sea solo unicesar.edu.co. Ademas agregue un patter y title en el index y en el js se puede ver la validaion del correo usando un .text
+[33m16650e4[m FEAT: Agregué la nueva función de poder pasar con flechas y enenter en el campo registro, está documentado en el js
+[33m48a2d99[m FEAT: Agregué la funcion de dar enter y pasar a el siguiente campo.
+[33mc37c4db[m FEAT: Agregué la función de redireccionar el registera a login cuando el register sea exitoso
+[33m1c58d4c[m Merge pull request #10 from Jcamilorangel16/roadTrip-Ash
+[33m6984ae3[m feat(ofrecer): agregar sub-vista detalle de pasajero y ajustes de estilo al inicio de secion y menú
+[33m2d0ed56[m fix: actualizar redirección inicial de index.html hacia el login
+[33m20a51e5[m Merge pull request #9 from Jcamilorangel16/loginJuanDv
+[33m99ab97b[m FEAT: Cambios en el ingreso de datos para poder obtenerlos desde el local storage y validar
+[33m3ebe10f[m FEAT: cambios realizados para iniciar sesion desde el login
+[33m76f315b[m Resolver conflictos al traer cambios de main
+[33m32d3201[m Resolver conflictos al traer cambios de main
+[33m4f7291e[m FEAT: Agregué la nueva funcionalidad de guardar el registro en el localstorage como un json, y también 2 condiciones que es que deben estar llenos todos los campos y coordinar las contraseñas
+[33m7c43d67[m add
+[33m3552969[m Merge pull request #8 from Jcamilorangel16/menu-principal-Rangel
+[33mbb12581[m feat: Agregar boton de notificacion a la derecha del perfil
+[33m1fd61eb[m FEAT: actualice diseño del login
+[33me379ef0[m feat: separar vista buscar en resultados y detalle de viaje con mapa dinamico
+[33m12a7aa7[m fix: cerrar correctamente el div de vista-inicio que dejaba anidada la vista buscar
+[33mfab964e[m fix: fijar el alto de la barra lateral para que no cambie segun la vista activa
+[33m1fdf221[m feat: cambiar contenido del panel dinamicamente sin recargar la pagina
+[33m0b0069e[m Merge pull request #7 from Jcamilorangel16/menu-principal-Rangel
+[33m5aaa35c[m feat: agregar feed de notificaciones y actividad al panel principal
+[33m8d5f5c9[m feat: agregar seccion de mis proximos viajes junto a viajes destacados
+[33mf12af21[m feat: agregar seccion de viajes destacados
+[33m077a7a5[m Feat: Agregar barra superior dentro del cuadro de contenido
+[33m00f649f[m style: ajustar colores de fondo del area y el cuadro de contenido
+[33m3cb25a8[m Traeyendo carpeta de img de registerYeferson
+[33m073260e[m FEAT: Subiendo archivos
+[33m79da302[m Integrar cambios de registerYeferson
+[33m805f677[m Guardar cambios antes de traer registerYeferson
+[33md6890ef[m FEAT : Aguregué el botn volver atrás con la funcion history.back
+[33md88b4bf[m FEAT: modificando la presentacion del login
+[33mb7dd21e[m FEAT: me equivoque y traje por error menu-principal y register
+[33m0dc8510[m feat: agregar redireccion desde la raiz a la pagina principal
+[33mdbf7b04[m Merge pull request #6 from Jcamilorangel16/registerYeferson
+[33m5fd2f67[m Integrar cambios de menu-principal-Rangel
+[33m5a52713[m FEAT: Tenia conclictos cuando atualizaba el main
+[33md880faa[m Merge pull request #5 from Jcamilorangel16/menu-principal-Rangel
+[33mbdb3853[m feat(menu-principal): agregar cuadro de contenido principal junto a la barra lateral
+[33mc0d5821[m feat: agregar estilos de la barra lateral con efecto hover en el menu
+[33m31313e0[m FEAT: El titulo lo actualicé a unas clases de boostrap para no tener que usar css. Uso las clases de margen, negrita, centralizado y tamaño de boostrap mas el color para el titulo.
+[33mdb2ef11[m FEACT: Agrugué el nombre arriba con la clase brand-name para que se vea bonito. con esto doy por finalizado el frontend del register por ahora
+[33me6b76b5[m FEAT: Agregué el nuevo botón siguiente con un margen de 5 para que quede alineado y organizado.
+[33m712665f[m feat(menu-principal): Agregar menu de navegacion
+[33m0be6d68[m TEST: Modifiqué la carpeta view haciendo pull de la rama main
+[33md01a210[m FEAT: Aguregué varias funcionalidaes, la contraseña, confirmar contraseña, solo la part visulal calro, pero tambien modifique todo el cuadro ya que debía alinearlo perfectamente para eso usé un pequeño css para darleel tamañ al card. Usé boostrap para alinear y  darle pedning a los input, use mt-3 para el margen p-4 pedding, row para delegar un espacio, el cold m6 para ubicar los campos en el lado corecto, ya que el row divide la sesion en 12 pedazos y el col md 6 me ,lo ajusta donde va, usamos sombras bordasos y el sistema card. Y listo. disculpa por hacer el comit tan largo.
+[33mcde356e[m Merge pull request #4 from Jcamilorangel16/registerYeferson
+[33m875754d[m Merge branch 'registerYeferson' of https://github.com/Jcamilorangel16/Cozymov into registerYeferson
+[33m81c0e7e[m fix: resolver conflictos de sincronizacion
+[33m823d20d[m FEAT: Aregué nuevamente el campo correo pero esta vez despues de telfono
+[33mcb24f75[m TEST: Modifiqué el campo correo y coloqué primero el nombre, que deberia ir antes del correo
+[33ma0a4aec[m FEAT: Agregué el nuevo campo de numero de telefono para recibir ese dato en el egisterYeferson.html
+[33md6bd3f2[m FEAT: Agregué un nuevo campo documento para que reciba ese dato
+[33mcfe6d3f[m feat(menu-principal): agregar estructura de estilos, scripts y recursos visuales
+[33mce3da27[m refactor(structure): cambiar carpeta View a minúsculas
+[33mf7beb24[m refactor(register): estandarizar nombre del módulo y actualizar rutas
+[33m8573275[m Merge pull request #3 from Jcamilorangel16/registerYeferson
+[33m5dd5a52[m FEAT: Agreugué el nuevo campo email para que ingresen su correo institucional.
+[33ma9b20c5[m FEAT: Sólo agrgué dos carpetas nuevas, la de JS y CSS para el register
+[33m98053fd[m Merge pull request #2 from Jcamilorangel16/registerYeferson
+[33mc9dab47[m Merge branch 'main' into registerYeferson
+[33mcab82d9[m registerYeferson
+[33md9b4b9e[m TEST: se modifico el html agregando botones y texto
+[33mb346f93[m 1.1creacionLoginJuanDv
+[33m04d3065[m Merge pull request #1 from Jcamilorangel16/menu-principal-Rangel
+[33m54a1ef1[m feat: estructura inicial del menú principal
+[33mc37e646[m FEAT: agregué la nueva carpeta de registerYeferson  dentro de Cozymov para el control de versiones
+[33md116520[m Initial commit

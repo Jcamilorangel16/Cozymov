@@ -1,4 +1,4 @@
-// Compone la navegación lateral y las vistas del menú principal.
+// Compone el cabezal de navegación y las vistas del menú principal.
 "use client";
 
 import OfrecerViajes from "../../ofrecer-viajes/components/OfrecerViajes";
@@ -28,7 +28,7 @@ export default function MenuPrincipal() {
   } = useMenuPrincipal();
 
   return (
-    <>
+    <div className="app-shell">
       <SidebarMenu vistaActiva={vistaActiva} onNavigate={irAVista} />
 
       <main className="main-content flex-grow-1 p-4">
@@ -64,6 +64,6 @@ export default function MenuPrincipal() {
           {vistaActiva === "en-curso" && <div className="vista"></div>}
         </div>
       </main>
-    </>
+    </div>
   );
 }

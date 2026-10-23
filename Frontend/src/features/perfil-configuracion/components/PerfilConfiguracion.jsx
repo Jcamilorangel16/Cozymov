@@ -8,7 +8,7 @@ import Image from "next/image";
 export default function PerfilConfiguracion() {
   return (
     <div
-      className="sidebar-user d-flex align-items-center justify-content-between p-2 rounded"
+      className="topbar-user d-flex align-items-center justify-content-between p-2 rounded"
       style={{ backgroundColor: "rgba(0, 70, 132, 0.87)" }}
     >
       <div className="d-flex align-items-center gap-2">

@@ -9,10 +9,10 @@ export const enlacesMenu = [
 ];
 
 export const viajesDestacados = [
-  { ruta: "Campus Sur → Centro", horario: "Hoy 7:00 AM · 3 plazas" },
-  { ruta: "Norte → Campus Sur", horario: "Mañana 6:45 AM · 1 lugar" },
-  { ruta: "Campus Norte → Centro", horario: "Hoy 8:15 AM · 2 plazas" },
-  { ruta: "Campus Sur → Este", horario: "Hoy 9:00 AM · 4 lugares" },
+  { hora: "7:00", dia: "Hoy", ruta: "Campus Sur → Centro", cupos: 3 },
+  { hora: "8:15", dia: "Hoy", ruta: "Campus Norte → Centro", cupos: 2 },
+  { hora: "9:00", dia: "Hoy", ruta: "Campus Sur → Este", cupos: 4 },
+  { hora: "6:45", dia: "Mañana", ruta: "Norte → Campus Sur", cupos: 1 },
 ];
 
 export const proximosViajes = [
