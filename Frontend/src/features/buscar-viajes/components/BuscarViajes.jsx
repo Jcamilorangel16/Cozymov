@@ -1,177 +1,173 @@
-import { useState } from "react";
+// Presenta el formulario de búsqueda y los viajes activos disponibles.
+"use client";
 
-const resultadosViajes = [
-  {
-    nombre: "Carlos Monteno", iniciales: "CM", avatarColor: "bg-danger",
-    rating: "4.8", viajes: "37", ruta: "Norte → Campus Sur",
-    horario: "Hoy · 6:50 AM", vehiculo: "Nissan Versa gris (ABC-123)",
-    punto: "Entrada Norte", cupos: "2 lugares libres",
-  },
-  {
-    nombre: "Sara Tomato", iniciales: "ST", avatarColor: "bg-primary",
-    rating: "4.9", viajes: "52", ruta: "Norte → Campus Sur",
-    horario: "Hoy · 10:50 AM", vehiculo: "Chevrolet Onix azul (XYZ-987)",
-    punto: "Estación Central", cupos: "4 lugares libres",
-  },
-  {
-    nombre: "Diego Lopez", iniciales: "DL", avatarColor: "bg-warning text-dark",
-    rating: "4.5", viajes: "19", ruta: "Norte → Campus Sur",
-    horario: "Mañana · 6:00 AM", vehiculo: "Renault Logan blanco (KLO-456)",
-    punto: "Portal Norte", cupos: "1 lugar libre",
-  },
-];
+import { puedeAceptarViaje } from "../../viajes/validations/viajes";
+import { useBuscarViajes } from "../hooks/useBuscarViajes";
+import { formatearFecha, formatearPrecio } from "../utils/viajes";
 
-export default function BuscarViajes({
-  viajeSeleccionado,
-  setViajeSeleccionado,
-  mensajeAccion,
-  setMensajeAccion,
-}) {
-  const [origenBusqueda, setOrigenBusqueda] = useState("Norte");
-  const [destinoBusqueda, setDestinoBusqueda] = useState("Campus Sur");
-  const [viajesEncontrados, setViajesEncontrados] = useState(resultadosViajes);
-
-  function buscarViajes() {
-    const origen = origenBusqueda.trim().toLocaleLowerCase();
-    const destino = destinoBusqueda.trim().toLocaleLowerCase();
-
-    setViajesEncontrados(
-      resultadosViajes.filter((viaje) => {
-        const ruta = viaje.ruta.toLocaleLowerCase();
-        return ruta.includes(origen) && ruta.includes(destino);
-      }),
-    );
-    setViajeSeleccionado(null);
-    setMensajeAccion("");
-  }
-
-  function solicitarUnirse() {
-    setMensajeAccion(`Tu solicitud para unirte al viaje de ${viajeSeleccionado.nombre} está lista.`);
-  }
+/**
+ * Muestra filtros de viaje y resultados de búsqueda.
+ * @returns Interfaz de búsqueda de viajes.
+ */
+export default function BuscarViajes() {
+  const {
+    origen,
+    setOrigen,
+    destino,
+    setDestino,
+    fecha,
+    setFecha,
+    viajes,
+    buscando,
+    busquedaRealizada,
+    error,
+    tieneViajePublicado,
+    validacionCompletada,
+    idUsuario,
+    handleBuscar,
+  } = useBuscarViajes();
 
   return (
-    <div className="vista">
-      {viajeSeleccionado === null ? (
-        <div>
-          <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-            <h3 className="mb-0 letra-contenido">Buscar Viaje</h3>
+    <div className="container py-4">
+      <div className="card shadow-lg border-0 rounded-4">
+        <div className="card-body p-4">
+          <h2 className="text-center mb-4"> Buscar Viajes</h2>
 
-            <div className="d-flex flex-wrap gap-2">
-              <div className="input-group" style={{ width: 150 }}>
-                <span className="input-group-text">📍</span>
+          <form onSubmit={handleBuscar}>
+            <div className="row g-3">
+              <div className="col-md-4">
+                <label className="form-label" htmlFor="buscar-origen">Origen</label>
                 <input
+                  id="buscar-origen"
                   type="text"
                   className="form-control"
-                  value={origenBusqueda}
-                  onChange={(evento) => setOrigenBusqueda(evento.target.value)}
+                  placeholder="Cualquier origen"
+                  maxLength={150}
+                  value={origen}
+                  onChange={(evento) => setOrigen(evento.target.value)}
                 />
               </div>
-              <div className="input-group" style={{ width: 160 }}>
-                <span className="input-group-text">🏁</span>
+
+              <div className="col-md-4">
+                <label className="form-label" htmlFor="buscar-destino">Destino</label>
                 <input
+                  id="buscar-destino"
                   type="text"
                   className="form-control"
-                  value={destinoBusqueda}
-                  onChange={(evento) => setDestinoBusqueda(evento.target.value)}
+                  placeholder="Cualquier destino"
+                  maxLength={150}
+                  value={destino}
+                  onChange={(evento) => setDestino(evento.target.value)}
                 />
               </div>
-              <div className="input-group" style={{ width: 150 }}>
-                <span className="input-group-text">📅</span>
-                <input type="date" className="form-control" />
+
+              <div className="col-md-4">
+                <label className="form-label" htmlFor="buscar-fecha">Fecha de salida</label>
+                <input
+                  id="buscar-fecha"
+                  type="date"
+                  className="form-control"
+                  value={fecha}
+                  onChange={(evento) => setFecha(evento.target.value)}
+                />
               </div>
-              <button type="button" className="btn btn-primary" onClick={buscarViajes}>
-                Buscar
+            </div>
+
+            <div className="d-grid mt-4">
+              <button className="btn btn-primary btn-lg" type="submit" disabled={buscando}>
+                {buscando ? "Buscando..." : "Buscar Viajes"}
               </button>
             </div>
-          </div>
+          </form>
+        </div>
+      </div>
 
-          <p className="texto-secundario fw-semibold mb-3">{viajesEncontrados.length} resultados encontrados</p>
-
-          <div className="d-flex flex-column gap-3">
-            {viajesEncontrados.map((viaje) => (
-              <div
-                className="card p-3 color-card"
-                style={{ cursor: "pointer" }}
-                key={viaje.nombre}
-                onClick={() => {
-                  setViajeSeleccionado(viaje);
-                  setMensajeAccion("");
-                }}
-              >
-                <div className="d-flex justify-content-between align-items-center">
-                  <div className="d-flex align-items-center gap-2">
-                    <div className={"user-avatar " + viaje.avatarColor} style={{ width: 38, height: 38, fontSize: 13 }}>
-                      {viaje.iniciales}
+      <section className="mt-4" aria-live="polite">
+        {buscando && <p className="text-center" role="status">Consultando viajes...</p>}
+        {error && <div className="alert alert-danger" role="alert">{error}</div>}
+        {busquedaRealizada && (
+          <>
+            <h3 className="h5 mb-3">
+              {viajes.length} {viajes.length === 1 ? "viaje encontrado" : "viajes encontrados"}
+            </h3>
+            {viajes.length === 0 ? (
+              <p className="texto-secundario">No se encontraron viajes activos con esos filtros.</p>
+            ) : (
+              <div className="d-flex flex-column gap-3">
+                {viajes.map((viaje) => (
+                  <article className="card color-card border-0 shadow-sm" key={viaje.id_viaje}>
+                    <div className="card-body">
+                      <div className="d-flex flex-wrap justify-content-between gap-2">
+                        <h4 className="h5 mb-1">
+                          {viaje.origen} <span aria-hidden="true">→</span> {viaje.destino}
+                        </h4>
+                        <strong>{formatearPrecio(viaje.precio_pasaje)}</strong>
+                      </div>
+                      <p className="texto-secundario mb-3">
+                        Conductor: {[viaje.primer_nombre, viaje.primer_apellido]
+                          .filter(Boolean)
+                          .join(" ") || "No disponible"}
+                      </p>
+                      <div className="row g-2">
+                        <div className="col-sm-6">
+                          <strong>Salida:</strong> {formatearFecha(viaje.fecha_salida)}
+                          {viaje.hora_salida && ` · ${String(viaje.hora_salida).slice(0, 5)}`}
+                        </div>
+                        <div className="col-sm-6">
+                          <strong>Punto de encuentro:</strong> {viaje.punto_encuentro}
+                        </div>
+                        <div className="col-sm-6">
+                          <strong>Cupos disponibles:</strong> {viaje.cupos_disponibles}
+                        </div>
+                        {viaje.informacion_adicional && (
+                          <div className="col-12">
+                            <strong>Información adicional:</strong> {viaje.informacion_adicional}
+                          </div>
+                        )}
+                        <div className="col-12 mt-2">
+                          <button
+                            className="btn btn-success"
+                            type="button"
+                            disabled={!puedeAceptarViaje(
+                              idUsuario,
+                              validacionCompletada,
+                              tieneViajePublicado,
+                            )}
+                            title={
+                              !idUsuario
+                                ? "Inicia sesión para poder aceptar un viaje."
+                                : tieneViajePublicado
+                                  ? "Ya tienes un viaje publicado."
+                                  : undefined
+                            }
+                          >
+                            Aceptar viaje
+                          </button>
+                          {!idUsuario && (
+                            <small className="texto-secundario ms-2">
+                              Inicia sesión para poder aceptar un viaje.
+                            </small>
+                          )}
+                          {tieneViajePublicado && (
+                            <small className="texto-secundario ms-2">
+                              Solo puedes aceptar un viaje si no tienes uno publicado.
+                            </small>
+                          )}
+                          {idUsuario && !validacionCompletada && (
+                            <small className="texto-secundario ms-2" role="status">
+                              Validando tus viajes publicados...
+                            </small>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="fw-bold letra-contenido">{viaje.nombre}</div>
-                      <small className="texto-secundario">★ {viaje.rating} · {viaje.horario}</small>
-                    </div>
-                  </div>
-                  <span className="fs-4 texto-secundario">›</span>
-                </div>
-                <div className="texto-secundario small mt-2">{viaje.vehiculo}</div>
-                <span className="badge bg-success mt-2">{viaje.cupos}</span>
+                  </article>
+                ))}
               </div>
-            ))}
-            {viajesEncontrados.length === 0 && (
-              <p className="texto-secundario">No se encontraron viajes para esa ruta.</p>
             )}
-          </div>
-        </div>
-      ) : (
-        <div>
-          <button
-            type="button"
-            className="btn btn-link texto-secundario ps-0 mb-3"
-            onClick={() => {
-              setViajeSeleccionado(null);
-              setMensajeAccion("");
-            }}
-          >
-            ‹ Volver a resultados
-          </button>
-
-          <div className="row g-3">
-            <div className="col-lg-5">
-              <div className="card p-3 color-card">
-                <h5 className="letra-contenido mb-0">{viajeSeleccionado.ruta}</h5>
-                <small className="texto-secundario d-block mb-3">{viajeSeleccionado.horario}</small>
-
-                <div className="d-flex align-items-center gap-2 mb-3">
-                  <div className={"user-avatar " + viajeSeleccionado.avatarColor} style={{ width: 42, height: 42 }}>
-                    {viajeSeleccionado.iniciales}
-                  </div>
-                  <div>
-                    <div className="fw-semibold letra-contenido">{viajeSeleccionado.nombre}</div>
-                    <small className="texto-secundario">★ {viajeSeleccionado.rating} · {viajeSeleccionado.viajes} viajes</small>
-                  </div>
-                </div>
-
-                <small className="texto-secundario d-block">Vehículo</small>
-                <p className="letra-contenido fw-semibold mb-2">{viajeSeleccionado.vehiculo}</p>
-
-                <small className="texto-secundario d-block">Punto de encuentro</small>
-                <p className="fw-semibold mb-2" style={{ color: "#a03c3c" }}>{viajeSeleccionado.punto}</p>
-
-                <small className="texto-secundario d-block">Lugares disponibles</small>
-                <p className="fw-semibold mb-3" style={{ color: "#1457e7" }}>{viajeSeleccionado.cupos}</p>
-
-                <button type="button" className="btn btn-primary w-100" onClick={solicitarUnirse}>
-                  Solicitar unirme
-                </button>
-                {mensajeAccion && <p className="alert alert-success mt-3 mb-0">{mensajeAccion}</p>}
-              </div>
-            </div>
-
-            <div className="col-lg-7">
-              <div className="card color-card p-3 h-100 d-flex align-items-center justify-content-center text-center">
-                <div style={{ fontSize: "3.5rem" }}>🗺️</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </section>
     </div>
   );
 }

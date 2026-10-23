@@ -1,4 +1,5 @@
 
+// Endpoint de autenticación: valida credenciales y crea la cookie de sesión.
 import bcrypt from "bcryptjs";
 import { getDbPool } from "../../../src/lib/db";
 import {
@@ -6,14 +7,11 @@ import {
   NOMBRE_COOKIE_SESION,
   DURACION_SESION_SEGUNDOS,
 } from "../../../src/lib/auth";
+import { validarCredencialesUsuario } from "../../../src/features/login/validations/autenticacion";
 
 export const runtime = "nodejs";
 
-type Credenciales = {
-  correo?: unknown;
-  contrasena?: unknown;
-};
-
+/** Campos mínimos del usuario requeridos para validar el acceso. */
 type UsuarioLogin = {
   id: string;
   primer_nombre: string;
@@ -24,11 +22,16 @@ type UsuarioLogin = {
   contrasena: string;
 };
 
+/**
+ * Valida credenciales y devuelve el usuario autenticado.
+ * @param request Solicitud HTTP con correo y contraseña en JSON.
+ * @returns Respuesta HTTP con el usuario o un error de autenticación.
+ */
 export async function POST(request: Request) {
-  let datos: Credenciales;
+  let body: unknown;
 
   try {
-    datos = await request.json();
+    body = await request.json();
   } catch {
     return Response.json(
       { error: "El cuerpo de la solicitud no es válido." },
@@ -36,32 +39,14 @@ export async function POST(request: Request) {
     );
   }
 
-  if (
-    typeof datos.correo !== "string" ||
-    typeof datos.contrasena !== "string"
-  ) {
+  const validacion = validarCredencialesUsuario(body);
+  if (!validacion.valido) {
     return Response.json(
-      { error: "Ingresa tu correo y contraseña." },
-      { status: 400 }
+      { error: validacion.error },
+      { status: validacion.estado }
     );
   }
-
-  const correo = datos.correo.trim().toLowerCase();
-  const contrasena = datos.contrasena;
-
-  if (!correo || !contrasena) {
-    return Response.json(
-      { error: "Ingresa tu correo y contraseña." },
-      { status: 400 }
-    );
-  }
-
-  if (Buffer.byteLength(contrasena, "utf8") > 72) {
-    return Response.json(
-      { error: "Correo o contraseña incorrectos." },
-      { status: 401 }
-    );
-  }
+  const { correo, contrasena } = validacion.datos;
 
   try {
     const resultado = await getDbPool().query<UsuarioLogin>(

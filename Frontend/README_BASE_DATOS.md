@@ -59,7 +59,7 @@ La clave primaria de `id_usuario` y la restricción `UNIQUE` de `correo` permite
 
 ## Flujo de registro
 
-1. `src/features/register/pages/register.jsx` recopila identificador, primer y segundo nombre, primer y segundo apellido, edad, ocupación, correo y contraseña; los segundos nombres y apellidos son opcionales. La ocupación se elige entre estudiante, profesor u otro; al elegir otro se solicita especificarla.
+1. `src/features/register/components/Register.jsx` recopila identificador, primer y segundo nombre, primer y segundo apellido, edad, ocupación, correo y contraseña; los segundos nombres y apellidos son opcionales. La ocupación se elige entre estudiante, profesor u otro; al elegir otro se solicita especificarla.
 2. El formulario envía los datos con `POST /api/registro`; ya no los guarda en `localStorage`.
 3. `app/api/registro/route.ts` vuelve a validar los datos en el servidor, guarda cada nombre y apellido en su columna correspondiente, normaliza el correo, asigna `pasajero` como rol y genera un hash con `bcryptjs` antes de insertar en `usuario`.
 4. La consulta SQL usa parámetros (`$1`, `$2`, etc.) para no concatenar los datos recibidos en el comando SQL.
@@ -69,7 +69,7 @@ La contraseña debe tener al menos 8 caracteres y no superar el límite de 72 by
 
 ## Flujo de inicio de sesión
 
-1. `src/features/login/pages/Login.jsx` envía el correo y la contraseña con `POST /api/login`.
+1. `src/features/login/components/Login.jsx` envía el correo y la contraseña con `POST /api/login`.
 2. `app/api/login/route.ts` busca el correo en `usuario` y compara la contraseña recibida con el hash almacenado en `contrasena` usando `bcrypt.compare`.
 3. Si coinciden, la API devuelve los datos públicos del usuario y el formulario navega a `/menu`. Si no, responde con HTTP `401`.
 
@@ -82,16 +82,17 @@ El hash se mantiene en el servidor y no se incluye en la respuesta del login.
 3. El formulario envía el vehículo con `POST /api/vehiculo`. La API valida los datos y guarda el vehículo y, para automóviles o motos, sus datos específicos en una transacción de PostgreSQL.
 4. La API de vehículos requiere las tablas `VEHICULO`, `AUTOMOVIL` y `MOTO` del esquema `Database/002_extensiones_y_vehiculos.sql`.
 
-La capacidad de pasajeros, el tipo, el modelo, la ruta cotidiana, el número de puertas (automóvil) y la modalidad (moto) se guardan en la base. La foto seleccionada en el formulario no se carga a la nube: la aplicación aún no tiene configurado un servicio de almacenamiento de archivos.
+La capacidad de pasajeros, el tipo, el modelo, la ruta cotidiana, el número de puertas (automóvil) y la modalidad (moto) se guardan en la base. La carga de fotos aún no está disponible y no es necesaria para registrar el vehículo.
 
 ## Publicación de viajes
 
 1. Con el vehículo registrado, el conductor ingresa origen, destino, punto específico de encuentro, precio del pasaje, cupos disponibles, fecha y hora de salida, e información adicional.
 2. Al presionar **"Publicar viaje"**, `src/features/ofrecer-viajes/components/OfrecerViajes.jsx` envía los datos vía `POST /api/viajes`.
-3. `app/api/viajes/route.ts` valida en el servidor que el usuario y vehículo existan, que el origen y destino difieran, los rangos de precio (>0), cupos (1 a 7) y coherencia temporal de la salida.
+3. `app/api/viajes/route.ts` recibe la solicitud HTTP y devuelve la respuesta; `src/features/viajes/services/viajesService.ts` coordina las operaciones; cada dominio mantiene sus validaciones en `src/features/<dominio>/validations/`, y `src/features/viajes/repositories/viajeRepository.ts` contiene las consultas SQL.
 4. El registro se inserta en la tabla `public.viaje` con estado `'activo'`.
 5. Si la inserción es exitosa, se responde HTTP `201` con el registro persistido y la UI muestra la confirmación pasando a `EsperandoPasajeros.jsx`.
 6. Al recargar la página, `OfrecerViajes.jsx` consulta `GET /api/viajes?id_usuario=...` para restaurar automáticamente el viaje activo si existe.
+7. La pantalla `BuscarViajes.jsx` consulta `GET /api/viajes` al buscar; puede enviar `origen`, `destino` y `fecha` como filtros opcionales. La API devuelve los viajes activos que coincidan y el nombre del conductor.
 
 ## Tabla de viajes
 
@@ -127,8 +128,8 @@ CREATE INDEX idx_viaje_fecha ON public.viaje (fecha_salida);
 | `app/api/vehiculo/route.ts` | Consulta y registra vehículos en PostgreSQL. |
 | `app/api/viajes/route.ts` | Valida, inserta y consulta viajes en PostgreSQL. |
 | `src/features/ofrecer-viajes/components/OfrecerViajes.jsx` | Consulta y envía los datos del vehículo y viaje a la API. |
-| `src/features/register/pages/register.jsx` | Envía el formulario de registro a la API. |
-| `src/features/login/pages/Login.jsx` | Envía el formulario de login a la API. |
+| `src/features/register/components/Register.jsx` | Envía el formulario de registro a la API. |
+| `src/features/login/components/Login.jsx` | Envía el formulario de login a la API. |
 
 ## Ejecutar y comprobar
 

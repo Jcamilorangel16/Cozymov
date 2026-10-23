@@ -1,3 +1,4 @@
+// Protege la ruta del menú y renderiza su feature principal.
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import {
@@ -5,8 +6,12 @@ import {
   verificarSesion,
 } from '../../src/lib/auth';
 
-import MenuPrincipal from '../../src/features/menu-principal/pages/menu';
+import MenuPrincipal from '../../src/features/menu-principal/components/MenuPrincipal';
 
+/**
+ * Verifica la cookie de sesión y presenta el menú protegido.
+ * @returns Página del menú principal o redirección a login.
+ */
 export default async function MenuPage() {
   const token = (await cookies()).get(NOMBRE_COOKIE_SESION)?.value;
 

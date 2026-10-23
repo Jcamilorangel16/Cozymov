@@ -1,19 +1,16 @@
+// Renderiza el campo para redactar y enviar un mensaje.
 "use client";
-import { useState } from "react";
 
+import { useFormularioMensaje } from "../hooks/useFormularioMensaje";
+
+/**
+ * Muestra el formulario de envío de mensajes.
+ * @param {{onEnviarMensaje: (texto: string) => Promise<void>}} props Acción de envío.
+ * @returns Formulario visual de mensajes.
+ */
 export default function FormularioMensaje({ onEnviarMensaje }) {
-  const [texto, setTexto] = useState("");
-  const [enviando, setEnviando] = useState(false);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!texto.trim() || enviando) return;
-
-    setEnviando(true);
-    await onEnviarMensaje(texto);
-    setTexto("");
-    setEnviando(false);
-  };
+  const { texto, setTexto, enviando, handleSubmit, mensajeListo } =
+    useFormularioMensaje(onEnviarMensaje);
 
   return (
     <form onSubmit={handleSubmit} className="d-flex gap-2 mt-3">
@@ -29,7 +26,7 @@ export default function FormularioMensaje({ onEnviarMensaje }) {
       <button 
         type="submit" 
         className="btn btn-primary px-4"
-        disabled={!texto.trim() || enviando}
+        disabled={!mensajeListo}
       >
         {enviando ? "Enviando..." : "Enviar"}
       </button>
