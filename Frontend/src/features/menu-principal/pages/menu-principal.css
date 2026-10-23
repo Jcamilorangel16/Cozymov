@@ -1,6 +1,7 @@
 body {
     margin: 0px;
     display: flex;
+    flex-direction: column; /* cabezal arriba, contenido debajo */
     min-height: 100vh;
     background-color: #0b1922;
 }
@@ -23,37 +24,62 @@ body {
     background-color: #fbfaf8;
 }
 
-.sidebar {
-    width: 220px;
-    min-height: 100vh;
-    height: 100vh;
-    position: sticky;
-    top: 0;
-    background-color: #88D2F0;
+/* Contenedor propio: cabezal arriba, contenido debajo.
+   No depende del body ni del layout padre. */
+.app-shell {
     display: flex;
     flex-direction: column;
-    padding: 20px 12px;
+    flex: 1;
+    width: 100%;
+    min-width: 0;
+    min-height: 100vh;
+}
+
+/* ───────── Cabezal ───────── */
+.topbar {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 10px 24px;
+    background-color: #88D2F0;
     flex-shrink: 0;
 }
 
 .brand-logo h2 {
     color: #0B1922;
     font-weight: 700;
-    margin-bottom: 24px;
+    margin: 0;
+    font-size: 1.5rem;
 }
 
-.sidebar-nav {
+.topbar-nav {
     flex: 1;
+    min-width: 0;
+}
+
+.topbar-nav .nav {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.topbar-nav .nav::-webkit-scrollbar {
+    display: none;
 }
 
 /* Enlaces del menú */
-.sidebar-nav .nav-link {
+.topbar-nav .nav-link {
     display: block;
     color: #0B1922;
-    padding: 10px 14px;
-    margin-bottom: 6px;
+    padding: 8px 14px;
     border-radius: 8px;
     text-decoration: none;
+    white-space: nowrap;
     border: 2px solid transparent;
     transition: outline-color 0.15s ease,
                 background-color 0.15s ease,
@@ -61,7 +87,7 @@ body {
 }
 
 /* Contorno al pasar el cursor */
-.sidebar-nav .nav-link:hover {
+.topbar-nav .nav-link:hover {
     outline: 2px solid #3867a9;
     outline-offset: -2px;
     background-color: rgba(79, 232, 224, 0.10);
@@ -69,22 +95,27 @@ body {
 }
 
 /* Contorno al navegar con teclado */
-.sidebar-nav .nav-link:focus-visible {
+.topbar-nav .nav-link:focus-visible {
     outline: 2px solid #3867a9;
     outline-offset: -2px;
 }
 
 /* Enlace de la sección activa */
-.sidebar-nav .nav-link.active {
+.topbar-nav .nav-link.active {
     background-color: #040A0E;
     color: #FBFAF8;
     font-weight: 600;
 }
 
-.sidebar-user {
+/* Usuario y configuración (derecha del cabezal) */
+.topbar-user {
     display: flex;
-    justify-content: center;
-    margin-top: 16px;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 8px;
+    border-radius: 8px;
+    background-color: rgba(0, 70, 132, 0.87);
+    flex-shrink: 0;
 }
 
 .user-avatar {
@@ -102,4 +133,302 @@ body {
 .main-content {
     display: flex;
     flex-direction: column;
+}
+
+/* ───────── Pantallas pequeñas ───────── */
+@media (max-width: 576px) {
+    .topbar {
+        gap: 12px;
+        padding: 8px 12px;
+    }
+
+    .brand-logo h2 {
+        font-size: 1.2rem;
+    }
+}
+
+/* ───────── Panel de inicio: viajes, próximo viaje y actividad ───────── */
+.viaje-item,
+.panel-lateral,
+.actividad-item {
+    background-color: #fbfaf8;
+    border: 1px solid rgba(11, 25, 34, 0.14);
+    border-radius: 12px;
+}
+
+.viaje-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 16px;
+}
+
+.viaje-hora {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 64px;
+    flex-shrink: 0;
+}
+
+.viaje-hora-valor {
+    font-size: 1.35rem;
+    font-weight: 700;
+    line-height: 1.1;
+    color: #0B1922;
+}
+
+.viaje-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.viaje-cupos {
+    display: inline-block;
+    margin-top: 4px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #0B1922;
+    background-color: rgba(136, 210, 240, 0.45);
+}
+
+.viaje-cupos-ultimo {
+    color: #a03c3c;
+    background-color: rgba(160, 60, 60, 0.12);
+}
+
+.btn-reservar {
+    border: 0;
+    border-radius: 8px;
+    padding: 8px 20px;
+    font-weight: 600;
+    color: #fbfaf8;
+    background-color: #3867a9;
+    transition: background-color 0.15s ease;
+}
+
+.btn-reservar:hover {
+    background-color: #040A0E;
+}
+
+.btn-reservar:focus-visible {
+    outline: 2px solid #3867a9;
+    outline-offset: 2px;
+}
+
+.panel-lateral {
+    padding: 16px;
+}
+
+.proximo-destacado {
+    padding: 12px;
+    border-radius: 10px;
+    background-color: rgba(136, 210, 240, 0.35);
+}
+
+.proximo-dia {
+    display: block;
+    margin-bottom: 2px;
+    font-weight: 600;
+    color: #3867a9;
+}
+
+.ver-todos {
+    flex-shrink: 0;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #3867a9;
+    text-decoration: none;
+}
+
+.ver-todos:hover {
+    text-decoration: underline;
+}
+
+.actividad-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+}
+
+.actividad-icono {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    border-radius: 8px;
+    background-color: rgba(136, 210, 240, 0.35);
+}
+
+/* ───────── Vista Buscar: buscador y resultados ───────── */
+.buscador {
+    padding: 24px;
+    border-radius: 16px;
+    background-color: #0b1922;
+    color: #fbfaf8;
+}
+
+.buscador-titulo {
+    margin: 0 0 4px;
+    font-weight: 700;
+    color: #fbfaf8;
+}
+
+.buscador-subtitulo {
+    margin: 0 0 16px;
+    font-size: 0.9rem;
+    color: #88d2f0;
+}
+
+.buscador-barra {
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+    padding: 8px;
+    border-radius: 14px;
+    background-color: #fbfaf8;
+}
+
+.buscador-campo {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 4px 16px;
+    margin: 0;
+    cursor: text;
+}
+
+.buscador-campo + .buscador-campo {
+    border-left: 1px solid rgba(11, 25, 34, 0.15);
+}
+
+.buscador-etiqueta {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #0b1922;
+}
+
+.buscador-campo input {
+    width: 100%;
+    padding: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: #0b1922;
+    font-size: 1rem;
+}
+
+.buscador-campo input::placeholder {
+    color: #43a6cd;
+}
+
+.buscador-campo:focus-within .buscador-etiqueta {
+    color: #3867a9;
+}
+
+.buscador-boton {
+    flex-shrink: 0;
+    border: 0;
+    border-radius: 10px;
+    padding: 12px 24px;
+    font-weight: 700;
+    color: #fbfaf8;
+    background-color: #3867a9;
+    transition: background-color 0.15s ease;
+}
+
+.buscador-boton:hover {
+    background-color: #040a0e;
+}
+
+.buscador-boton:focus-visible,
+.buscador-ruta:focus-visible {
+    outline: 2px solid #88d2f0;
+    outline-offset: 2px;
+}
+
+.buscador-rutas {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.buscador-rutas-label {
+    font-size: 0.85rem;
+    color: #88d2f0;
+}
+
+.buscador-ruta {
+    padding: 4px 14px;
+    border: 1px solid rgba(136, 210, 240, 0.6);
+    border-radius: 999px;
+    background: transparent;
+    color: #fbfaf8;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: background-color 0.15s ease;
+}
+
+.buscador-ruta:hover {
+    background-color: rgba(136, 210, 240, 0.18);
+}
+
+.resultado-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 16px;
+    cursor: pointer;
+    background-color: #fbfaf8;
+    border: 1px solid rgba(11, 25, 34, 0.14);
+    border-radius: 12px;
+    transition: border-color 0.15s ease;
+}
+
+.resultado-item:hover,
+.resultado-item:focus-visible {
+    border-color: #3867a9;
+    outline: none;
+}
+
+.resultado-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.resultado-vehiculo {
+    color: #0b1922;
+    opacity: 0.7;
+}
+
+.resultado-detalle {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+    .buscador-barra {
+        flex-direction: column;
+    }
+
+    .buscador-campo + .buscador-campo {
+        border-left: 0;
+        border-top: 1px solid rgba(11, 25, 34, 0.15);
+    }
+
+    .resultado-item {
+        flex-wrap: wrap;
+    }
 }

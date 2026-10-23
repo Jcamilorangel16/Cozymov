@@ -1,3 +1,6 @@
+"use client";
+import { useState } from "react";
+import "./BuscarViajes.css";
 import { useState } from "react";
 
 const resultadosViajes = [
@@ -21,6 +24,12 @@ const resultadosViajes = [
   },
 ];
 
+const rutasFrecuentes = [
+  { origen: "Campus Sur", destino: "Centro" },
+  { origen: "Campus Norte", destino: "Centro" },
+  { origen: "Norte", destino: "Campus Sur" },
+];
+
 export default function BuscarViajes({
   viajeSeleccionado,
   setViajeSeleccionado,
@@ -31,9 +40,10 @@ export default function BuscarViajes({
   const [destinoBusqueda, setDestinoBusqueda] = useState("Campus Sur");
   const [viajesEncontrados, setViajesEncontrados] = useState(resultadosViajes);
 
-  function buscarViajes() {
-    const origen = origenBusqueda.trim().toLocaleLowerCase();
-    const destino = destinoBusqueda.trim().toLocaleLowerCase();
+  // Sin argumentos usa los campos del formulario; las rutas frecuentes pasan su propio origen y destino.
+  function buscarViajes(origenParam = origenBusqueda, destinoParam = destinoBusqueda) {
+    const origen = origenParam.trim().toLocaleLowerCase();
+    const destino = destinoParam.trim().toLocaleLowerCase();
 
     setViajesEncontrados(
       resultadosViajes.filter((viaje) => {
@@ -45,6 +55,12 @@ export default function BuscarViajes({
     setMensajeAccion("");
   }
 
+  function usarRutaFrecuente(ruta) {
+    setOrigenBusqueda(ruta.origen);
+    setDestinoBusqueda(ruta.destino);
+    buscarViajes(ruta.origen, ruta.destino);
+  }
+
   function solicitarUnirse() {
     setMensajeAccion(`Tu solicitud para unirte al viaje de ${viajeSeleccionado.nombre} está lista.`);
   }
@@ -53,65 +69,100 @@ export default function BuscarViajes({
     <div className="vista">
       {viajeSeleccionado === null ? (
         <div>
-          <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-            <h3 className="mb-0 letra-contenido">Buscar Viaje</h3>
+          {/* Buscador */}
+          <section className="buscador">
+            <h3 className="buscador-titulo">¿A dónde vas hoy?</h3>
+            <p className="buscador-subtitulo">Comparte el trayecto con otros estudiantes de tu campus.</p>
 
-            <div className="d-flex flex-wrap gap-2">
-              <div className="input-group" style={{ width: 150 }}>
-                <span className="input-group-text">📍</span>
+            <div className="buscador-barra">
+              <label className="buscador-campo">
+                <span className="buscador-etiqueta">Origen</span>
                 <input
                   type="text"
-                  className="form-control"
+                  placeholder="Campus Sur"
                   value={origenBusqueda}
                   onChange={(evento) => setOrigenBusqueda(evento.target.value)}
                 />
-              </div>
-              <div className="input-group" style={{ width: 160 }}>
-                <span className="input-group-text">🏁</span>
+              </label>
+
+              <label className="buscador-campo">
+                <span className="buscador-etiqueta">Destino</span>
                 <input
                   type="text"
-                  className="form-control"
+                  placeholder="Centro"
                   value={destinoBusqueda}
                   onChange={(evento) => setDestinoBusqueda(evento.target.value)}
                 />
-              </div>
-              <div className="input-group" style={{ width: 150 }}>
-                <span className="input-group-text">📅</span>
-                <input type="date" className="form-control" />
-              </div>
-              <button type="button" className="btn btn-primary" onClick={buscarViajes}>
-                Buscar
+              </label>
+
+              <label className="buscador-campo">
+                <span className="buscador-etiqueta">Fecha</span>
+                <input type="date" />
+              </label>
+
+              <button type="button" className="buscador-boton" onClick={() => buscarViajes()}>
+                Buscar viaje
               </button>
             </div>
-          </div>
 
-          <p className="texto-secundario fw-semibold mb-3">{viajesEncontrados.length} resultados encontrados</p>
+            <div className="buscador-rutas">
+              <span className="buscador-rutas-label">Rutas frecuentes:</span>
+              {rutasFrecuentes.map((ruta) => (
+                <button
+                  type="button"
+                  className="buscador-ruta"
+                  key={ruta.origen + ruta.destino}
+                  onClick={() => usarRutaFrecuente(ruta)}
+                >
+                  {ruta.origen} → {ruta.destino}
+                </button>
+              ))}
+            </div>
+          </section>
+
+          {/* Resultados */}
+          <p className="letra-contenido fw-bold mt-4 mb-3">
+            {viajesEncontrados.length === 1
+              ? "1 resultado encontrado"
+              : `${viajesEncontrados.length} resultados encontrados`}
+          </p>
 
           <div className="d-flex flex-column gap-3">
             {viajesEncontrados.map((viaje) => (
               <div
-                className="card p-3 color-card"
-                style={{ cursor: "pointer" }}
+                className="resultado-item"
+                role="button"
+                tabIndex={0}
                 key={viaje.nombre}
                 onClick={() => {
                   setViajeSeleccionado(viaje);
                   setMensajeAccion("");
                 }}
+                onKeyDown={(evento) => {
+                  if (evento.key === "Enter") {
+                    setViajeSeleccionado(viaje);
+                    setMensajeAccion("");
+                  }
+                }}
               >
-                <div className="d-flex justify-content-between align-items-center">
-                  <div className="d-flex align-items-center gap-2">
-                    <div className={"user-avatar " + viaje.avatarColor} style={{ width: 38, height: 38, fontSize: 13 }}>
-                      {viaje.iniciales}
-                    </div>
-                    <div>
-                      <div className="fw-bold letra-contenido">{viaje.nombre}</div>
-                      <small className="texto-secundario">★ {viaje.rating} · {viaje.horario}</small>
-                    </div>
-                  </div>
-                  <span className="fs-4 texto-secundario">›</span>
+                <div className={"user-avatar " + viaje.avatarColor} style={{ width: 44, height: 44, fontSize: 14 }}>
+                  {viaje.iniciales}
                 </div>
-                <div className="texto-secundario small mt-2">{viaje.vehiculo}</div>
-                <span className="badge bg-success mt-2">{viaje.cupos}</span>
+
+                <div className="resultado-info">
+                  <div className="fw-bold letra-contenido">{viaje.nombre}</div>
+                  <small className="texto-secundario d-block">★ {viaje.rating} · {viaje.viajes} viajes</small>
+                  <small className="resultado-vehiculo d-block">{viaje.vehiculo}</small>
+                </div>
+
+                <div className="resultado-detalle">
+                  <div className="fw-semibold letra-contenido">{viaje.horario}</div>
+                  <span className={"viaje-cupos" + (viaje.cupos.startsWith("1 ") ? " viaje-cupos-ultimo" : "")}>
+                    {viaje.cupos}
+                  </span>
+                </div>
+
+                <span className="fs-4 texto-secundario" aria-hidden="true">›</span>
               </div>
             ))}
             {viajesEncontrados.length === 0 && (

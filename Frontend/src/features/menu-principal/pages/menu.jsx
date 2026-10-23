@@ -1,4 +1,4 @@
-/* eslint-disable react/jsx-no-undef */
+// eslint-disable react/jsx-no-undef
 "use client";
 
 import { useEffect, useState } from "react";
@@ -17,10 +17,10 @@ const enlacesMenu = [
 ];
 
 const viajesDestacados = [
-  { ruta: "Campus Sur → Centro", horario: "Hoy 7:00 AM · 3 plazas" },
-  { ruta: "Norte → Campus Sur", horario: "Mañana 6:45 AM · 1 lugar" },
-  { ruta: "Campus Norte → Centro", horario: "Hoy 8:15 AM · 2 plazas" },
-  { ruta: "Campus Sur → Este", horario: "Hoy 9:00 AM · 4 lugares" },
+  { hora: "7:00", dia: "Hoy", ruta: "Campus Sur → Centro", cupos: 3 },
+  { hora: "8:15", dia: "Hoy", ruta: "Campus Norte → Centro", cupos: 2 },
+  { hora: "9:00", dia: "Hoy", ruta: "Campus Sur → Este", cupos: 4 },
+  { hora: "6:45", dia: "Mañana", ruta: "Norte → Campus Sur", cupos: 1 },
 ];
 
 const proximosViajes = [
@@ -31,7 +31,7 @@ const proximosViajes = [
 const feedNotificaciones = [
   { icono: "📅", texto: "Cita agendada", detalle: "Camila Angel" },
   { icono: "✉️", texto: "Mensaje recibido", detalle: "Yefersonpazo" },
-  { icono: "🔔", texto: "Nuevo viaje publicado", detalle: "system" },
+  { icono: "🔔", texto: "Nuevo viaje publicado", detalle: "Sistema" },
 ];
 
 const resultadosViajes = [
@@ -75,14 +75,15 @@ export default function MenuPrincipal({ usuarioId }) {
   }
 
   return (
-    <>
-      <aside className="sidebar">
+    <div className="app-shell">
+      {/* Cabezal: marca · navegación · usuario */}
+      <header className="topbar">
         <div className="brand-logo">
           <h2>Cozymov</h2>
         </div>
 
-        <nav className="sidebar-nav">
-          <ul className="nav flex-column">
+        <nav className="topbar-nav">
+          <ul className="nav">
             {enlacesMenu.map((enlace) => (
               <li className="nav-item" key={enlace.id}>
                 <a
@@ -101,13 +102,8 @@ export default function MenuPrincipal({ usuarioId }) {
         </nav>
 
         {/* Perfil del usuario y configuración */}
-        <div
-          className="sidebar-user d-flex align-items-center justify-content-between p-2 rounded"
-          style={{ backgroundColor: "rgba(0, 70, 132, 0.87)" }}
-        >
-          <div className="d-flex align-items-center gap-2">
-            <div className="user-avatar">A</div>
-          </div>
+        <div className="topbar-user">
+          <div className="user-avatar">A</div>
 
           <div className="dropdown">
             <button
@@ -118,7 +114,6 @@ export default function MenuPrincipal({ usuarioId }) {
               aria-expanded="false"
               title="Configuración"
             >
-              {/* Cambio de main: usar next/image y rutas públicas absolutas para los iconos. */}
               <Image src="/icons/tuerca.png" alt="Configuración" width={20} height={20} />
             </button>
             <ul className="dropdown-menu dropdown-menu-dark dropdown-menu-end shadow" aria-labelledby="dropdownConfig">
@@ -131,14 +126,13 @@ export default function MenuPrincipal({ usuarioId }) {
                     // TODO: conectar con la lógica real de cierre de sesión
                   }}
                 >
-                  {/* Cambio de main: optimizar también el icono de cierre con next/image. */}
                   <Image src="/icons/puerta.png" alt="Cerrar sesión" width={20} height={20} /> Cerrar sesión
                 </a>
               </li>
             </ul>
           </div>
         </div>
-      </aside>
+      </header>
 
       <main className="main-content flex-grow-1 p-4">
         <div className="border rounded-3 p-4 bloque_contenido" style={{ minHeight: 400 }}>
@@ -166,47 +160,67 @@ export default function MenuPrincipal({ usuarioId }) {
               </div>
 
               <div className="row g-4">
-                {/* Columna izquierda: viajes destacados */}
+                {/* Columna izquierda: viajes para ti */}
                 <div className="col-md-8">
-                  <h5 className="mb-3 letra-contenido">Viajes destacados para ti</h5>
-                  <div className="row g-3">
+                  <h5 className="mb-3 letra-contenido fw-bold">Viajes para ti</h5>
+                  <div className="d-flex flex-column gap-3">
                     {viajesDestacados.map((viaje, indice) => (
-                      <div className="col-md-6" key={indice}>
-                        <div className="card p-2 color-card">
-                          <div className="d-flex align-items-center gap-2">
-                            <span className="fs-4">🚗</span>
-                            <div>
-                              <div className="fw-semibold">{viaje.ruta}</div>
-                              <small className="text-muted">{viaje.horario}</small>
-                            </div>
-                          </div>
+                      <div className="viaje-item" key={indice}>
+                        <div className="viaje-hora">
+                          <span className="viaje-hora-valor">{viaje.hora}</span>
+                          <small className="texto-secundario">{viaje.dia}</small>
                         </div>
+
+                        <div className="viaje-info">
+                          <div className="fw-semibold letra-contenido">{viaje.ruta}</div>
+                          <span className={"viaje-cupos" + (viaje.cupos === 1 ? " viaje-cupos-ultimo" : "")}>
+                            {viaje.cupos === 1 ? "Última plaza" : viaje.cupos + " plazas libres"}
+                          </span>
+                        </div>
+
+                        <button type="button" className="btn-reservar">Reservar</button>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                {/* Columna derecha: próximos viajes + notificaciones */}
+                {/* Columna derecha: próximo viaje + actividad reciente */}
                 <div className="col-md-4">
-                  <h5 className="mb-3 letra-contenido">Próximos viajes</h5>
-                  <div className="d-flex flex-column gap-2 mb-4">
-                    {proximosViajes.map((viaje, indice) => (
-                      <div className="card p-2 color-card" key={indice}>
-                        <div className="fw-semibold letra-contenido">{viaje.ruta}</div>
-                        <small className="texto-secundario">{viaje.horario}</small>
-                      </div>
-                    ))}
+                  <div className="panel-lateral mb-4">
+                    <h5 className="letra-contenido fw-bold mb-3">Tu próximo viaje</h5>
+
+                    <div className="proximo-destacado">
+                      <small className="proximo-dia">{proximosViajes[0].horario}</small>
+                      <div className="fw-bold letra-contenido">{proximosViajes[0].ruta}</div>
+                    </div>
+
+                    <div className="d-flex justify-content-between align-items-end gap-2 mt-3">
+                      <small className="texto-secundario">
+                        Después: {proximosViajes[1].horario}
+                        <br />
+                        {proximosViajes[1].ruta}
+                      </small>
+                      <a
+                        className="ver-todos"
+                        href="#"
+                        onClick={(evento) => {
+                          evento.preventDefault();
+                          // TODO: conectar con la lista completa de próximos viajes
+                        }}
+                      >
+                        Ver todos
+                      </a>
+                    </div>
                   </div>
 
-                  {/* Cambio de main: mantener el feed dentro de la columna derecha para respetar la cuadrícula. */}
-                  <h5 className="mb-3 letra-contenido">Feed de notificaciones y actividad</h5>
+                  <h5 className="mb-3 letra-contenido fw-bold">Actividad reciente</h5>
                   <div className="d-flex flex-column gap-2">
                     {feedNotificaciones.map((item, indice) => (
-                      <div className="d-flex align-items-center gap-2" key={indice}>
-                        <span className="fs-5">{item.icono}</span>
+                      <div className="actividad-item" key={indice}>
+                        <span className="actividad-icono">{item.icono}</span>
                         <div>
-                          <span className="fw-semibold letra-contenido">{item.texto}</span>
-                          <span className="texto-secundario"> · {item.detalle}</span>
+                          <div className="fw-semibold letra-contenido small">{item.texto}</div>
+                          <small className="texto-secundario">{item.detalle}</small>
                         </div>
                       </div>
                     ))}
@@ -335,6 +349,6 @@ export default function MenuPrincipal({ usuarioId }) {
           {vistaActiva === "en-curso" && <div className="vista"></div>}
         </div>
       </main>
-    </>
+    </div>
   );
 }

@@ -16,7 +16,7 @@ export default async function MenuPage() {
 
   return (
     <div className="d-flex min-vh-100" style={{ backgroundColor: '#FBFAF8' }}>
-      <MenuPrincipal />
+      <MenuPrincipal usuarioId={undefined} />
     </div>
   );
 }
