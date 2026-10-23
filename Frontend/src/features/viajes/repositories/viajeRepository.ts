@@ -3,6 +3,24 @@ import { getDbPool } from "../../../lib/db";
 import type { DatosNuevoViaje, FiltrosViajes } from "../types/viajes";
 
 /**
+ * Comprueba que el vehículo pertenezca al usuario autenticado.
+ * @param idVehiculo Identificador del vehículo.
+ * @param idUsuario Identificador del usuario autenticado.
+ * @returns Si el vehículo pertenece al usuario.
+ */
+export async function vehiculoPerteneceUsuario(
+  idVehiculo: number,
+  idUsuario: string,
+) {
+  const resultado = await getDbPool().query(
+    "SELECT 1 FROM vehiculo WHERE id_vehiculo = $1 AND id_usuario = $2 LIMIT 1",
+    [idVehiculo, idUsuario],
+  );
+
+  return resultado.rows.length > 0;
+}
+
+/**
  * Inserta un viaje activo y devuelve la fila creada.
  * @param datos Datos validados del nuevo viaje.
  * @returns Fila del viaje insertado.

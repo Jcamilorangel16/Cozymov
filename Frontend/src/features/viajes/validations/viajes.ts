@@ -30,13 +30,13 @@ function esTextoValido(valor: unknown): valor is string {
  */
 export function validarDatosNuevoViaje(
   body: unknown,
+  idUsuarioAutenticado: string,
 ): ResultadoValidacion<DatosNuevoViaje> {
   if (!esRegistro(body)) {
     return { valido: false, error: "El cuerpo de la solicitud es inválido." };
   }
 
   const {
-    id_usuario,
     id_vehiculo,
     origen,
     destino,
@@ -48,10 +48,11 @@ export function validarDatosNuevoViaje(
     informacion_adicional,
   } = body;
 
-  if (!esTextoValido(id_usuario) || id_usuario.length > 20) {
+  const idUsuario = idUsuarioAutenticado.trim();
+  if (!esTextoValido(idUsuario) || idUsuario.length > 20) {
     return {
       valido: false,
-      error: "id_usuario es obligatorio y debe tener máximo 20 caracteres.",
+      error: "La sesión no contiene un identificador de usuario válido.",
     };
   }
 
@@ -120,7 +121,7 @@ export function validarDatosNuevoViaje(
   return {
     valido: true,
     datos: {
-      id_usuario: id_usuario.trim(),
+      id_usuario: idUsuario,
       id_vehiculo: idVehiculo,
       origen: origen.trim(),
       destino: destino.trim(),

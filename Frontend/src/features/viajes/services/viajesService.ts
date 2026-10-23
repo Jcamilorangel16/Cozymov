@@ -3,6 +3,7 @@ import {
   insertarViaje,
   listarViajesActivos,
   obtenerViajeActivoPorUsuario,
+  vehiculoPerteneceUsuario,
 } from "../repositories/viajeRepository";
 import {
   validarDatosNuevoViaje,
@@ -15,13 +16,25 @@ import {
  * @param body Cuerpo recibido desde la API.
  * @returns Estado de validación y resultado de publicación.
  */
-export async function publicarViaje(body: unknown) {
-  const validacion = validarDatosNuevoViaje(body);
+export async function publicarViaje(body: unknown, idUsuario: string) {
+  const validacion = validarDatosNuevoViaje(body, idUsuario);
   if (!validacion.valido) {
     return { valido: false as const, estado: 400, error: validacion.error };
   }
 
   try {
+    const propietario = await vehiculoPerteneceUsuario(
+      validacion.datos.id_vehiculo,
+      validacion.datos.id_usuario,
+    );
+    if (!propietario) {
+      return {
+        valido: false as const,
+        estado: 403,
+        error: "El vehículo no pertenece a tu cuenta.",
+      };
+    }
+
     const viaje = await insertarViaje(validacion.datos);
     return { valido: true as const, viaje };
   } catch (error) {

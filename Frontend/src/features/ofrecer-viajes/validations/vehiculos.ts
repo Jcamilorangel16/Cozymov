@@ -33,7 +33,11 @@ function esTipoVehiculo(
  * @returns Si el identificador puede usarse en la consulta.
  */
 export function validarIdUsuarioVehiculo(valor: unknown): valor is string {
-  return typeof valor === "string" && Boolean(valor.trim()) && valor.length <= 20;
+  return (
+    typeof valor === "string" &&
+    Boolean(valor.trim()) &&
+    valor.trim().length <= 20
+  );
 }
 
 /**
@@ -43,13 +47,13 @@ export function validarIdUsuarioVehiculo(valor: unknown): valor is string {
  */
 export function validarNuevoVehiculo(
   valor: unknown,
+  idUsuarioAutenticado: string,
 ): ResultadoValidacion<DatosNuevoVehiculo> {
   if (!esRegistro(valor)) {
     return { valido: false, error: "Cuerpo de solicitud inválido." };
   }
 
   const {
-    id_usuario,
     tipo,
     modelo,
     capacidad,
@@ -59,10 +63,10 @@ export function validarNuevoVehiculo(
     modalidad,
   } = valor;
 
-  if (!validarIdUsuarioVehiculo(id_usuario)) {
+  if (!validarIdUsuarioVehiculo(idUsuarioAutenticado)) {
     return {
       valido: false,
-      error: "id_usuario es obligatorio y debe tener máximo 20 caracteres.",
+      error: "La sesión no contiene un identificador de usuario válido.",
     };
   }
   if (!esTipoVehiculo(tipo)) {
@@ -123,7 +127,7 @@ export function validarNuevoVehiculo(
   return {
     valido: true,
     datos: {
-      id_usuario: id_usuario.trim(),
+      id_usuario: idUsuarioAutenticado.trim(),
       tipo,
       modelo: modelo.trim(),
       capacidad,

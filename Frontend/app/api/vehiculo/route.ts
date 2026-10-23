@@ -1,25 +1,34 @@
 // Endpoints para consultar y registrar el vehículo de un usuario.
 import { NextResponse } from "next/server";
 import type { PoolClient } from "pg";
-import { getDbPool } from "../../../src/lib/db";
 import {
 	validarIdUsuarioVehiculo,
 	validarNuevoVehiculo,
 } from "../../../src/features/ofrecer-viajes/validations/vehiculos";
+import { getDbPool } from "../../../src/lib/db";
+import { obtenerSesionActual } from "../../../src/lib/auth";
 
 export const runtime = "nodejs";
 
 /**
- * Obtiene el último vehículo registrado para el usuario indicado.
- * @param request Solicitud con el identificador de usuario en la query.
+ * Obtiene el último vehículo registrado para el usuario autenticado.
+ * @param request Solicitud con el identificador opcional de usuario en la query.
  * @returns Vehículo encontrado o respuesta de error.
  */
 export async function GET(request: Request) {
+	const sesion = await obtenerSesionActual();
+	if (!sesion) {
+		return NextResponse.json({ error: "Debes iniciar sesión." }, { status: 401 });
+	}
+
 	const idUsuario = new URL(request.url).searchParams.get("id_usuario");
-	if (!validarIdUsuarioVehiculo(idUsuario)) {
+	if (
+		idUsuario !== null &&
+		(!validarIdUsuarioVehiculo(idUsuario) || idUsuario.trim() !== sesion.id)
+	) {
 		return NextResponse.json(
-			{ error: "id_usuario es obligatorio y debe tener máximo 20 caracteres." },
-			{ status: 400 },
+			{ error: "No puedes consultar el vehículo de otro usuario." },
+			{ status: 403 },
 		);
 	}
 
@@ -34,7 +43,7 @@ export async function GET(request: Request) {
 			 WHERE v.id_usuario = $1
 			 ORDER BY v.id_vehiculo DESC
 			 LIMIT 1`,
-			[idUsuario.trim()],
+			[sesion.id],
 		);
 
 		return NextResponse.json({ vehiculo: result.rows[0] ?? null });
@@ -53,14 +62,22 @@ export async function GET(request: Request) {
  * @returns Vehículo creado o respuesta de error.
  */
 export async function POST(request: Request) {
+	const sesion = await obtenerSesionActual();
+	if (!sesion) {
+		return NextResponse.json({ error: "Debes iniciar sesión." }, { status: 401 });
+	}
+
 	let body: unknown;
 	try {
 		body = await request.json();
 	} catch {
-		return NextResponse.json({ error: "El cuerpo de solicitud no es válido." }, { status: 400 });
+		return NextResponse.json(
+			{ error: "El cuerpo de solicitud no es válido." },
+			{ status: 400 },
+		);
 	}
 
-	const validacion = validarNuevoVehiculo(body);
+	const validacion = validarNuevoVehiculo(body, sesion.id);
 	if (!validacion.valido) {
 		return NextResponse.json({ error: validacion.error }, { status: 400 });
 	}
@@ -104,7 +121,10 @@ export async function POST(request: Request) {
 			try {
 				await client.query("ROLLBACK");
 			} catch (rollbackError) {
-				console.error("No se pudo revertir el registro del vehículo:", rollbackError);
+				console.error(
+					"No se pudo revertir el registro del vehículo:",
+					rollbackError,
+				);
 			}
 		}
 		console.error("Error al registrar vehículo:", error);
@@ -112,9 +132,22 @@ export async function POST(request: Request) {
 			typeof error === "object" && error !== null && "code" in error
 				? error.code
 				: undefined;
-		if (code === "23503") return NextResponse.json({ error: "El usuario indicado no existe." }, { status: 400 });
-		if (code === "23514") return NextResponse.json({ error: "Los datos no cumplen las restricciones del vehículo." }, { status: 400 });
-		return NextResponse.json({ error: "No se pudo registrar el vehículo." }, { status: 500 });
+		if (code === "23503") {
+			return NextResponse.json(
+				{ error: "El usuario indicado no existe." },
+				{ status: 400 },
+			);
+		}
+		if (code === "23514") {
+			return NextResponse.json(
+				{ error: "Los datos no cumplen las restricciones del vehículo." },
+				{ status: 400 },
+			);
+		}
+		return NextResponse.json(
+			{ error: "No se pudo registrar el vehículo." },
+			{ status: 500 },
+		);
 	} finally {
 		client?.release();
 	}

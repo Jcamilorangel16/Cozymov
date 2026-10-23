@@ -235,18 +235,21 @@ export function useOfrecerViajes({ pasajeroSeleccionado, setMensajeAccion }) {
       return;
     }
 
-    const validacion = validarDatosNuevoViaje({
-      id_usuario: idUsuario,
-      id_vehiculo: vehiculoGuardado.id_vehiculo,
-      origen,
-      destino,
-      punto_encuentro: puntoEncuentro,
-      precio_pasaje: precioPasaje,
-      cupos_disponibles: cuposDisponibles,
-      fecha_salida: fechaSalida,
-      hora_salida: horaSalida,
-      informacion_adicional: informacionAdicional,
-    });
+    const validacion = validarDatosNuevoViaje(
+      {
+        id_usuario: idUsuario,
+        id_vehiculo: vehiculoGuardado.id_vehiculo,
+        origen,
+        destino,
+        punto_encuentro: puntoEncuentro,
+        precio_pasaje: precioPasaje,
+        cupos_disponibles: cuposDisponibles,
+        fecha_salida: fechaSalida,
+        hora_salida: horaSalida,
+        informacion_adicional: informacionAdicional,
+      },
+      idUsuario,
+    );
     if (!validacion.valido) {
       setErrorPublicacion(validacion.error);
       return;
