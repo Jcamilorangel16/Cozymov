@@ -21,5 +21,15 @@ build/
 Thumbs.db
 
 # Scripts de Base de datos
+appsettings.json
+appsettings.Development.json
+secrets.json
+.env
+.vs/
+bin/
+obj/
+.vs/
+bin/
+obj/
 
 Database/*
