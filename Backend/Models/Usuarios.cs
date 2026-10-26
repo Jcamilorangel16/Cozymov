@@ -16,7 +16,7 @@ namespace Backend.Models
         public string Contrasena { get; set; }
         public string rol { get; set; }
         public string ocupacion { get; set; }
-        public DateTime fechaderegistro { get; set; } = DateTime.Now;
+        public DateTime fechaderegistro { get; set; } = DateTime.UtcNow;
 
 
     }
