@@ -39,3 +39,10 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+//Permisos para consumir la API desde cualquier origen
+app.UseCors(builder =>
+    builder
+        .AllowAnyOrigin()
+        .AllowAnyMethod()
+        .AllowAnyHeader());
+builder.Services.AddCors();
