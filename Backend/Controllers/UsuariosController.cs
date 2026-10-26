@@ -34,9 +34,9 @@ public class UsuariosController : ControllerBase
 
     // GET: api/Usuarios/5
     [HttpGet("{idpersonas}")]
-    public async Task<ActionResult<UsuariosDTO>> GetUsuarios(int id)
+    public async Task<ActionResult<UsuariosDTO>> GetUsuarios(int idpersonas)
     {
-        var usuarios = await _context.Usuarios.Where(u => u.IdPersonas == id).Select(u => new UsuariosDTO
+        var usuarios = await _context.Usuarios.Where(u => u.IdPersonas == idpersonas).Select(u => new UsuariosDTO
         {
             IdPersonas = u.IdPersonas,
             PrimerNombre = u.PrimerNombre,
@@ -60,9 +60,9 @@ public class UsuariosController : ControllerBase
     // PUT: api/Usuarios/5
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     [HttpPut("{idpersonas}")]
-    public async Task<IActionResult> PutUsuarios(int id, Usuarios usuarios)
+    public async Task<IActionResult> PutUsuarios(int idpersonas, Usuarios usuarios)
     {
-        if (id != usuarios.IdPersonas)
+        if (idpersonas != usuarios.IdPersonas)
         {
             return BadRequest();
         }
@@ -75,7 +75,7 @@ public class UsuariosController : ControllerBase
         }
         catch (DbUpdateConcurrencyException)
         {
-            if (!UsuariosExists(id))
+            if (!UsuariosExists(idpersonas))
             {
                 return NotFound();
             }
@@ -109,7 +109,10 @@ public class UsuariosController : ControllerBase
         _context.Usuarios.Add(usuario);
         await _context.SaveChangesAsync();
 
-        return CreatedAtAction("GetUsuarios", new { id = usuario.IdPersonas }, usuario);
+        return CreatedAtAction(
+            "GetUsuarios",
+            new { idpersonas = usuario.IdPersonas },
+            usuario);
     }
 
     // DELETE: api/Usuarios/5
