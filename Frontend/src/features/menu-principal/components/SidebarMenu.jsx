@@ -34,7 +34,7 @@ export default function SidebarMenu({ vistaActiva, onNavigate }) {
         </ul>
       </nav>
 
-      <PerfilConfiguracion />
+      <PerfilConfiguracion onConfiguracion={() => onNavigate("configuracion")} />
     </header>
   );
 }

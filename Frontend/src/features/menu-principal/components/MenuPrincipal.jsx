@@ -8,6 +8,8 @@ import BuscarViajes from "../../buscar-viajes/components/BuscarViajes";
 import PanelInicio from "./PanelInicio";
 import SidebarMenu from "./SidebarMenu";
 import { useMenuPrincipal } from "../hooks/useMenuPrincipal";
+import ViajeEnCurso from "../../viaje-en-curso/components/ViajeEnCurso";
+  import ConfiguracionGeneral from "../../configuracion/components/ConfiguracionGeneral";
 
 /**
  * Compone la barra lateral y las vistas del menú de usuario.
@@ -61,7 +63,9 @@ export default function MenuPrincipal() {
               <MensajesView usuarioActualId="usuario_actual" receptorId="receptor_ejemplo" />
             </div>
           )}
-          {vistaActiva === "en-curso" && <div className="vista"></div>}
+          {vistaActiva === "en-curso" && (<div className="vista"> <ViajeEnCurso onNavigate={irAVista} /> </div>)}
+
+          {vistaActiva === "configuracion" && (<div className="vista"> <ConfiguracionGeneral /> </div>)}
         </div>
       </main>
     </div>
