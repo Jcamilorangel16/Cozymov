@@ -9,6 +9,7 @@
         public string PrimerApellido { get; set; }
         public string SegundoApellido { get; set; }
         public int Edad { get; set; }
+        public string Correo { get; set; }
         public string rol { get; set; }
         public string ocupacion { get; set; }
         public DateTime fechaderegistro { get; set; }
@@ -46,4 +47,23 @@
         public string rol { get; set; }
         public string ocupacion { get; set; }
     }
+}
+
+public class UsuariosUpdateDTO
+{
+    public string Cedula { get; set; }
+    public string PrimerNombre { get; set; }
+    public string SegundoNombre { get; set; }
+    public string PrimerApellido { get; set; }
+    public string SegundoApellido { get; set; }
+    public int Edad { get; set; }
+    public string Correo { get; set; }
+    public string ocupacion { get; set; }
+}
+
+
+public class UsuariosLoginDTO
+{
+    public string Correo { get; set; }
+    public string Contrasena { get; set; }
 }

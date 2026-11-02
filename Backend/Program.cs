@@ -1,7 +1,8 @@
 using Backend.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-
+using Microsoft.AspNetCore.Identity;
+using Backend.Models;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,6 +18,10 @@ builder.Services.AddOpenApi();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddCors();
+builder.Services.AddScoped<IPasswordHasher<Usuarios>,PasswordHasher<Usuarios>>();
+
+
 
 var app = builder.Build();
 
@@ -31,6 +36,13 @@ if (app.Environment.IsDevelopment())
     });
 }
 
+//Permisos para consumir la API desde cualquier origen
+app.UseCors(builder =>
+    builder
+        .AllowAnyOrigin()
+        .AllowAnyMethod()
+        .AllowAnyHeader());
+
 
 app.UseHttpsRedirection();
 
@@ -38,11 +50,5 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+
 app.Run();
-//Permisos para consumir la API desde cualquier origen
-app.UseCors(builder =>
-    builder
-        .AllowAnyOrigin()
-        .AllowAnyMethod()
-        .AllowAnyHeader());
-builder.Services.AddCors();

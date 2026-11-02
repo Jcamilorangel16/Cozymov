@@ -3,15 +3,20 @@ using Microsoft.EntityFrameworkCore;
 using Backend.Models;
 using Backend.Data;
 using Backend.DTOs;
+using Microsoft.AspNetCore.Identity;
 
 [Route("api/[controller]")]
 [ApiController]
 public class UsuariosController : ControllerBase
+
 {
     private readonly AppDbContext _context;
-    public UsuariosController(AppDbContext context)
+    private readonly IPasswordHasher<Usuarios> _passwordHasher;
+
+    public UsuariosController(AppDbContext context, IPasswordHasher<Usuarios> passwordHasher)
     {
         _context = context;
+        _passwordHasher = passwordHasher;
     }
 
     // GET: api/Usuarios
@@ -62,32 +67,29 @@ public class UsuariosController : ControllerBase
     // PUT: api/Usuarios/5
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     [HttpPut("{idpersonas}")]
-    public async Task<IActionResult> PutUsuarios(int ID, Usuarios usuarios)
+    public async Task<IActionResult> PutUsuarios(
+         int ID,
+         UsuariosUpdateDTO datos)
     {
-        if (ID != usuarios.IdPersonas)
+        var usuario = await _context.Usuarios.FindAsync(ID);
+
+        if (usuario == null)
         {
-            return BadRequest();
+            return NotFound();
         }
 
-        _context.Entry(usuarios).State = EntityState.Modified;
+        usuario.Cedula = datos.Cedula;
+        usuario.PrimerNombre = datos.PrimerNombre;
+        usuario.SegundoNombre = datos.SegundoNombre;
+        usuario.PrimerApellido = datos.PrimerApellido;
+        usuario.SegundoApellido = datos.SegundoApellido;
+        usuario.Edad = datos.Edad;
+        usuario.Correo = datos.Correo;
+        usuario.ocupacion = datos.ocupacion;
 
-        try
-        {
-            await _context.SaveChangesAsync();
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            if (!UsuariosExists(ID))
-            {
-                return NotFound();
-            }
-            else
-            {
-                throw;
-            }
-        }
+       await _context.SaveChangesAsync();
 
-        return NoContent();
+       return NoContent();
     }
 
     // POST: api/Usuarios
@@ -104,18 +106,68 @@ public class UsuariosController : ControllerBase
             SegundoApellido = usuarios.SegundoApellido,
             Edad = usuarios.Edad,
             Correo = usuarios.Correo,
-            Contrasena = usuarios.Contrasena,
             rol = usuarios.rol,
             ocupacion = usuarios.ocupacion
         };
+        usuario.Contrasena = _passwordHasher.HashPassword(usuario, usuarios.Contrasena);
 
         _context.Usuarios.Add(usuario);
         await _context.SaveChangesAsync();
 
+        var respuesta = new UsuariosDTO
+        {
+            IdPersonas = usuario.IdPersonas,
+            Cedula = usuario.Cedula,
+            PrimerNombre = usuario.PrimerNombre,
+            SegundoNombre = usuario.SegundoNombre,
+            PrimerApellido = usuario.PrimerApellido,
+            SegundoApellido = usuario.SegundoApellido,
+            Edad = usuario.Edad,
+            rol = usuario.rol,
+            ocupacion = usuario.ocupacion,
+            fechaderegistro = usuario.fechaderegistro
+        };
+
         return CreatedAtAction(
             "GetUsuarios",
             new { idpersonas = usuario.IdPersonas },
-            usuario);
+            respuesta);
+    }
+
+    //POST: api/Usuarios/Login
+    [HttpPost("Login")]
+    public async Task<ActionResult<UsuariosDTO>> Login(UsuariosLoginDTO datos)
+    {
+        var usuario = await _context.Usuarios
+           .FirstOrDefaultAsync(u => u.Correo == datos.Correo);
+        if (usuario == null)
+        {
+            return Unauthorized("Credenciales inválidas");
+        }
+
+        var resultado = _passwordHasher.VerifyHashedPassword(usuario, usuario.Contrasena, datos.Contrasena);
+        if (resultado == PasswordVerificationResult.Failed)
+        {
+            return Unauthorized("Credenciales inválidas");
+        }
+
+        var respuesta = new UsuariosDTO
+        {
+            IdPersonas = usuario.IdPersonas,
+            Cedula = usuario.Cedula,
+            PrimerNombre = usuario.PrimerNombre,
+            SegundoNombre = usuario.SegundoNombre,
+            PrimerApellido = usuario.PrimerApellido,
+            SegundoApellido = usuario.SegundoApellido,
+            Edad = usuario.Edad,
+            Correo = usuario.Correo,
+            rol = usuario.rol,
+            ocupacion = usuario.ocupacion,
+            fechaderegistro = usuario.fechaderegistro
+        };
+
+        return Ok(respuesta);
+
     }
 
     // DELETE: api/Usuarios/5
