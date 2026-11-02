@@ -1,3 +1,10 @@
+// Muestra el resumen del viaje que quedó publicado y esperando pasajeros.
+
+/**
+ * Presenta los detalles de un viaje publicado y sus acciones disponibles.
+ * @param {object} props Viaje y controladores de edición o nueva publicación.
+ * @returns Resumen visual del viaje activo.
+ */
 export default function EsperandoPasajeros({
   viaje,
   onEditarViaje,

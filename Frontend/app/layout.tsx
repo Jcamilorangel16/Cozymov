@@ -1,3 +1,4 @@
+// Define el layout raíz, metadatos y recursos visuales compartidos.
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -18,6 +19,11 @@ export const metadata: Metadata = {
   description: "Plataforma de viajes compartidos",
 };
 
+/**
+ * Envuelve las páginas con el documento HTML y estilos compartidos.
+ * @param props Contenido de la ruta actual.
+ * @returns Estructura raíz del documento.
+ */
 export default function RootLayout({
   children,
 }: Readonly<{
