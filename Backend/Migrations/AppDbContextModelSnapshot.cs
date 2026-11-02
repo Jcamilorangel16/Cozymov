@@ -30,6 +30,10 @@ namespace Backend.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("IdPersonas"));
 
+                    b.Property<string>("Cedula")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("Contrasena")
                         .IsRequired()
                         .HasColumnType("text");

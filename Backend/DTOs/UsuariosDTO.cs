@@ -3,6 +3,7 @@
     public class UsuariosDTO
     {
         public int IdPersonas { get; set; }
+        public string Cedula { get; set; }
         public string PrimerNombre { get; set; }
         public string SegundoNombre { get; set; }
         public string PrimerApellido { get; set; }
@@ -17,6 +18,7 @@
     public class ListaUsuariosDTO
     {
         public int IdPersonas { get; set; }
+        public string Cedula { get; set; }
         public string PrimerNombre { get; set; }
         public string SegundoNombre { get; set; }
         public string PrimerApellido { get; set; }
@@ -33,6 +35,7 @@
     }
     public class UsuariosCreateDTO
     {
+        public string Cedula { get; set; }
         public string PrimerNombre { get; set; }
         public string SegundoNombre { get; set; }
         public string PrimerApellido { get; set; }

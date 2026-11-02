@@ -21,6 +21,7 @@ public class UsuariosController : ControllerBase
         return await _context.Usuarios.Select(u => new ListaUsuariosDTO
         {
             IdPersonas = u.IdPersonas,
+            Cedula = u.Cedula,
             PrimerNombre = u.PrimerNombre,
             SegundoNombre = u.SegundoNombre,
             PrimerApellido = u.PrimerApellido,
@@ -39,6 +40,7 @@ public class UsuariosController : ControllerBase
         var usuarios = await _context.Usuarios.Where(u => u.IdPersonas == Id).Select(u => new UsuariosDTO
         {
             IdPersonas = u.IdPersonas,
+            Cedula = u.Cedula,
             PrimerNombre = u.PrimerNombre,
             SegundoNombre = u.SegundoNombre,
             PrimerApellido = u.PrimerApellido,
@@ -95,6 +97,7 @@ public class UsuariosController : ControllerBase
     {
         var usuario = new Usuarios
         {
+            Cedula = usuarios.Cedula,
             PrimerNombre = usuarios.PrimerNombre,
             SegundoNombre = usuarios.SegundoNombre,
             PrimerApellido = usuarios.PrimerApellido,
