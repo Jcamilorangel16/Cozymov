@@ -4,6 +4,8 @@ La aplicación Next.js usa PostgreSQL para registrar usuarios y validar el inici
 
 ## Configurar la conexión
 
+Para desarrollo local, copia `Frontend/.env.example` a `Frontend/.env.local` y reemplaza los valores de ejemplo por los datos reales de PostgreSQL. Configura también `SESSION_SECRET` con un valor aleatorio privado. Ambas variables son necesarias para iniciar sesión. En Render, configura las mismas variables en el servicio web. Reinicia Next.js después de modificarlas. No hay un valor de `DATABASE_URL` que pueda inferirse sin las credenciales de tu base de datos.
+
 La aplicación lee la variable de entorno `DATABASE_URL`.
 
 - **Desarrollo local:** definirla en `Frontend/.env.local`.
@@ -58,6 +60,8 @@ CREATE TABLE usuario (
 La clave primaria de `id_usuario` y la restricción `UNIQUE` de `correo` permiten que el endpoint responda con HTTP `409` si ya existe una cuenta.
 
 ## Flujo de registro
+
+El endpoint guarda en la misma base PostgreSQL que usa el login. Si falta `DATABASE_URL`, el registro y las demás rutas que consultan PostgreSQL no pueden completar la operación.
 
 1. `src/features/register/pages/register.jsx` recopila identificador, primer y segundo nombre, primer y segundo apellido, edad, ocupación, correo y contraseña; los segundos nombres y apellidos son opcionales. La ocupación se elige entre estudiante, profesor u otro; al elegir otro se solicita especificarla.
 2. El formulario envía los datos con `POST /api/registro`; ya no los guarda en `localStorage`.

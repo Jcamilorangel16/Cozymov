@@ -1,19 +1,8 @@
+import bcrypt from "bcryptjs";
+import { getDbPool } from "../../../src/lib/db";
 import { validarRegistroUsuario } from "../../../src/validaciones/usuarios";
 
 export const runtime = "nodejs";
-
-function obtenerMensajeError(valor: unknown): string | null {
-  if (typeof valor !== "object" || valor === null) return null;
-
-  const respuesta = valor as Record<string, unknown>;
-  for (const campo of ["error", "detail", "title"]) {
-    if (typeof respuesta[campo] === "string" && respuesta[campo].trim()) {
-      return respuesta[campo];
-    }
-  }
-
-  return null;
-}
 
 export async function POST(request: Request) {
   let body: unknown;
@@ -35,80 +24,47 @@ export async function POST(request: Request) {
     );
   }
 
-  const backendApiUrl = process.env.BACKEND_API_URL?.replace(/\/+$/, "");
-  if (!backendApiUrl) {
-    console.error("Falta configurar BACKEND_API_URL para el registro.");
-    return Response.json(
-      { error: "El servidor no está configurado para registrar usuarios." },
-      { status: 500 },
-    );
-  }
-
   const datos = validacion.datos;
-  const usuario = {
-    PrimerNombre: datos.primerNombre,
-    SegundoNombre: datos.segundoNombre ?? "",
-    PrimerApellido: datos.primerApellido,
-    SegundoApellido: datos.segundoApellido ?? "",
-    Edad: datos.edad,
-    Correo: datos.correo,
-    Contrasena: datos.contrasena,
-    rol: "pasajero",
-    ocupacion: datos.ocupacion,
-  };
 
-  let respuestaBackend: Response;
   try {
-    respuestaBackend = await fetch(`${backendApiUrl}/api/Usuarios`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(usuario),
-      cache: "no-store",
-    });
-  } catch (error) {
-    console.error("No se pudo contactar la API de usuarios:", error);
-    return Response.json(
-      {
-        error:
-          "No se pudo contactar el backend. Verifica que la API esté iniciada.",
-      },
-      { status: 502 },
+    const contrasenaHash = await bcrypt.hash(datos.contrasena, 12);
+    await getDbPool().query(
+      `INSERT INTO usuario (
+         id_usuario, primer_nombre, segundo_nombre, primer_apellido,
+         segundo_apellido, edad, correo, contrasena, rol, ocupacion
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+      [
+        datos.idUsuario,
+        datos.primerNombre,
+        datos.segundoNombre,
+        datos.primerApellido,
+        datos.segundoApellido,
+        datos.edad,
+        datos.correo,
+        contrasenaHash,
+        "pasajero",
+        datos.ocupacion,
+      ],
     );
-  }
 
-  if (!respuestaBackend.ok) {
-    const cuerpo = await respuestaBackend.text();
-    let detalle: unknown;
-    try {
-      detalle = cuerpo ? JSON.parse(cuerpo) : null;
-    } catch {
-      detalle = null;
-    }
+    return Response.json({ ok: true }, { status: 201 });
+  } catch (error) {
+    const code =
+      typeof error === "object" && error !== null && "code" in error
+        ? error.code
+        : undefined;
 
-    if (respuestaBackend.status >= 500) {
-      console.error(
-        "La API rechazó el registro con estado:",
-        respuestaBackend.status,
+    if (code === "23505") {
+      return Response.json(
+        { error: "Ya existe una cuenta con ese identificador o correo." },
+        { status: 409 },
       );
     }
 
+    console.error("Error al registrar usuario:", error);
     return Response.json(
-      {
-        error:
-          obtenerMensajeError(detalle) ??
-          (respuestaBackend.status >= 500
-            ? "El backend tuvo un error al guardar el usuario. Revisa la conexión con la base de datos."
-            : "El backend rechazó los datos del registro."),
-      },
-      {
-        status:
-          respuestaBackend.status >= 500
-            ? 502
-            : respuestaBackend.status,
-      },
+      { error: "No se pudo registrar el usuario. Inténtalo de nuevo." },
+      { status: 500 },
     );
   }
-
-  await respuestaBackend.body?.cancel();
-  return Response.json({ ok: true }, { status: 201 });
 }
