@@ -1,10 +1,16 @@
+// Endpoints para consultar conversaciones y guardar mensajes.
 import { NextResponse } from "next/server";
 import { getDbPool } from "../../../src/lib/db";
 import {
   validarDatosMensaje,
   validarParticipantesMensaje,
-} from "../../../src/validaciones/mensajes";
+} from "../../../src/features/mensajes/validations/mensajes";
 
+/**
+ * Consulta los mensajes entre dos usuarios.
+ * @param request Solicitud con los identificadores en la query.
+ * @returns Lista de mensajes o respuesta de error.
+ */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const usuario1 = searchParams.get("usuario1");
@@ -32,6 +38,11 @@ export async function GET(request: Request) {
 }
 
 
+/**
+ * Valida y guarda un mensaje recibido en el cuerpo JSON.
+ * @param request Solicitud con emisor, receptor y contenido.
+ * @returns Mensaje guardado o respuesta de error.
+ */
 export async function POST(request: Request) {
   let body: unknown;
   try {

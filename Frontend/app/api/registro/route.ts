@@ -1,9 +1,15 @@
+// Endpoint que crea cuentas nuevas después de validar y cifrar sus datos.
 import bcrypt from "bcryptjs";
 import { getDbPool } from "../../../src/lib/db";
-import { validarRegistroUsuario } from "../../../src/validaciones/usuarios";
+import { validarRegistroUsuario } from "../../../src/features/register/validations/usuarios";
 
 export const runtime = "nodejs";
 
+/**
+ * Valida los datos y crea una cuenta de usuario.
+ * @param request Solicitud HTTP con los datos de registro en JSON.
+ * @returns Usuario creado o respuesta de error.
+ */
 export async function POST(request: Request) {
   let body: unknown;
 

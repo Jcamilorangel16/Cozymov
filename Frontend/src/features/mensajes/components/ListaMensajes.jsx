@@ -1,6 +1,12 @@
+// Muestra los mensajes de la conversación y desplaza la vista al último.
 "use client";
 import { useEffect, useRef } from "react";
 
+/**
+ * Renderiza los mensajes alineados según quién los envió.
+ * @param {{mensajes: Array, usuarioActualId: string}} props Datos de la conversación.
+ * @returns Lista visual de mensajes.
+ */
 export default function ListaMensajes({ mensajes, usuarioActualId }) {
   const chatBottomRef = useRef(null);
 

@@ -1,93 +1,37 @@
+// Presenta el desplegable accesible para buscar barrios y lugares de encuentro.
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import barriosRutaCotidiana from "../JS/barriosRutaCotidiana";
-import "../CSS/BarrioDropdown.css";
+import { useBarrioDropdown } from "../hooks/useBarrioDropdown";
+import "../styles/BarrioDropdown.css";
 
-function normalizarTexto(texto) {
-  return texto
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLocaleLowerCase("es")
-    .trim();
-}
-
+/**
+ * Presenta una lista accesible y filtrable de barrios o lugares.
+ * @param {object} props Configuración de opciones y valor seleccionado.
+ * @returns Selector desplegable de ubicación.
+ */
 export default function BarrioDropdown({
   id,
   label,
   value,
   onChange,
-  opcionesBase = barriosRutaCotidiana,
-  opcionesAdicionales = [],
+  opcionesBase,
+  opcionesAdicionales,
   tipoOpcion = "barrio",
   textoSeleccion = "Seleccionar barrio",
 }) {
-  const contenedorRef = useRef(null);
-  const botonRef = useRef(null);
-  const [abierto, setAbierto] = useState(false);
-  const [busqueda, setBusqueda] = useState("");
-  const [indiceActivo, setIndiceActivo] = useState(-1);
-
-  const barriosFiltrados = useMemo(() => {
-    const consulta = normalizarTexto(busqueda);
-    const opciones = [...opcionesBase, ...opcionesAdicionales];
-    if (!consulta) return opciones;
-
-    return opciones.filter((barrio) =>
-      normalizarTexto(barrio).includes(consulta),
-    );
-  }, [busqueda, opcionesAdicionales, opcionesBase]);
-
-  useEffect(() => {
-    if (!abierto) return undefined;
-
-    function cerrarAlHacerClickFuera(evento) {
-      if (!contenedorRef.current?.contains(evento.target)) {
-        setAbierto(false);
-      }
-    }
-
-    function cerrarConEscape(evento) {
-      if (evento.key === "Escape") {
-        setAbierto(false);
-        botonRef.current?.focus();
-      }
-    }
-
-    document.addEventListener("pointerdown", cerrarAlHacerClickFuera);
-    document.addEventListener("keydown", cerrarConEscape);
-    return () => {
-      document.removeEventListener("pointerdown", cerrarAlHacerClickFuera);
-      document.removeEventListener("keydown", cerrarConEscape);
-    };
-  }, [abierto]);
-
-  function seleccionarBarrio(barrio) {
-    onChange(barrio);
-    setBusqueda("");
-    setAbierto(false);
-    setIndiceActivo(-1);
-  }
-
-  function manejarTeclado(evento) {
-    if (evento.key === "ArrowDown" && barriosFiltrados.length > 0) {
-      evento.preventDefault();
-      setIndiceActivo((actual) => (actual + 1) % barriosFiltrados.length);
-    } else if (evento.key === "ArrowUp" && barriosFiltrados.length > 0) {
-      evento.preventDefault();
-      setIndiceActivo((actual) =>
-        actual <= 0 ? barriosFiltrados.length - 1 : actual - 1,
-      );
-    } else if (
-      evento.key === "Enter" &&
-      indiceActivo >= 0 &&
-      barriosFiltrados[indiceActivo]
-    ) {
-      evento.preventDefault();
-      seleccionarBarrio(barriosFiltrados[indiceActivo]);
-      botonRef.current?.focus();
-    }
-  }
+  const {
+    contenedorRef,
+    botonRef,
+    abierto,
+    setAbierto,
+    busqueda,
+    setBusqueda,
+    indiceActivo,
+    setIndiceActivo,
+    barriosFiltrados,
+    seleccionarBarrio,
+    manejarTeclado,
+  } = useBarrioDropdown({ value, onChange, opcionesBase, opcionesAdicionales });
 
   return (
     <div className="dropdown position-relative" ref={contenedorRef}>
