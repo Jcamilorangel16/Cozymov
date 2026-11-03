@@ -76,6 +76,48 @@ namespace Backend.Migrations
 
                     b.ToTable("Usuarios");
                 });
+
+            modelBuilder.Entity("Backend.Models.Viaje", b =>
+                {
+                    b.Property<long>("IdViaje")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id_viaje");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("IdViaje"));
+
+                    b.Property<decimal>("Costo")
+                        .HasColumnType("numeric(10,2)")
+                        .HasColumnName("costo");
+
+                    b.Property<int>("CuposDisponibles")
+                        .HasColumnType("integer")
+                        .HasColumnName("cupos_disponibles");
+
+                    b.Property<string>("Estado")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("estado");
+
+                    b.Property<DateTime>("FechaHoraSalida")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("fecha_hora_salida");
+
+                    b.Property<string>("IdConductor")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("id_conductor");
+
+                    b.Property<long>("IdRuta")
+                        .HasColumnType("bigint")
+                        .HasColumnName("id_ruta");
+
+                    b.HasKey("IdViaje");
+
+                    b.ToTable("viaje");
+                });
 #pragma warning restore 612, 618
         }
     }
