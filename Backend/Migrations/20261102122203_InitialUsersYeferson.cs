@@ -18,6 +18,7 @@ namespace Backend.Migrations
                 {
                     IdPersonas = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Cedula = table.Column<string>(type: "text", nullable: false),
                     PrimerNombre = table.Column<string>(type: "text", nullable: false),
                     SegundoNombre = table.Column<string>(type: "text", nullable: false),
                     PrimerApellido = table.Column<string>(type: "text", nullable: false),

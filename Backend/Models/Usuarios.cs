@@ -6,7 +6,8 @@ namespace Backend.Models
     public class Usuarios
     {
         [Key]
-        public int IdPersonas { get; set; } 
+        public int IdPersonas { get; set; }
+        public string Cedula { get; set; }
         public string PrimerNombre { get; set; }
         public string SegundoNombre { get; set; }
         public string PrimerApellido { get; set; }
@@ -16,7 +17,7 @@ namespace Backend.Models
         public string Contrasena { get; set; }
         public string rol { get; set; }
         public string ocupacion { get; set; }
-        public DateTime fechaderegistro { get; set; } = DateTime.Now;
+        public DateTime fechaderegistro { get; set; } = DateTime.UtcNow;
 
 
     }

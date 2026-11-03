@@ -4,6 +4,8 @@ La aplicación Next.js usa PostgreSQL para registrar usuarios y validar el inici
 
 ## Configurar la conexión
 
+Para desarrollo local, copia `Frontend/.env.example` a `Frontend/.env.local` y reemplaza los valores de ejemplo por los datos reales de PostgreSQL. Configura también `SESSION_SECRET` con un valor aleatorio privado. Ambas variables son necesarias para iniciar sesión. En Render, configura las mismas variables en el servicio web. Reinicia Next.js después de modificarlas. No hay un valor de `DATABASE_URL` que pueda inferirse sin las credenciales de tu base de datos.
+
 La aplicación lee la variable de entorno `DATABASE_URL`.
 
 - **Desarrollo local:** definirla en `Frontend/.env.local`.
@@ -59,7 +61,13 @@ La clave primaria de `id_usuario` y la restricción `UNIQUE` de `correo` permite
 
 ## Flujo de registro
 
+<<<<<<< HEAD
+El endpoint guarda en la misma base PostgreSQL que usa el login. Si falta `DATABASE_URL`, el registro y las demás rutas que consultan PostgreSQL no pueden completar la operación.
+
+1. `src/features/register/pages/register.jsx` recopila identificador, primer y segundo nombre, primer y segundo apellido, edad, ocupación, correo y contraseña; los segundos nombres y apellidos son opcionales. La ocupación se elige entre estudiante, profesor u otro; al elegir otro se solicita especificarla.
+=======
 1. `src/features/register/components/Register.jsx` recopila identificador, primer y segundo nombre, primer y segundo apellido, edad, ocupación, correo y contraseña; los segundos nombres y apellidos son opcionales. La ocupación se elige entre estudiante, profesor u otro; al elegir otro se solicita especificarla.
+>>>>>>> 91ffad3312f411b8b47fcbda248e7fa4a58181a1
 2. El formulario envía los datos con `POST /api/registro`; ya no los guarda en `localStorage`.
 3. `app/api/registro/route.ts` vuelve a validar los datos en el servidor, guarda cada nombre y apellido en su columna correspondiente, normaliza el correo, asigna `pasajero` como rol y genera un hash con `bcryptjs` antes de insertar en `usuario`.
 4. La consulta SQL usa parámetros (`$1`, `$2`, etc.) para no concatenar los datos recibidos en el comando SQL.

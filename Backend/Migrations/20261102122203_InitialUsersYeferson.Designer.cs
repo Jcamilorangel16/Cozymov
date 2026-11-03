@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261026014928_InitialUsersYeferson")]
+    [Migration("20261102122203_InitialUsersYeferson")]
     partial class InitialUsersYeferson
     {
         /// <inheritdoc />
@@ -32,6 +32,10 @@ namespace Backend.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("IdPersonas"));
+
+                    b.Property<string>("Cedula")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<string>("Contrasena")
                         .IsRequired()
