@@ -34,11 +34,11 @@ namespace Backend.Controllers
         }
 
         // GET: api/Viajes/5
-        [HttpGet("{idviaje}")]
-        public async Task<ActionResult<ViajeDTO>> GetViaje(long id)
+        [HttpGet("{id_viaje:long}")]
+        public async Task<ActionResult<ViajeDTO>> GetViaje(long id_viaje)
         {
             var viaje = await _context.Viajes
-                .Where(v => v.IdViaje == id)
+                .Where(v => v.IdViaje == id_viaje)
                 .Select(v => new ViajeDTO
                 {
                     IdViaje = v.IdViaje,
@@ -60,10 +60,10 @@ namespace Backend.Controllers
         }
 
         // PUT: api/Viajes/5
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutViaje(long id, ViajeCreateDTO viajeUpdate)
+        [HttpPut("{id_viaje:long}")]
+        public async Task<IActionResult> PutViaje(long id_viaje, ViajeCreateDTO viajeUpdate)
         {
-            var viaje = await _context.Viajes.FindAsync(id);
+            var viaje = await _context.Viajes.FindAsync(id_viaje);
             if (viaje == null)
             {
                 return NotFound();
@@ -71,7 +71,7 @@ namespace Backend.Controllers
 
             viaje.IdConductor = viajeUpdate.IdConductor;
             viaje.IdRuta = viajeUpdate.IdRuta;
-            viaje.FechaHoraSalida = viajeUpdate.FechaHoraSalida;
+            viaje.FechaHoraSalida = ToDatabaseDateTime(viajeUpdate.FechaHoraSalida);
             viaje.Costo = viajeUpdate.Costo;
             viaje.CuposDisponibles = viajeUpdate.CuposDisponibles;
             viaje.Estado = viajeUpdate.Estado;
@@ -82,7 +82,7 @@ namespace Backend.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!ViajeExists(id))
+                if (!ViajeExists(id_viaje))
                 {
                     return NotFound();
                 }
@@ -100,7 +100,7 @@ namespace Backend.Controllers
             {
                 IdConductor = viajeCreate.IdConductor,
                 IdRuta = viajeCreate.IdRuta,
-                FechaHoraSalida = viajeCreate.FechaHoraSalida,
+                FechaHoraSalida = ToDatabaseDateTime(viajeCreate.FechaHoraSalida),
                 Costo = viajeCreate.Costo,
                 CuposDisponibles = viajeCreate.CuposDisponibles,
                 Estado = viajeCreate.Estado
@@ -120,14 +120,14 @@ namespace Backend.Controllers
                 Estado = viaje.Estado
             };
 
-            return CreatedAtAction(nameof(GetViaje), new { id = viaje.IdViaje }, viajeDto);
+            return CreatedAtAction(nameof(GetViaje), new { id_viaje = viaje.IdViaje }, viajeDto);
         }
 
         // DELETE: api/Viajes/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteViaje(long id)
+        [HttpDelete("{id_viaje:long}")]
+        public async Task<IActionResult> DeleteViaje(long id_viaje)
         {
-            var viaje = await _context.Viajes.FindAsync(id);
+            var viaje = await _context.Viajes.FindAsync(id_viaje);
             if (viaje == null)
             {
                 return NotFound();
@@ -139,9 +139,16 @@ namespace Backend.Controllers
             return NoContent();
         }
 
-        private bool ViajeExists(long id)
+        private bool ViajeExists(long id_viaje)
         {
-            return _context.Viajes.Any(e => e.IdViaje == id);
+            return _context.Viajes.Any(e => e.IdViaje == id_viaje);
+        }
+
+        // La columna PostgreSQL es timestamp without time zone. Npgsql exige
+        // DateTimeKind.Unspecified para ese tipo de columna.
+        private static DateTime ToDatabaseDateTime(DateTime value)
+        {
+            return DateTime.SpecifyKind(value, DateTimeKind.Unspecified);
         }
     }
 }

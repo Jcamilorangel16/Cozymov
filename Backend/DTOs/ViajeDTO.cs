@@ -36,6 +36,7 @@ namespace Backend.DTOs
         public DateTime FechaHoraSalida { get; set; }
 
         [Range(0, 99999999.99)]
+        [DataType(DataType.Currency)]
         public decimal Costo { get; set; }
 
         [Range(0, int.MaxValue)]

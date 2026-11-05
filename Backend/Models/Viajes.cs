@@ -21,6 +21,7 @@ namespace Backend.Models
         public DateTime FechaHoraSalida { get; set; }
 
         [Column("costo", TypeName = "numeric(10,2)")]
+        [Range(0, 99999999.99)]
         public decimal Costo { get; set; }
 
         [Column("cupos_disponibles")]
