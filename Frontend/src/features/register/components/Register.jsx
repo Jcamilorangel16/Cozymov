@@ -22,8 +22,11 @@ export default function Register() {
     confirmarContrasena,
     setConfirmarContrasena,
     guardando,
+    verificandoCorreo,
+    correoVerificado,
     manejarCambio,
     manejarTeclado,
+    manejarVerificarCorreo,
     manejarSiguiente,
   } = useRegisterForm();
 
@@ -52,8 +55,11 @@ export default function Register() {
             confirmarContrasena={confirmarContrasena}
             setConfirmarContrasena={setConfirmarContrasena}
             guardando={guardando}
+            verificandoCorreo={verificandoCorreo}
+            correoVerificado={correoVerificado}
             manejarCambio={manejarCambio}
             manejarTeclado={manejarTeclado}
+            manejarVerificarCorreo={manejarVerificarCorreo}
             manejarSiguiente={manejarSiguiente}
           />
         </div>

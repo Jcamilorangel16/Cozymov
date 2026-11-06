@@ -11,8 +11,11 @@ export default function CredencialesRegistro({
   confirmarContrasena,
   setConfirmarContrasena,
   guardando,
+  verificandoCorreo,
+  correoVerificado,
   manejarCambio,
   manejarTeclado,
+  manejarVerificarCorreo,
   manejarSiguiente,
 }) {
   return (
@@ -33,6 +36,18 @@ export default function CredencialesRegistro({
           onKeyDown={(e) => manejarTeclado(e, "correo")}
           ref={asignarRef("correo")}
         />
+        <button
+          type="button"
+          className={`btn w-100 mt-2 ${correoVerificado ? "btn-success" : "btn-outline-primary"}`}
+          onClick={manejarVerificarCorreo}
+          disabled={guardando || verificandoCorreo || correoVerificado}
+        >
+          {correoVerificado
+            ? "Correo verificado"
+            : verificandoCorreo
+              ? "Enviando código..."
+              : "Verificar correo"}
+        </button>
       </div>
       <div className="col-md-6">
         <label htmlFor="contrasena" className="form-label">Contraseña</label>

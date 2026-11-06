@@ -169,6 +169,15 @@ namespace Backend.Migrations
                     b.Property<int>("Edad")
                         .HasColumnType("integer");
 
+                    b.Property<string>("EmailConfirmationCode")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("EmailConfirmationExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("EmailConfirmed")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("PrimerApellido")
                         .IsRequired()
                         .HasColumnType("text");
@@ -232,6 +241,28 @@ namespace Backend.Migrations
                     b.HasIndex("IdUsuario");
 
                     b.ToTable("vehiculo", (string)null);
+                });
+
+            modelBuilder.Entity("Backend.Models.VerificacionCorreo", b =>
+                {
+                    b.Property<string>("Correo")
+                        .HasColumnType("text");
+
+                    b.Property<string>("CodigoHash")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("ExpiraEn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("IntentosFallidos")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("VerificadoEn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Correo");
+
+                    b.ToTable("VerificacionesCorreo");
                 });
 
             modelBuilder.Entity("Backend.Models.Viaje", b =>

@@ -22,6 +22,8 @@ namespace Backend.Models
         public ICollection<Vehiculo> Vehiculos { get; set; } = new List<Vehiculo>();
         public ICollection<Viaje> Viajes { get; set; } = new List<Viaje>();
 
-
+        public bool EmailConfirmed { get; set; }
+        public string? EmailConfirmationCode { get; set; }
+        public DateTime? EmailConfirmationExpiresAt { get; set; }
     }
 }
