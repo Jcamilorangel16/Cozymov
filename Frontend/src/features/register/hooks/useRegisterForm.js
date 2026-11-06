@@ -1,7 +1,7 @@
 // Gestiona los campos, navegación por teclado y envío del registro.
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
 import { validarFormularioRegistro } from "../validations/usuarios";
@@ -22,7 +22,6 @@ function mostrarError(mensaje) {
 export function useRegisterForm() {
   const router = useRouter();
   const refs = useRef({});
-  const temporizadorRegistro = useRef(null);
   // Información personal ingresada en el formulario.
   const [datosUsuario, setDatosUsuario] = useState({
     idUsuario: "",
@@ -40,6 +39,8 @@ export function useRegisterForm() {
   // Confirmación de contraseña y estado de envío.
   const [confirmarContrasena, setConfirmarContrasena] = useState("");
   const [guardando, setGuardando] = useState(false);
+  const [verificandoCorreo, setVerificandoCorreo] = useState(false);
+  const [correoVerificado, setCorreoVerificado] = useState(false);
 
   /**
    * Crea un callback ref administrado por este hook.
@@ -61,11 +62,6 @@ export function useRegisterForm() {
     refs.current[campo]?.focus();
   }
 
-  useEffect(
-    () => () => window.clearTimeout(temporizadorRegistro.current),
-    [],
-  );
-
   /**
    * Actualiza el campo nombrado por el control del formulario.
    * @param {React.ChangeEvent<HTMLInputElement|HTMLSelectElement>} evento Evento de cambio.
@@ -74,6 +70,7 @@ export function useRegisterForm() {
   function manejarCambio(evento) {
     const { name, value } = evento.target;
     setDatosUsuario((prev) => ({ ...prev, [name]: value }));
+    if (name === "correo") setCorreoVerificado(false);
   }
 
   /**
@@ -110,12 +107,100 @@ export function useRegisterForm() {
     }
   }
 
+  async function manejarVerificarCorreo() {
+    if (guardando || verificandoCorreo) return;
+
+    const correo = datosUsuario.correo.trim();
+    if (!/^[^\s@]+@[^\s@]+\.edu\.co$/i.test(correo)) {
+      mostrarError("Ingresa un correo institucional válido terminado en .edu.co.");
+      return;
+    }
+
+    setVerificandoCorreo(true);
+    try {
+      const respuestaEnvio = await fetch("/api/registro/enviar-codigo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ correo }),
+      });
+      const resultadoEnvio = await respuestaEnvio.json();
+
+      if (!respuestaEnvio.ok) {
+        mostrarError(resultadoEnvio.error || "No se pudo enviar el código.");
+        return;
+      }
+
+      const resultadoCodigo = await Swal.fire({
+        title: "Verifica tu correo",
+        text: `Enviamos un código de 6 dígitos a ${correo}.`,
+        input: "text",
+        inputLabel: "Código de verificación",
+        inputPlaceholder: "123456",
+        inputAttributes: {
+          inputmode: "numeric",
+          autocomplete: "one-time-code",
+          maxlength: "6",
+          "aria-label": "Código de verificación de 6 dígitos",
+        },
+        showCancelButton: true,
+        confirmButtonText: "Verificar correo",
+        cancelButtonText: "Cancelar",
+        allowOutsideClick: false,
+        inputValidator: (codigo) => {
+          if (!/^\d{6}$/.test(codigo?.trim() ?? "")) {
+            return "Ingresa los 6 dígitos del código.";
+          }
+        },
+        preConfirm: async (codigo) => {
+          try {
+            const respuestaConfirmacion = await fetch("/api/registro/confirmar-codigo", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ correo, codigo: codigo.trim() }),
+            });
+            const resultadoConfirmacion = await respuestaConfirmacion.json();
+
+            if (!respuestaConfirmacion.ok) {
+              Swal.showValidationMessage(
+                resultadoConfirmacion.error || "No se pudo verificar el correo.",
+              );
+              return false;
+            }
+            return true;
+          } catch {
+            Swal.showValidationMessage("No se pudo conectar con el servidor.");
+            return false;
+          }
+        },
+      });
+
+      if (resultadoCodigo.isConfirmed) {
+        setCorreoVerificado(true);
+        await Swal.fire({
+          icon: "success",
+          title: "Correo verificado",
+          text: "Ahora puedes completar tu registro.",
+          confirmButtonText: "Continuar",
+        });
+      }
+    } catch {
+      mostrarError("No se pudo conectar con el servidor. Inténtalo de nuevo.");
+    } finally {
+      setVerificandoCorreo(false);
+    }
+  }
+
   /**
-   * Valida y envía los datos de registro, mostrando el resultado al usuario.
+   * Crea la cuenta solo después de verificar el correo.
    * @returns {Promise<void>}
    */
   async function manejarSiguiente() {
     if (guardando) return;
+
+    if (!correoVerificado) {
+      mostrarError("Correo no verificado. Verifica tu correo antes de crear la cuenta.");
+      return;
+    }
 
     const validacion = validarFormularioRegistro(
       {
@@ -131,42 +216,36 @@ export function useRegisterForm() {
 
     setGuardando(true);
     void Swal.fire({
-      title: "Registrando usuario",
-      text: "Estamos guardando tu información. Esto tomará unos segundos.",
+      title: "Creando cuenta",
+      text: "Estamos guardando tu información.",
       allowOutsideClick: false,
       allowEscapeKey: false,
       didOpen: () => Swal.showLoading(),
     });
-    const inicioRegistro = Date.now();
+
     try {
-      const respuesta = await fetch("/api/registro", {
+      const respuestaRegistro = await fetch("/api/registro", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(validacion.datos),
       });
-      const resultado = await respuesta.json();
+      const resultadoRegistro = await respuestaRegistro.json();
 
-      if (!respuesta.ok) {
-        mostrarError(resultado.error || "No se pudo crear la cuenta.");
+      if (!respuestaRegistro.ok) {
+        if (respuestaRegistro.status === 400) setCorreoVerificado(false);
+        mostrarError(resultadoRegistro.error || "No se pudo crear la cuenta.");
         return;
       }
 
-      const tiempoRestante = Math.max(0, 2000 - (Date.now() - inicioRegistro));
-      if (tiempoRestante > 0) {
-        await new Promise((resolve) => {
-          temporizadorRegistro.current = window.setTimeout(resolve, tiempoRestante);
-        });
-      }
-      void Swal.fire({
+      await Swal.fire({
         icon: "success",
         title: "¡Registro exitoso!",
-        text: "Tu cuenta se creó correctamente.",
+        text: "Tu cuenta fue creada con el correo verificado.",
         confirmButtonText: "Continuar",
         allowOutsideClick: false,
         allowEscapeKey: false,
-      }).then(({ isConfirmed }) => {
-        if (isConfirmed) router.push("/");
       });
+      router.push("/");
     } catch {
       mostrarError("No se pudo conectar con el servidor. Inténtalo de nuevo.");
     } finally {
@@ -185,8 +264,11 @@ export function useRegisterForm() {
     confirmarContrasena,
     setConfirmarContrasena,
     guardando,
+    verificandoCorreo,
+    correoVerificado,
     manejarCambio,
     manejarTeclado,
+    manejarVerificarCorreo,
     manejarSiguiente,
   };
 }

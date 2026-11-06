@@ -13,6 +13,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Automovil> Automoviles => Set<Automovil>();
     public DbSet<Moto> Motos => Set<Moto>();
     public DbSet<Bicicleta> Bicicletas => Set<Bicicleta>();
+    public DbSet<VerificacionCorreo> VerificacionesCorreo => Set<VerificacionCorreo>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
