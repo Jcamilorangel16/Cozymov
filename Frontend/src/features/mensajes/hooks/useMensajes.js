@@ -1,86 +1,132 @@
-// Gestiona la conversación activa, el historial y el envío de mensajes.
 "use client";
+import { useCallback, useEffect, useState } from "react";
 
-import { useEffect, useState } from "react";
-import { CONTACTOS_DE_PRUEBA } from "../constants/contactos";
+async function pedir(url, opciones) {
+  const res = await fetch(url, opciones);
+  const data = await res.json().catch(() => null);
+  if (!res.ok) {
+    throw new Error(data?.error ?? "Error de conexión con el servidor.");
+  }
+  return data;
+}
 
-/**
- * Gestiona la selección de contacto y el intercambio de mensajes.
- * @param {string} usuarioActualId Identificador del usuario activo.
- * @returns Contactos, conversación actual y acción de envío.
- */
 export function useMensajes(usuarioActualId) {
-  // Contacto activo y mensajes cargados para su conversación.
+  const yo = String(usuarioActualId);
+
+  const [vista, setVista] = useState("chats"); // "chats" | "nuevo"
+  const [chats, setChats] = useState([]);
+  const [contactos, setContactos] = useState([]);
+  const [busqueda, setBusqueda] = useState("");
   const [contactoSeleccionado, setContactoSeleccionado] = useState(null);
   const [mensajes, setMensajes] = useState([]);
+  const [error, setError] = useState(null);
 
+  // Chats existentes del usuario de la sesión
   useEffect(() => {
+    if (contactoSeleccionado || vista !== "chats") return;
+    pedir("/api/mensajes/chats")
+      .then((data) => {
+        setError(null);
+        setChats(data);
+      })
+      .catch((e) => setError(e.message));
+  }, [vista, contactoSeleccionado]);
+
+  // Usuarios reales para iniciar un chat nuevo
+  useEffect(() => {
+    if (contactoSeleccionado || vista !== "nuevo") return;
+    const t = setTimeout(() => {
+      pedir(`/api/mensajes/contactos?q=${encodeURIComponent(busqueda)}`)
+        .then((data) => {
+          setError(null);
+          setContactos(data);
+        })
+        .catch((e) => setError(e.message));
+    }, 300);
+    return () => clearTimeout(t);
+  }, [vista, busqueda, contactoSeleccionado]);
+
+  const cargarConversacion = useCallback(async () => {
     if (!contactoSeleccionado) return;
-
-    /**
-     * Obtiene del servidor la conversación con el contacto activo.
-     * @returns {Promise<void>}
-     */
-    async function cargarMensajes() {
-      try {
-        const res = await fetch(
-          `/api/mensajes?usuario1=${usuarioActualId}&usuario2=${contactoSeleccionado.id}`,
-        );
-        if (res.ok) {
-          const data = await res.json();
-          setMensajes(data);
-        }
-      } catch (error) {
-        console.error("Error al cargar mensajes:", error);
-      }
-    }
-
-    void cargarMensajes();
-    const intervalo = setInterval(cargarMensajes, 4000);
-    return () => clearInterval(intervalo);
-  }, [contactoSeleccionado, usuarioActualId]);
-
-  /**
-   * Envía un mensaje al contacto seleccionado y agrega la respuesta al historial.
-   * @param {string} contenidoTexto Texto escrito por el usuario.
-   * @returns {Promise<void>}
-   */
-  async function manejarEnvio(contenidoTexto) {
     try {
-      const res = await fetch("/api/mensajes", {
+      const data = await pedir(
+        `/api/mensajes?usuario1=${yo}&usuario2=${contactoSeleccionado.id}`,
+      );
+      setMensajes(data);
+    } catch (e) {
+      setError(e.message);
+    }
+  }, [yo, contactoSeleccionado]);
+
+  // Conversación abierta, refrescada cada 4 segundos
+useEffect(() => {
+  if (!contactoSeleccionado) return;
+
+  let activo = true;
+
+  const cargar = () =>
+    pedir(`/api/mensajes?usuario1=${yo}&usuario2=${contactoSeleccionado.id}`)
+      .then((data) => {
+        if (activo) setMensajes(data);
+      })
+      .catch((e) => {
+        if (activo) setError(e.message);
+      });
+
+  cargar();
+  const intervalo = setInterval(cargar, 4000);
+
+  return () => {
+    activo = false;
+    clearInterval(intervalo);
+  };
+}, [yo, contactoSeleccionado]);
+
+  async function manejarEnvio(texto) {
+    try {
+      setError(null);
+      await pedir("/api/mensajes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          id_emisor: usuarioActualId,
-          id_receptor: contactoSeleccionado.id,
-          contenido: contenidoTexto,
+          id_emisor: yo,
+          id_receptor: String(contactoSeleccionado.id),
+          contenido: texto,
         }),
       });
-
-      if (res.ok) {
-        const nuevoMensajeGuardado = await res.json();
-        setMensajes((prev) => [...prev, nuevoMensajeGuardado]);
-      }
-    } catch (error) {
-      console.error("Error al enviar el mensaje:", error);
+      await cargarConversacion();
+    } catch (e) {
+      setError(e.message);
+      throw e;
     }
   }
 
-  /**
-   * Cierra la conversación y limpia el historial mostrado.
-   * @returns {void}
-   */
-  function volverAContactos() {
-    setContactoSeleccionado(null);
-    setMensajes([]);
-  }
+  function volverALista() {
+  setContactoSeleccionado(null);
+  setMensajes([]);
+  setError(null);
+  setVista("chats");
+  setBusqueda("");
+}
+
+function abrirChat(contacto) {
+  setMensajes([]);
+  setError(null);
+  setContactoSeleccionado(contacto);
+}
 
   return {
-    contactos: CONTACTOS_DE_PRUEBA,
-    contactoSeleccionado,
-    setContactoSeleccionado,
-    mensajes,
-    manejarEnvio,
-    volverAContactos,
-  };
+  vista,
+  setVista,
+  chats,
+  contactos,
+  busqueda,
+  setBusqueda,
+  contactoSeleccionado,
+  abrirChat,
+  mensajes,
+  manejarEnvio,
+  volverALista,
+  error,
+};
 }
