@@ -22,6 +22,42 @@ namespace Backend.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Backend.Models.Mensaje", b =>
+                {
+                    b.Property<int>("IdMensaje")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("IdMensaje"));
+
+                    b.Property<string>("Contenido")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("FechaHora")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("IdEmisor")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("IdReceptor")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("Leido")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.HasKey("IdMensaje");
+
+                    b.HasIndex("IdEmisor");
+
+                    b.HasIndex("IdReceptor");
+
+                    b.ToTable("Mensajes", (string)null);
+                });
+
             modelBuilder.Entity("Backend.Models.Usuarios", b =>
                 {
                     b.Property<int>("IdPersonas")
@@ -117,6 +153,25 @@ namespace Backend.Migrations
                     b.HasKey("IdViaje");
 
                     b.ToTable("viaje");
+                });
+
+            modelBuilder.Entity("Backend.Models.Mensaje", b =>
+                {
+                    b.HasOne("Backend.Models.Usuarios", "Emisor")
+                        .WithMany()
+                        .HasForeignKey("IdEmisor")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Backend.Models.Usuarios", "Receptor")
+                        .WithMany()
+                        .HasForeignKey("IdReceptor")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Emisor");
+
+                    b.Navigation("Receptor");
                 });
 #pragma warning restore 612, 618
         }

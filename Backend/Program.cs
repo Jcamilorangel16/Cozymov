@@ -25,6 +25,15 @@ builder.Services.AddScoped<IPasswordHasher<Usuarios>,PasswordHasher<Usuarios>>()
 
 var app = builder.Build();
 
+// En desarrollo, garantiza que la base configurada contiene también las tablas
+// añadidas por las migraciones. En producción deben aplicarse en el despliegue.
+if (app.Environment.IsDevelopment())
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate();
+}
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
