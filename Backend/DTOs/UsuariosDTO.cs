@@ -67,3 +67,14 @@ public class UsuariosLoginDTO
     public string Correo { get; set; }
     public string Contrasena { get; set; }
 }
+
+public class EnviarCodigoConfirmacionDTO
+{
+    public string Correo { get; set; }
+}
+
+public class ConfirmarCodigoDTO
+{
+    public string Correo { get; set; }
+    public string Codigo { get; set; }
+}

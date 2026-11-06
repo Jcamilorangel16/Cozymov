@@ -10,6 +10,7 @@ namespace Backend.Data
 
         }
         public DbSet<Usuarios> Usuarios { get; set;}
+        public DbSet<VerificacionCorreo> VerificacionesCorreo { get; set; }
         public DbSet<Viaje> Viajes { get; set; }
         public DbSet<Mensaje> Mensajes { get; set; }
 

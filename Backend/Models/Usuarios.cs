@@ -18,7 +18,8 @@ namespace Backend.Models
         public string rol { get; set; }
         public string ocupacion { get; set; }
         public DateTime fechaderegistro { get; set; } = DateTime.UtcNow;
-
-
+        public bool EmailConfirmed { get; set; }
+        public string? EmailConfirmationCode { get; set; }
+        public DateTime? EmailConfirmationExpiresAt { get; set; }
     }
 }
