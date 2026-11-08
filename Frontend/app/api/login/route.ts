@@ -14,6 +14,14 @@ function esRegistro(valor: unknown): valor is Record<string, unknown> {
   return typeof valor === "object" && valor !== null && !Array.isArray(valor);
 }
 
+function obtenerCampo(
+  registro: Record<string, unknown>,
+  nombreCamelCase: string,
+  nombrePascalCase: string,
+): unknown {
+  return registro[nombreCamelCase] ?? registro[nombrePascalCase];
+}
+
 export async function POST(request: Request) {
   let cuerpo: unknown;
 
@@ -42,12 +50,19 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
+  if (!process.env.SESSION_SECRET) {
+    console.error("Falta configurar SESSION_SECRET para crear sesiones.");
+    return NextResponse.json(
+      { error: "El servidor no tiene configurada la sesión. Configura SESSION_SECRET y reinicia el frontend." },
+      { status: 500 },
+    );
+  }
 
   let respuestaApi: Response;
 
   try {
     respuestaApi = await fetch(
-      `${apiUrl.replace(/\/+$/, "")}/Usuarios/Login`,
+      `${apiUrl.replace(/\/+$/, "")}/api/Usuarios/Login`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -98,8 +113,8 @@ export async function POST(request: Request) {
     );
   }
 
-  const idPersonas = usuarioApi.idPersonas;
-  const correo = usuarioApi.correo;
+  const idPersonas = obtenerCampo(usuarioApi, "idPersonas", "IdPersonas");
+  const correo = obtenerCampo(usuarioApi, "correo", "Correo");
 
   if (
     typeof idPersonas !== "number" ||

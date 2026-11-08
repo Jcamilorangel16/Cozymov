@@ -24,7 +24,7 @@ function obtenerCampo(
 
 function obtenerUrlApi(): string | null {
 	const apiUrl = process.env.VITE_API_URL;
-	return apiUrl ? `${apiUrl.replace(/\/+$/, "")}/Viajes` : null;
+	return apiUrl ? `${apiUrl.replace(/\/+$/, "")}/api/Viajes` : null;
 }
 
 async function responderErrorApi(respuesta: Response, mensaje: string) {
