@@ -25,6 +25,7 @@ namespace Backend.Controllers
             {
                 IdViaje = v.IdViaje,
                 IdConductor = v.IdConductor,
+                IdUsuario = v.IdUsuario,
                 IdRuta = v.IdRuta,
                 FechaHoraSalida = v.FechaHoraSalida,
                 Costo = v.Costo,
@@ -43,6 +44,7 @@ namespace Backend.Controllers
                 {
                     IdViaje = v.IdViaje,
                     IdConductor = v.IdConductor,
+                    IdUsuario = v.IdUsuario,
                     IdRuta = v.IdRuta,
                     FechaHoraSalida = v.FechaHoraSalida,
                     Costo = v.Costo,
@@ -69,7 +71,13 @@ namespace Backend.Controllers
                 return NotFound();
             }
 
+            if (!await _context.Usuarios.AnyAsync(u => u.IdPersonas == viajeUpdate.IdUsuario))
+            {
+                return BadRequest($"El usuario {viajeUpdate.IdUsuario} no existe.");
+            }
+
             viaje.IdConductor = viajeUpdate.IdConductor;
+            viaje.IdUsuario = viajeUpdate.IdUsuario;
             viaje.IdRuta = viajeUpdate.IdRuta;
             viaje.FechaHoraSalida = ToDatabaseDateTime(viajeUpdate.FechaHoraSalida);
             viaje.Costo = viajeUpdate.Costo;
@@ -96,9 +104,15 @@ namespace Backend.Controllers
         [HttpPost]
         public async Task<ActionResult<ViajeDTO>> PostViaje(ViajeCreateDTO viajeCreate)
         {
+            if (!await _context.Usuarios.AnyAsync(u => u.IdPersonas == viajeCreate.IdUsuario))
+            {
+                return BadRequest($"El usuario {viajeCreate.IdUsuario} no existe.");
+            }
+
             var viaje = new Viaje
             {
                 IdConductor = viajeCreate.IdConductor,
+                IdUsuario = viajeCreate.IdUsuario,
                 IdRuta = viajeCreate.IdRuta,
                 FechaHoraSalida = ToDatabaseDateTime(viajeCreate.FechaHoraSalida),
                 Costo = viajeCreate.Costo,
@@ -113,6 +127,7 @@ namespace Backend.Controllers
             {
                 IdViaje = viaje.IdViaje,
                 IdConductor = viaje.IdConductor,
+                IdUsuario = viaje.IdUsuario,
                 IdRuta = viaje.IdRuta,
                 FechaHoraSalida = viaje.FechaHoraSalida,
                 Costo = viaje.Costo,
