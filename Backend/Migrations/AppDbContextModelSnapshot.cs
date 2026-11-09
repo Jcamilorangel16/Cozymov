@@ -22,6 +22,35 @@ namespace Backend.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Backend.Models.Automovil", b =>
+                {
+                    b.Property<long>("IdVehiculo")
+                        .HasColumnType("bigint")
+                        .HasColumnName("id_vehiculo");
+
+                    b.Property<short>("NumeroPuertas")
+                        .HasColumnType("smallint")
+                        .HasColumnName("numero_puertas");
+
+                    b.HasKey("IdVehiculo");
+
+                    b.ToTable("automovil", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_automovil_numero_puertas", "numero_puertas IN (2, 3, 4, 5)");
+                        });
+                });
+
+            modelBuilder.Entity("Backend.Models.Bicicleta", b =>
+                {
+                    b.Property<long>("IdVehiculo")
+                        .HasColumnType("bigint")
+                        .HasColumnName("id_vehiculo");
+
+                    b.HasKey("IdVehiculo");
+
+                    b.ToTable("bicicleta_electrica", (string)null);
+                });
+
             modelBuilder.Entity("Backend.Models.Mensaje", b =>
                 {
                     b.Property<int>("IdMensaje")
@@ -56,6 +85,23 @@ namespace Backend.Migrations
                     b.HasIndex("IdReceptor");
 
                     b.ToTable("Mensajes", (string)null);
+                });
+
+            modelBuilder.Entity("Backend.Models.Moto", b =>
+                {
+                    b.Property<long>("IdVehiculo")
+                        .HasColumnType("bigint")
+                        .HasColumnName("id_vehiculo");
+
+                    b.Property<string>("Modalidad")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("modalidad");
+
+                    b.HasKey("IdVehiculo");
+
+                    b.ToTable("moto", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.Usuarios", b =>
@@ -110,7 +156,40 @@ namespace Backend.Migrations
 
                     b.HasKey("IdPersonas");
 
-                    b.ToTable("Usuarios");
+                    b.ToTable("Usuarios", (string)null);
+                });
+
+            modelBuilder.Entity("Backend.Models.Vehiculo", b =>
+                {
+                    b.Property<long>("IdVehiculo")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id_vehiculo");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("IdVehiculo"));
+
+                    b.Property<int>("Capacidad")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Foto")
+                        .HasColumnType("text");
+
+                    b.Property<int>("IdUsuario")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Modelo")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("IdVehiculo");
+
+                    b.HasIndex("IdUsuario");
+
+                    b.ToTable("vehiculo", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.Viaje", b =>
@@ -150,9 +229,36 @@ namespace Backend.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("id_ruta");
 
+                    b.Property<int?>("IdUsuario")
+                        .HasColumnType("integer");
+
                     b.HasKey("IdViaje");
 
-                    b.ToTable("viaje");
+                    b.HasIndex("IdUsuario");
+
+                    b.ToTable("viaje", (string)null);
+                });
+
+            modelBuilder.Entity("Backend.Models.Automovil", b =>
+                {
+                    b.HasOne("Backend.Models.Vehiculo", "Vehiculo")
+                        .WithOne("Automovil")
+                        .HasForeignKey("Backend.Models.Automovil", "IdVehiculo")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Vehiculo");
+                });
+
+            modelBuilder.Entity("Backend.Models.Bicicleta", b =>
+                {
+                    b.HasOne("Backend.Models.Vehiculo", "Vehiculo")
+                        .WithOne("Bicicleta")
+                        .HasForeignKey("Backend.Models.Bicicleta", "IdVehiculo")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Vehiculo");
                 });
 
             modelBuilder.Entity("Backend.Models.Mensaje", b =>
@@ -172,6 +278,54 @@ namespace Backend.Migrations
                     b.Navigation("Emisor");
 
                     b.Navigation("Receptor");
+                });
+
+            modelBuilder.Entity("Backend.Models.Moto", b =>
+                {
+                    b.HasOne("Backend.Models.Vehiculo", "Vehiculo")
+                        .WithOne("Moto")
+                        .HasForeignKey("Backend.Models.Moto", "IdVehiculo")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Vehiculo");
+                });
+
+            modelBuilder.Entity("Backend.Models.Vehiculo", b =>
+                {
+                    b.HasOne("Backend.Models.Usuarios", "Usuario")
+                        .WithMany("Vehiculos")
+                        .HasForeignKey("IdUsuario")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Usuario");
+                });
+
+            modelBuilder.Entity("Backend.Models.Viaje", b =>
+                {
+                    b.HasOne("Backend.Models.Usuarios", "Usuario")
+                        .WithMany("Viajes")
+                        .HasForeignKey("IdUsuario")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Usuario");
+                });
+
+            modelBuilder.Entity("Backend.Models.Usuarios", b =>
+                {
+                    b.Navigation("Vehiculos");
+
+                    b.Navigation("Viajes");
+                });
+
+            modelBuilder.Entity("Backend.Models.Vehiculo", b =>
+                {
+                    b.Navigation("Automovil");
+
+                    b.Navigation("Bicicleta");
+
+                    b.Navigation("Moto");
                 });
 #pragma warning restore 612, 618
         }

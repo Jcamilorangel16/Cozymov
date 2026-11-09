@@ -19,6 +19,9 @@ namespace Backend.Models
         public string ocupacion { get; set; }
         public DateTime fechaderegistro { get; set; } = DateTime.UtcNow;
 
+        public ICollection<Vehiculo> Vehiculos { get; set; } = new List<Vehiculo>();
+        public ICollection<Viaje> Viajes { get; set; } = new List<Viaje>();
+
 
     }
 }

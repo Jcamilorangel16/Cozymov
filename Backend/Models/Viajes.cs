@@ -14,6 +14,9 @@ namespace Backend.Models
         [StringLength(20)]
         public string IdConductor { get; set; } = string.Empty;
 
+        public int? IdUsuario { get; set; }
+        public Usuarios? Usuario { get; set; }
+
         [Column("id_ruta")]
         public long IdRuta { get; set; }
 
