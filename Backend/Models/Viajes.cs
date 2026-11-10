@@ -21,6 +21,14 @@ namespace Backend.Models
         public long? IdRuta { get; set; }
         public Ruta? Ruta { get; set; }
 
+        [Column("origen")]
+        [StringLength(200)]
+        public string? Origen { get; set; }
+
+        [Column("destino")]
+        [StringLength(200)]
+        public string? Destino { get; set; }
+
         [Column("fecha_hora_salida", TypeName = "timestamp without time zone")]
         public DateTime FechaHoraSalida { get; set; }
 
@@ -36,4 +44,3 @@ namespace Backend.Models
         public string Estado { get; set; } = string.Empty;
     }
 }
-

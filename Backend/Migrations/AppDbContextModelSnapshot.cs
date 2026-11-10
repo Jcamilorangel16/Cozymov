@@ -251,6 +251,11 @@ namespace Backend.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("cupos_disponibles");
 
+                    b.Property<string>("Destino")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("destino");
+
                     b.Property<string>("Estado")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -273,6 +278,11 @@ namespace Backend.Migrations
 
                     b.Property<int>("IdUsuario")
                         .HasColumnType("integer");
+
+                    b.Property<string>("Origen")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("origen");
 
                     b.HasKey("IdViaje");
 

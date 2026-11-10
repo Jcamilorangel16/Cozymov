@@ -8,6 +8,8 @@ namespace Backend.DTOs
         public string IdConductor { get; set; } = string.Empty;
         public int IdUsuario { get; set; }
         public long? IdRuta { get; set; }
+        public string? Origen { get; set; }
+        public string? Destino { get; set; }
         public DateTime FechaHoraSalida { get; set; }
         public decimal Costo { get; set; }
         public int CuposDisponibles { get; set; } 
@@ -20,6 +22,8 @@ namespace Backend.DTOs
         public string IdConductor { get; set; } = string.Empty;
         public int IdUsuario { get; set; }
         public long? IdRuta { get; set; }
+        public string? Origen { get; set; }
+        public string? Destino { get; set; }
         public DateTime FechaHoraSalida { get; set; } 
         public decimal Costo { get; set; }
         public int CuposDisponibles { get; set; }
@@ -35,6 +39,12 @@ namespace Backend.DTOs
         public int IdUsuario { get; set; }
 
         public long? IdRuta { get; set; }
+
+        [StringLength(200)]
+        public string? Origen { get; set; }
+
+        [StringLength(200)]
+        public string? Destino { get; set; }
 
         [Required]
         public DateTime FechaHoraSalida { get; set; }

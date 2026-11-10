@@ -11,17 +11,19 @@ namespace Backend.Controllers;
 public class VehiculoesController(AppDbContext context) : ControllerBase
 {
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Vehiculo>>> GetVehiculos()
+    public async Task<ActionResult<IEnumerable<VehiculoResponseDto>>> GetVehiculos()
     {
-        return await context.Vehiculos
+        var vehiculos = await context.Vehiculos
             .Include(v => v.Automovil)
             .Include(v => v.Moto)
             .Include(v => v.Bicicleta)
             .ToListAsync();
+
+        return vehiculos.Select(ToResponseDto).ToList();
     }
 
     [HttpGet("{idVehiculo:long}")]
-    public async Task<ActionResult<Vehiculo>> GetVehiculo(long idVehiculo)
+    public async Task<ActionResult<VehiculoResponseDto>> GetVehiculo(long idVehiculo)
     {
         var vehiculo = await context.Vehiculos
             .Include(v => v.Automovil)
@@ -29,7 +31,7 @@ public class VehiculoesController(AppDbContext context) : ControllerBase
             .Include(v => v.Bicicleta)
             .FirstOrDefaultAsync(v => v.IdVehiculo == idVehiculo);
 
-        return vehiculo is null ? NotFound() : vehiculo;
+        return vehiculo is null ? NotFound() : ToResponseDto(vehiculo);
     }
 
     [HttpPost]
@@ -92,4 +94,20 @@ public class VehiculoesController(AppDbContext context) : ControllerBase
         await context.SaveChangesAsync();
         return NoContent();
     }
+
+    private static VehiculoResponseDto ToResponseDto(Vehiculo vehiculo) => new()
+    {
+        IdVehiculo = vehiculo.IdVehiculo,
+        Tipo = vehiculo.Tipo,
+        Modelo = vehiculo.Modelo,
+        Capacidad = vehiculo.Capacidad,
+        Foto = vehiculo.Foto,
+        IdUsuario = vehiculo.IdUsuario,
+        Automovil = vehiculo.Automovil is null
+            ? null
+            : new AutomovilResponseDto { NumeroPuertas = vehiculo.Automovil.NumeroPuertas },
+        Moto = vehiculo.Moto is null
+            ? null
+            : new MotoResponseDto { Modalidad = vehiculo.Moto.Modalidad }
+    };
 }
