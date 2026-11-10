@@ -7,9 +7,10 @@ import { formatearFecha, formatearPrecio } from "../utils/viajes";
 
 /**
  * Muestra filtros de viaje y resultados de búsqueda.
+ * @param {{onEnviarMensaje?: (contacto: {id: string, nombre: string}) => void}} props Acción para abrir el chat con el conductor.
  * @returns Interfaz de búsqueda de viajes.
  */
-export default function BuscarViajes() {
+export default function BuscarViajes({ onEnviarMensaje }) {
   const {
     origen,
     setOrigen,
@@ -137,6 +138,23 @@ export default function BuscarViajes() {
                               {eliminandoViajeId === viaje.id_viaje
                                 ? "Eliminando..."
                                 : "Eliminar viaje"}
+                            </button>
+                          )}
+                          {idUsuario && String(viaje.id_usuario) !== idUsuario && (
+                            <button
+                              className="btn btn-outline-primary me-2"
+                              type="button"
+                              onClick={() =>
+                                onEnviarMensaje?.({
+                                  id: String(viaje.id_usuario),
+                                  nombre:
+                                    [viaje.primer_nombre, viaje.primer_apellido]
+                                      .filter(Boolean)
+                                      .join(" ") || "Conductor",
+                                })
+                              }
+                            >
+                              Enviar mensaje
                             </button>
                           )}
                           <button

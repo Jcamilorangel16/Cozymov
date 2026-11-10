@@ -19,6 +19,8 @@ import ViajeEnCurso from "../../viaje-en-curso/components/ViajeEnCurso";
 export default function MenuPrincipal({ usuarioActualId }) {
   const {
     vistaActiva,
+    contactoInicial,
+    abrirChatConUsuario,
     viajeSeleccionado,
     setViajeSeleccionado,
     mensajeBusqueda,
@@ -46,6 +48,7 @@ export default function MenuPrincipal({ usuarioActualId }) {
                 setViajeSeleccionado={setViajeSeleccionado}
                 mensajeAccion={mensajeBusqueda}
                 setMensajeAccion={setMensajeBusqueda}
+                onEnviarMensaje={abrirChatConUsuario}
               />
             </div>
           )}
@@ -61,7 +64,10 @@ export default function MenuPrincipal({ usuarioActualId }) {
 
           {vistaActiva === "mensajes" && (
             <div className="vista">
-              <MensajesView usuarioActualId={usuarioActualId} />
+              <MensajesView
+                usuarioActualId={usuarioActualId}
+                contactoInicial={contactoInicial}
+              />
             </div>
           )}
           {vistaActiva === "en-curso" && (<div className="vista"> <ViajeEnCurso onNavigate={irAVista} /> </div>)}
