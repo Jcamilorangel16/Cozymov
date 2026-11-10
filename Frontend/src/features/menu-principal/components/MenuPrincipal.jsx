@@ -49,6 +49,7 @@ export default function MenuPrincipal({ usuarioActualId }) {
                 mensajeAccion={mensajeBusqueda}
                 setMensajeAccion={setMensajeBusqueda}
                 onEnviarMensaje={abrirChatConUsuario}
+                onNavigate={irAVista}
               />
             </div>
           )}
@@ -70,7 +71,16 @@ export default function MenuPrincipal({ usuarioActualId }) {
               />
             </div>
           )}
-          {vistaActiva === "en-curso" && (<div className="vista"> <ViajeEnCurso onNavigate={irAVista} /> </div>)}
+          {vistaActiva === "en-curso" && (
+            <div className="vista">
+              <ViajeEnCurso
+                onNavigate={irAVista}
+                onMensajeConductor={(id, nombre) =>
+                  abrirChatConUsuario({ id, nombre })
+                }
+              />
+            </div>
+          )}
 
           {vistaActiva === "configuracion" && (<div className="vista"> <ConfiguracionGeneral /> </div>)}
         </div>

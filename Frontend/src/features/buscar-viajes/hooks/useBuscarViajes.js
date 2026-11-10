@@ -22,8 +22,10 @@ export function useBuscarViajes() {
   const [error, setError] = useState("");
   // Estado necesario para habilitar aceptar un viaje.
   const [tieneViajePublicado, setTieneViajePublicado] = useState(null);
+  const [tieneViajeEnCurso, setTieneViajeEnCurso] = useState(false);
   const [validacionCompletada, setValidacionCompletada] = useState(false);
   const [eliminandoViajeId, setEliminandoViajeId] = useState(null);
+  const [aceptandoViajeId, setAceptandoViajeId] = useState(null);
   const idUsuario = useSessionUserId();
 
   useEffect(() => {
@@ -43,18 +45,28 @@ export function useBuscarViajes() {
       });
 
     if (idUsuario) {
-      fetch(`/api/viajes?id_usuario=${encodeURIComponent(idUsuario)}`, {
-        signal: controlador.signal,
-      })
-        .then(async (respuesta) => {
-          const resultado = await respuesta.json();
-          if (!respuesta.ok) {
-            throw new Error(resultado.error || "No se pudo validar tu viaje publicado.");
+      Promise.all([
+        fetch(`/api/viajes?id_usuario=${encodeURIComponent(idUsuario)}`, {
+          signal: controlador.signal,
+        }),
+        fetch("/api/viajes/en-curso", { signal: controlador.signal }),
+      ])
+        .then(async ([respuestaPublicado, respuestaEnCurso]) => {
+          const [publicado, enCurso] = await Promise.all([
+            respuestaPublicado.json(),
+            respuestaEnCurso.json(),
+          ]);
+          if (!respuestaPublicado.ok) {
+            throw new Error(publicado.error || "No se pudo validar tu viaje publicado.");
           }
-          if (!("viaje" in resultado)) {
-            throw new Error("No se pudo validar tu viaje publicado.");
+          if (!respuestaEnCurso.ok) {
+            throw new Error(enCurso.error || "No se pudo validar tu viaje en curso.");
           }
-          setTieneViajePublicado(Boolean(resultado.viaje));
+          if (!("viaje" in publicado) || !("viaje" in enCurso)) {
+            throw new Error("No se pudo validar el estado de tus viajes.");
+          }
+          setTieneViajePublicado(Boolean(publicado.viaje));
+          setTieneViajeEnCurso(Boolean(enCurso.viaje));
         })
         .catch((errorConsulta) => {
           if (errorConsulta.name !== "AbortError") {
@@ -146,6 +158,64 @@ export function useBuscarViajes() {
     }
   }
 
+  async function handleAceptarViaje(viaje, alAceptar) {
+    const confirmacion = await Swal.fire({
+      icon: "question",
+      title: "¿Aceptar este viaje?",
+      text: `${viaje.origen} → ${viaje.destino}`,
+      showCancelButton: true,
+      confirmButtonText: "Sí, aceptar viaje",
+      cancelButtonText: "Cancelar",
+      confirmButtonColor: "#198754",
+      reverseButtons: true,
+    });
+    if (!confirmacion.isConfirmed) return;
+
+    setAceptandoViajeId(viaje.id_viaje);
+    setError("");
+    try {
+      const respuesta = await fetch("/api/viajes/aceptar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id_viaje: viaje.id_viaje }),
+      });
+      const resultado = await respuesta.json();
+      if (!respuesta.ok) {
+        throw new Error(resultado.error || "No se pudo aceptar el viaje.");
+      }
+      if (!resultado.reserva) {
+        throw new Error("La respuesta del servidor no confirmó la reserva.");
+      }
+
+      setTieneViajeEnCurso(true);
+      setViajes((viajesActuales) =>
+        viajesActuales.map((viajeActual) =>
+          viajeActual.id_viaje === viaje.id_viaje
+            ? {
+                ...viajeActual,
+                cupos_disponibles: Math.max(
+                  0,
+                  Number(viajeActual.cupos_disponibles) - 1,
+                ),
+              }
+            : viajeActual,
+        ),
+      );
+      await Swal.fire({
+        icon: "success",
+        title: "Viaje aceptado",
+        text: "Tu viaje ya está disponible en «En curso».",
+        confirmButtonText: "Ver viaje",
+      });
+      alAceptar?.();
+    } catch (errorAceptacion) {
+      console.error("No se pudo aceptar el viaje:", errorAceptacion);
+      setError(errorAceptacion.message || "No se pudo aceptar el viaje.");
+    } finally {
+      setAceptandoViajeId(null);
+    }
+  }
+
   return {
     origen,
     setOrigen,
@@ -158,10 +228,13 @@ export function useBuscarViajes() {
     busquedaRealizada,
     error,
     tieneViajePublicado,
+    tieneViajeEnCurso,
     validacionCompletada,
     idUsuario,
     eliminandoViajeId,
+    aceptandoViajeId,
     handleBuscar,
     handleEliminarViaje,
+    handleAceptarViaje,
   };
 }

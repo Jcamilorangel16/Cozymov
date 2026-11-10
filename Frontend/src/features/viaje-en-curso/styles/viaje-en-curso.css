@@ -5,6 +5,15 @@
   border: 1px solid #9fd2e0;
   z-index: 0;
 }
+.viaje-resumen-ruta {
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 2rem;
+  border: 1px solid #9fd2e0;
+  border-radius: 12px;
+}
 .mapa-cargando {
   display: flex;
   align-items: center;

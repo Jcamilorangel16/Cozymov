@@ -55,7 +55,10 @@ function viajeActivo(viaje: unknown): viaje is Registro {
 		return false;
 	}
 	const estado = obtenerCampo(viaje, "estado", "Estado");
-	return typeof estado === "string" && estado.toLowerCase() === "activo";
+	const cupos = Number(
+		obtenerCampo(viaje, "cuposDisponibles", "CuposDisponibles", "cupos_disponibles"),
+	);
+	return typeof estado === "string" && estado.toLowerCase() === "activo" && cupos > 0;
 }
 
 function normalizarViaje(viaje: Registro, respaldo: Registro = {}): Registro {

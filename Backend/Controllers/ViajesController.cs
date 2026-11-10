@@ -65,6 +65,92 @@ namespace Backend.Controllers
             return viaje;
         }
 
+        [HttpGet("reserva-activa/{id_pasajero:int}")]
+        public async Task<ActionResult<ReservaViajeDTO?>> GetReservaActiva(int id_pasajero)
+        {
+            var reserva = await _context.ReservasViaje
+                .Include(r => r.Viaje)
+                    .ThenInclude(v => v.Usuario)
+                .Include(r => r.Viaje)
+                    .ThenInclude(v => v.Ruta)
+                .FirstOrDefaultAsync(r =>
+                    r.IdPasajero == id_pasajero && r.Estado == "activa");
+
+            var resultado = reserva is null
+                ? null
+                : CrearReservaDTO(reserva, reserva.Viaje);
+            return Ok(resultado);
+        }
+
+        [HttpPost("{id_viaje:long}/reservar")]
+        public async Task<ActionResult<ReservaViajeDTO>> ReservarViaje(
+            long id_viaje,
+            ReservaViajeCreateDTO solicitud)
+        {
+            if (!await _context.Usuarios.AnyAsync(u => u.IdPersonas == solicitud.IdPasajero))
+            {
+                return BadRequest($"El usuario {solicitud.IdPasajero} no existe.");
+            }
+
+            await using var transaccion = await _context.Database.BeginTransactionAsync();
+            var viaje = await _context.Viajes
+                .FromSqlInterpolated($"SELECT * FROM viaje WHERE id_viaje = {id_viaje} FOR UPDATE")
+                .Include(v => v.Usuario)
+                .FirstOrDefaultAsync();
+
+            if (viaje == null)
+            {
+                return NotFound("El viaje ya no está disponible.");
+            }
+            if (!string.Equals(viaje.Estado, "activo", StringComparison.OrdinalIgnoreCase))
+            {
+                return Conflict("El viaje ya no está disponible.");
+            }
+            if (viaje.IdUsuario == solicitud.IdPasajero ||
+                string.Equals(viaje.IdConductor, solicitud.IdPasajero.ToString(), StringComparison.Ordinal))
+            {
+                return BadRequest("No puedes aceptar tu propio viaje.");
+            }
+            if (await _context.Viajes.AnyAsync(v =>
+                    v.IdUsuario == solicitud.IdPasajero &&
+                    v.Estado.ToLower() == "activo"))
+            {
+                return Conflict("Solo puedes aceptar un viaje si no tienes uno publicado.");
+            }
+            if (await _context.ReservasViaje.AnyAsync(r =>
+                    r.IdPasajero == solicitud.IdPasajero && r.Estado == "activa"))
+            {
+                return Conflict("Ya tienes un viaje en curso.");
+            }
+            if (viaje.CuposDisponibles < 1)
+            {
+                return Conflict("El viaje ya no tiene cupos disponibles.");
+            }
+
+            viaje.CuposDisponibles--;
+            var reserva = new ReservaViaje
+            {
+                IdViaje = viaje.IdViaje,
+                IdPasajero = solicitud.IdPasajero,
+                FechaReserva = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified),
+                Estado = "activa"
+            };
+            _context.ReservasViaje.Add(reserva);
+
+            try
+            {
+                await _context.SaveChangesAsync();
+                await transaccion.CommitAsync();
+            }
+            catch (DbUpdateException)
+            {
+                await transaccion.RollbackAsync();
+                return Conflict("No se pudo reservar el viaje porque ya no está disponible.");
+            }
+
+            return Ok(CrearReservaDTO(reserva, viaje));
+        }
+
         // PUT: api/Viajes/5
         [HttpPut("{id_viaje:long}")]
         public async Task<IActionResult> PutViaje(long id_viaje, ViajeCreateDTO viajeUpdate)
@@ -178,6 +264,24 @@ namespace Backend.Controllers
         private bool ViajeExists(long id_viaje)
         {
             return _context.Viajes.Any(e => e.IdViaje == id_viaje);
+        }
+
+        private static ReservaViajeDTO CrearReservaDTO(ReservaViaje reserva, Viaje viaje)
+        {
+            return new ReservaViajeDTO
+            {
+                IdReserva = reserva.IdReserva,
+                IdViaje = viaje.IdViaje,
+                IdPasajero = reserva.IdPasajero,
+                Origen = viaje.Origen ?? viaje.Ruta?.Origen,
+                Destino = viaje.Destino ?? viaje.Ruta?.Destino,
+                FechaHoraSalida = viaje.FechaHoraSalida,
+                Costo = viaje.Costo,
+                IdConductor = viaje.IdConductor,
+                NombreConductor = string.Join(" ",
+                    new[] { viaje.Usuario.PrimerNombre, viaje.Usuario.PrimerApellido }
+                        .Where(nombre => !string.IsNullOrWhiteSpace(nombre)))
+            };
         }
 
         // La columna PostgreSQL es timestamp without time zone. Npgsql exige

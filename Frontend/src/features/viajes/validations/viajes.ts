@@ -200,8 +200,14 @@ export function puedeAceptarViaje(
   idUsuario: string,
   validacionCompletada: boolean,
   tieneViajePublicado: boolean | null,
+  tieneViajeEnCurso = false,
 ) {
-  return Boolean(idUsuario) && validacionCompletada && tieneViajePublicado === false;
+  return (
+    Boolean(idUsuario) &&
+    validacionCompletada &&
+    tieneViajePublicado === false &&
+    !tieneViajeEnCurso
+  );
 }
 
 /**

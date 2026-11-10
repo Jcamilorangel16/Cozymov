@@ -7,10 +7,10 @@ import { formatearFecha, formatearPrecio } from "../utils/viajes";
 
 /**
  * Muestra filtros de viaje y resultados de búsqueda.
- * @param {{onEnviarMensaje?: (contacto: {id: string, nombre: string}) => void}} props Acción para abrir el chat con el conductor.
+ * @param {{onEnviarMensaje?: (contacto: {id: string, nombre: string}) => void, onNavigate?: (id: string) => void}} props Acciones para el chat y la navegación.
  * @returns Interfaz de búsqueda de viajes.
  */
-export default function BuscarViajes({ onEnviarMensaje }) {
+export default function BuscarViajes({ onEnviarMensaje, onNavigate }) {
   const {
     origen,
     setOrigen,
@@ -23,11 +23,14 @@ export default function BuscarViajes({ onEnviarMensaje }) {
     busquedaRealizada,
     error,
     tieneViajePublicado,
+    tieneViajeEnCurso,
     validacionCompletada,
     idUsuario,
     eliminandoViajeId,
+    aceptandoViajeId,
     handleBuscar,
     handleEliminarViaje,
+    handleAceptarViaje,
   } = useBuscarViajes();
 
   return (
@@ -160,20 +163,34 @@ export default function BuscarViajes({ onEnviarMensaje }) {
                           <button
                             className="btn btn-success"
                             type="button"
-                            disabled={!puedeAceptarViaje(
-                              idUsuario,
-                              validacionCompletada,
-                              tieneViajePublicado,
-                            )}
+                            disabled={
+                              !puedeAceptarViaje(
+                                idUsuario,
+                                validacionCompletada,
+                                tieneViajePublicado,
+                                tieneViajeEnCurso,
+                              ) ||
+                              aceptandoViajeId === viaje.id_viaje ||
+                              Number(viaje.cupos_disponibles) < 1
+                            }
+                            onClick={() =>
+                              handleAceptarViaje(viaje, () => onNavigate?.("en-curso"))
+                            }
                             title={
                               !idUsuario
                                 ? "Inicia sesión para poder aceptar un viaje."
                                 : tieneViajePublicado
                                   ? "Ya tienes un viaje publicado."
-                                  : undefined
+                                  : tieneViajeEnCurso
+                                    ? "Ya tienes un viaje en curso."
+                                    : Number(viaje.cupos_disponibles) < 1
+                                      ? "Este viaje ya no tiene cupos disponibles."
+                                      : undefined
                             }
                           >
-                            Aceptar viaje
+                            {aceptandoViajeId === viaje.id_viaje
+                              ? "Aceptando..."
+                              : "Aceptar viaje"}
                           </button>
                           {!idUsuario && (
                             <small className="texto-secundario ms-2">
@@ -183,6 +200,11 @@ export default function BuscarViajes({ onEnviarMensaje }) {
                           {tieneViajePublicado && (
                             <small className="texto-secundario ms-2">
                               Solo puedes aceptar un viaje si no tienes uno publicado.
+                            </small>
+                          )}
+                          {tieneViajeEnCurso && (
+                            <small className="texto-secundario ms-2">
+                              Ya tienes un viaje en curso.
                             </small>
                           )}
                           {idUsuario && !validacionCompletada && (
