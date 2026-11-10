@@ -24,7 +24,9 @@ export default function BuscarViajes() {
     tieneViajePublicado,
     validacionCompletada,
     idUsuario,
+    eliminandoViajeId,
     handleBuscar,
+    handleEliminarViaje,
   } = useBuscarViajes();
 
   return (
@@ -125,6 +127,18 @@ export default function BuscarViajes() {
                           </div>
                         )}
                         <div className="col-12 mt-2">
+                          {idUsuario && String(viaje.id_usuario) === idUsuario && (
+                            <button
+                              className="btn btn-outline-danger me-2"
+                              type="button"
+                              disabled={eliminandoViajeId === viaje.id_viaje}
+                              onClick={() => handleEliminarViaje(viaje)}
+                            >
+                              {eliminandoViajeId === viaje.id_viaje
+                                ? "Eliminando..."
+                                : "Eliminar viaje"}
+                            </button>
+                          )}
                           <button
                             className="btn btn-success"
                             type="button"
