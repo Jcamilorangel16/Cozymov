@@ -60,7 +60,7 @@ function mapearMensaje(valor: unknown): Registro | null {
 
 function obtenerUrlApi(): string | null {
 	const apiUrl = process.env.VITE_API_URL;
-	return apiUrl ? `${apiUrl.replace(/\/+$/, "")}/Mensajes` : null;
+	return apiUrl ? `${apiUrl.replace(/\/+$/, "")}/api/Mensajes` : null;
 }
 
 async function responderErrorApi(respuesta: Response, mensaje: string) {

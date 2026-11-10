@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Swal from "sweetalert2";
 import { consultarViajes, ordenarViajesPorSimilitud } from "../utils/viajes";
 import { useSessionUserId } from "../../../hooks/useSessionUserId";
 
@@ -22,6 +23,7 @@ export function useBuscarViajes() {
   // Estado necesario para habilitar aceptar un viaje.
   const [tieneViajePublicado, setTieneViajePublicado] = useState(null);
   const [validacionCompletada, setValidacionCompletada] = useState(false);
+  const [eliminandoViajeId, setEliminandoViajeId] = useState(null);
   const idUsuario = useSessionUserId();
 
   useEffect(() => {
@@ -96,6 +98,54 @@ export function useBuscarViajes() {
     }
   }
 
+  async function handleEliminarViaje(viaje) {
+    const idViaje = viaje.id_viaje;
+    if (!idUsuario || String(viaje.id_usuario) !== idUsuario) {
+      setError("Solo puedes eliminar un viaje que hayas publicado.");
+      return;
+    }
+
+    const confirmacion = await Swal.fire({
+      icon: "warning",
+      title: "¿Eliminar este viaje?",
+      text: "Esta acción no se puede deshacer.",
+      showCancelButton: true,
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Cancelar",
+      confirmButtonColor: "#dc3545",
+      reverseButtons: true,
+    });
+    if (!confirmacion.isConfirmed) return;
+
+    setEliminandoViajeId(idViaje);
+    setError("");
+    try {
+      const respuesta = await fetch(
+        `/api/viajes?id_viaje=${encodeURIComponent(idViaje)}`,
+        { method: "DELETE" },
+      );
+      const resultado = await respuesta.json();
+      if (!respuesta.ok) {
+        throw new Error(resultado.error || "No se pudo eliminar el viaje.");
+      }
+
+      setViajes((viajesActuales) =>
+        viajesActuales.filter((viajeActual) => viajeActual.id_viaje !== idViaje),
+      );
+      setTieneViajePublicado(false);
+      void Swal.fire({
+        icon: "success",
+        title: "Viaje eliminado",
+        text: "El viaje se eliminó correctamente.",
+      });
+    } catch (errorEliminacion) {
+      console.error("No se pudo eliminar el viaje:", errorEliminacion);
+      setError(errorEliminacion.message || "No se pudo eliminar el viaje.");
+    } finally {
+      setEliminandoViajeId(null);
+    }
+  }
+
   return {
     origen,
     setOrigen,
@@ -110,6 +160,8 @@ export function useBuscarViajes() {
     tieneViajePublicado,
     validacionCompletada,
     idUsuario,
+    eliminandoViajeId,
     handleBuscar,
+    handleEliminarViaje,
   };
 }

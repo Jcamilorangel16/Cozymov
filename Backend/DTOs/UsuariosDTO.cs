@@ -29,10 +29,6 @@
         public string rol { get; set; }
         public DateTime fechaderegistro { get; set; } 
 
-
-
-
-
     }
     public class UsuariosCreateDTO
     {
