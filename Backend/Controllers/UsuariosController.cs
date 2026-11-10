@@ -38,59 +38,6 @@ public class UsuariosController : ControllerBase
         }).ToListAsync();
     }
 
-    // GET: api/Usuarios/contactos?yo=1&q=ana
-    [HttpGet("contactos")]
-    public async Task<ActionResult<IEnumerable<MensajeContactoDTO>>> GetContactos(
-        [FromQuery] int yo,
-        [FromQuery] string? q)
-    {
-        if (yo <= 0)
-        {
-            return BadRequest("Falta un identificador de usuario válido.");
-        }
-
-        var consulta = _context.Usuarios
-            .AsNoTracking()
-            .Where(u => u.IdPersonas != yo);
-
-        var termino = q?.Trim();
-        if (!string.IsNullOrEmpty(termino))
-        {
-            consulta = consulta.Where(u =>
-                u.PrimerNombre.Contains(termino) ||
-                u.SegundoNombre.Contains(termino) ||
-                u.PrimerApellido.Contains(termino) ||
-                u.SegundoApellido.Contains(termino));
-        }
-
-        var usuarios = await consulta
-            .OrderBy(u => u.PrimerNombre)
-            .ThenBy(u => u.PrimerApellido)
-            .Select(u => new
-            {
-                u.IdPersonas,
-                u.PrimerNombre,
-                u.SegundoNombre,
-                u.PrimerApellido,
-                u.SegundoApellido,
-                u.ocupacion
-            })
-            .ToListAsync();
-
-        return usuarios.Select(u => new MensajeContactoDTO
-        {
-            IdPersonas = u.IdPersonas,
-            Nombre = string.Join(" ", new[]
-            {
-                u.PrimerNombre,
-                u.SegundoNombre,
-                u.PrimerApellido,
-                u.SegundoApellido
-            }.Where(nombre => !string.IsNullOrWhiteSpace(nombre))),
-            Ocupacion = u.ocupacion
-        }).ToList();
-    }
-
     // GET: api/Usuarios/5
     [HttpGet("{idpersonas}")]
     public async Task<ActionResult<UsuariosDTO>> GetUsuarios(int Id)
