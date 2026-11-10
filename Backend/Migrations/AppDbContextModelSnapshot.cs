@@ -267,7 +267,7 @@ namespace Backend.Migrations
                         .HasColumnType("character varying(20)")
                         .HasColumnName("id_conductor");
 
-                    b.Property<long>("IdRuta")
+                    b.Property<long?>("IdRuta")
                         .HasColumnType("bigint")
                         .HasColumnName("id_ruta");
 
@@ -351,8 +351,7 @@ namespace Backend.Migrations
                     b.HasOne("Backend.Models.Ruta", "Ruta")
                         .WithMany("Viajes")
                         .HasForeignKey("IdRuta")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Backend.Models.Usuarios", "Usuario")
                         .WithMany("Viajes")

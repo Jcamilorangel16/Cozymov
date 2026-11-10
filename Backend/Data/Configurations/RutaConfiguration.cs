@@ -28,6 +28,7 @@ public sealed class RutaConfiguration : IEntityTypeConfiguration<Ruta>
             .WithOne(v => v.Ruta)
             .HasForeignKey(v => v.IdRuta)
             .HasPrincipalKey(r => r.IdRuta)
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }
