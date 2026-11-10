@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Swal from "sweetalert2";
+import Logo from "../../components/Logo";
 
 export default function RecuperarContrasenaView() {
   const router = useRouter();
@@ -81,6 +82,9 @@ export default function RecuperarContrasenaView() {
   return (
     <div className="container min-vh-100 d-flex justify-content-center align-items-center">
       <div className="card shadow p-4 color-card" style={{ maxWidth: "450px", width: "100%" }}>
+        <div className="d-flex justify-content-center mb-3">
+          <Logo />
+        </div>
         <h3 className="text-center mb-3 fw-bold">Recuperar Contraseña</h3>
 
         {error && <div className="alert alert-danger py-2 small">{error}</div>}

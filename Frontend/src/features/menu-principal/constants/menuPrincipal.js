@@ -1,11 +1,11 @@
 // Define enlaces y contenido de muestra utilizado por el panel principal.
 
 export const enlacesMenu = [
-  { id: "inicio", label: "Inicio" },
-  { id: "buscar", label: "Buscar" },
-  { id: "ofrecer", label: "Ofrecer Viaje" },
-  { id: "mensajes", label: "Mensajes" },
-  { id: "en-curso", label: "En Curso" },
+  { id: "inicio", label: "Inicio", icono: "⌂" },
+  { id: "buscar", label: "Buscar", icono: "⌕" },
+  { id: "ofrecer", label: "Ofrecer viaje", icono: "+" },
+  { id: "mensajes", label: "Mensajes", icono: "✉" },
+  { id: "en-curso", label: "En curso", icono: "◷" },
 ];
 
 export const viajesDestacados = [

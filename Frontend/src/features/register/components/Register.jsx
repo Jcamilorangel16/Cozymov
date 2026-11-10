@@ -3,6 +3,7 @@
 
 import DatosPersonalesRegistro from "./DatosPersonalesRegistro";
 import CredencialesRegistro from "./CredencialesRegistro";
+import Logo from "../../../components/Logo";
 import { useRegisterForm } from "../hooks/useRegisterForm";
 import "../styles/register.css";
 
@@ -30,7 +31,9 @@ export default function Register() {
   return (
     <div className="register-page d-flex justify-content-center align-items-center min-vh-100">
       <div className="card shadow rounded-4 p-4 register-card">
-        <h2 className="display-6 text-center fw-bold text-primary mb-3">Cozymov</h2>
+        <div className="d-flex justify-content-center mb-3">
+          <Logo className="cozymov-logo-lg" />
+        </div>
         <h1 className="text-center mb-3">Crear cuenta</h1>
         <h5 className="text-center text-muted mb-4">Únete a nosotros y empieza tu viaje</h5>
 

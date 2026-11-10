@@ -1,4 +1,4 @@
-// Muestra el panel inicial con viajes destacados y actividad reciente.
+// Muestra rutas destacadas, actividad y accesos rápidos del panel inicial.
 import {
   feedNotificaciones,
   proximosViajes,
@@ -12,105 +12,161 @@ import {
  */
 export default function PanelInicio({ onNavigate }) {
   return (
-    <div className="vista">
-      <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-        <h3 className="mb-0 letra-contenido">Tu Panel de Control</h3>
-
-        <div className="d-flex flex-wrap gap-2">
-          <div className="input-group" style={{ width: 200 }}>
-            <span className="input-group-text" aria-hidden="true">🔍</span>
-            <input type="text" className="form-control" placeholder="Origen..." />
-          </div>
-
-          <div className="input-group" style={{ width: 170 }}>
-            <span className="input-group-text" aria-hidden="true">📅</span>
-            <input type="date" className="form-control" aria-label="Fecha del viaje" />
-          </div>
-
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => onNavigate("ofrecer")}
-          >
-            + Ofrecer viaje
-          </button>
+    <div className="vista dashboard-view">
+      <section className="dashboard-heading">
+        <div>
+          <span className="dashboard-eyebrow">TU ESPACIO DE MOVILIDAD</span>
+          <h1>¡Hola! ¿A dónde vamos hoy?</h1>
+          <p>Encuentra un trayecto o comparte el tuyo con la comunidad.</p>
         </div>
-      </div>
+        <button
+          type="button"
+          className="dashboard-primary-action"
+          onClick={() => onNavigate("ofrecer")}
+        >
+          <span aria-hidden="true">+</span> Ofrecer viaje
+        </button>
+      </section>
 
-      <div className="row g-4">
-        <div className="col-md-8">
-          <h5 className="mb-3 letra-contenido fw-bold">Viajes para ti</h5>
-          <div className="d-flex flex-column gap-3">
+      <section className="dashboard-welcome">
+        <div>
+          <span className="dashboard-welcome-label">MUÉVETE A TU MANERA</span>
+          <h2>Un buen viaje empieza encontrando tu ruta.</h2>
+          <p>
+            Explora los viajes disponibles o publica uno para compartir gastos
+            en el camino.
+          </p>
+          <div className="dashboard-welcome-actions">
+            <button type="button" onClick={() => onNavigate("buscar")}>
+              Buscar viajes <span aria-hidden="true">→</span>
+            </button>
+            <button
+              type="button"
+              className="dashboard-secondary-action"
+              onClick={() => onNavigate("ofrecer")}
+            >
+              Publicar un viaje
+            </button>
+          </div>
+        </div>
+        <div className="dashboard-welcome-art" aria-hidden="true">
+          <span className="dashboard-route-line" />
+          <span className="dashboard-route-point dashboard-route-point-start" />
+          <span className="dashboard-route-point dashboard-route-point-end" />
+          <span className="dashboard-route-car">↗</span>
+        </div>
+      </section>
+
+      <div className="dashboard-content-grid">
+        <section className="dashboard-routes">
+          <div className="dashboard-section-heading">
+            <div>
+              <span className="dashboard-section-kicker">DESCUBRE OPCIONES</span>
+              <h2>Rutas destacadas</h2>
+            </div>
+            <button type="button" onClick={() => onNavigate("buscar")}>
+              Ver viajes <span aria-hidden="true">→</span>
+            </button>
+          </div>
+
+          <div className="dashboard-route-list">
             {viajesDestacados.map((viaje) => (
-              <article className="viaje-item" key={viaje.ruta}>
-                <div className="viaje-hora">
-                  <span className="viaje-hora-valor">{viaje.hora}</span>
-                  <small className="texto-secundario">{viaje.dia}</small>
+              <article className="dashboard-route-card" key={`${viaje.hora}-${viaje.ruta}`}>
+                <div className="dashboard-route-time">
+                  <strong>{viaje.hora}</strong>
+                  <span>{viaje.dia}</span>
                 </div>
-
-                <div className="viaje-info">
-                  <div className="fw-semibold letra-contenido">{viaje.ruta}</div>
-                  <span
-                    className={`viaje-cupos${viaje.cupos === 1 ? " viaje-cupos-ultimo" : ""}`}
-                  >
+                <div className="dashboard-route-copy">
+                  <h3>{viaje.ruta}</h3>
+                  <span className="dashboard-seat-badge">
                     {viaje.cupos === 1
-                      ? "Última plaza"
-                      : `${viaje.cupos} plazas libres`}
+                      ? "Último cupo"
+                      : `${viaje.cupos} cupos disponibles`}
                   </span>
                 </div>
-
                 <button
                   type="button"
-                  className="btn-reservar"
+                  className="dashboard-route-open"
+                  aria-label={`Buscar viaje: ${viaje.ruta}`}
                   onClick={() => onNavigate("buscar")}
                 >
-                  Buscar viaje
+                  →
                 </button>
               </article>
             ))}
           </div>
-        </div>
+        </section>
 
-        <div className="col-md-4">
-          <section className="panel-lateral mb-4">
-            <h5 className="letra-contenido fw-bold mb-3">Tu próximo viaje</h5>
+        <aside className="dashboard-aside">
+          <section className="dashboard-next-card">
+            <div className="dashboard-section-heading">
+              <div>
+                <span className="dashboard-section-kicker">EN TU AGENDA</span>
+                <h2>Próximo viaje</h2>
+              </div>
+              <span className="dashboard-calendar-icon" aria-hidden="true">◷</span>
+            </div>
             {proximosViajes[0] && (
-              <div className="proximo-destacado">
-                <small className="proximo-dia">{proximosViajes[0].horario}</small>
-                <div className="fw-bold letra-contenido">
-                  {proximosViajes[0].ruta}
-                </div>
+              <div className="dashboard-next-trip">
+                <span>{proximosViajes[0].horario}</span>
+                <strong>{proximosViajes[0].ruta}</strong>
               </div>
             )}
             {proximosViajes[1] && (
-              <div className="d-flex align-items-end gap-2 mt-3">
-                <small className="texto-secundario">
-                  Después: {proximosViajes[1].horario}
-                  <br />
-                  {proximosViajes[1].ruta}
-                </small>
-              </div>
+              <p className="dashboard-next-later">
+                Después: {proximosViajes[1].horario} · {proximosViajes[1].ruta}
+              </p>
             )}
+            <button
+              type="button"
+              className="dashboard-text-action"
+              onClick={() => onNavigate("en-curso")}
+            >
+              Ver mis viajes <span aria-hidden="true">→</span>
+            </button>
           </section>
 
-          <h5 className="mb-3 letra-contenido fw-bold">Actividad reciente</h5>
-          <div className="d-flex flex-column gap-2">
-            {feedNotificaciones.map((item, indice) => (
-              <div className="actividad-item" key={`${item.texto}-${indice}`}>
-                <span className="actividad-icono" aria-hidden="true">
-                  {item.icono}
-                </span>
-                <div>
-                  <div className="fw-semibold letra-contenido small">
-                    {item.texto}
-                  </div>
-                  <small className="texto-secundario">{item.detalle}</small>
-                </div>
+          <section className="dashboard-activity">
+            <div className="dashboard-section-heading">
+              <div>
+                <span className="dashboard-section-kicker">AL DÍA</span>
+                <h2>Actividad reciente</h2>
               </div>
-            ))}
-          </div>
-        </div>
+            </div>
+            <div className="dashboard-activity-list">
+              {feedNotificaciones.map((item, indice) => (
+                <div className="dashboard-activity-item" key={`${item.texto}-${indice}`}>
+                  <span className="dashboard-activity-icon" aria-hidden="true">
+                    {item.icono}
+                  </span>
+                  <div>
+                    <strong>{item.texto}</strong>
+                    <span>{item.detalle}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        </aside>
       </div>
+
+      <section className="dashboard-quick-actions" aria-label="Accesos rápidos">
+        <button type="button" onClick={() => onNavigate("buscar")}>
+          <span aria-hidden="true">⌕</span>
+          <span><strong>Buscar un viaje</strong><small>Explora las rutas disponibles</small></span>
+          <span className="dashboard-quick-arrow" aria-hidden="true">→</span>
+        </button>
+        <button type="button" onClick={() => onNavigate("ofrecer")}>
+          <span aria-hidden="true">↗</span>
+          <span><strong>Compartir mi ruta</strong><small>Publica un nuevo trayecto</small></span>
+          <span className="dashboard-quick-arrow" aria-hidden="true">→</span>
+        </button>
+        <button type="button" onClick={() => onNavigate("mensajes")}>
+          <span aria-hidden="true">✉</span>
+          <span><strong>Ver mensajes</strong><small>Continúa tus conversaciones</small></span>
+          <span className="dashboard-quick-arrow" aria-hidden="true">→</span>
+        </button>
+      </section>
     </div>
   );
 }

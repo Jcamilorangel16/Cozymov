@@ -1,5 +1,6 @@
 // Presenta el cabezal de navegación y el acceso a la configuración del perfil.
 import PerfilConfiguracion from "../../perfil-configuracion/components/PerfilConfiguracion";
+import Logo from "../../../components/Logo";
 import { enlacesMenu } from "../constants/menuPrincipal";
 
 /**
@@ -10,9 +11,7 @@ import { enlacesMenu } from "../constants/menuPrincipal";
 export default function SidebarMenu({ vistaActiva, onNavigate }) {
   return (
     <header className="topbar">
-      <div className="brand-logo">
-        <h2>Cozymov</h2>
-      </div>
+      <Logo caption="Movilidad compartida" className="brand-logo" />
 
       <nav className="topbar-nav" aria-label="Navegación principal">
         <ul className="nav">
@@ -27,7 +26,8 @@ export default function SidebarMenu({ vistaActiva, onNavigate }) {
                   onNavigate(enlace.id);
                 }}
               >
-                {enlace.label}
+                <span className="nav-icon" aria-hidden="true">{enlace.icono}</span>
+                <span className="nav-label">{enlace.label}</span>
               </a>
             </li>
           ))}

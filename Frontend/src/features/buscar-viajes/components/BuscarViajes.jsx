@@ -1,6 +1,7 @@
 // Presenta el formulario de búsqueda y los viajes activos disponibles.
 "use client";
 
+import "../styles/buscar-viajes.css";
 import { puedeAceptarViaje } from "../../viajes/validations/viajes";
 import { useBuscarViajes } from "../hooks/useBuscarViajes";
 import { formatearFecha, formatearPrecio } from "../utils/viajes";
@@ -31,10 +32,16 @@ export default function BuscarViajes({ onEnviarMensaje }) {
   } = useBuscarViajes();
 
   return (
-    <div className="container py-4">
-      <div className="card shadow-lg border-0 rounded-4">
+    <div className="search-view container py-4">
+      <header className="search-heading">
+        <span className="search-eyebrow">TU PRÓXIMO TRAYECTO</span>
+        <h1>Encuentra tu viaje</h1>
+        <p>Busca rutas compartidas y encuentra una opción que se ajuste a tu día.</p>
+      </header>
+
+      <div className="card search-filter-card border-0">
         <div className="card-body p-4">
-          <h2 className="text-center mb-4"> Buscar Viajes</h2>
+          <h2 className="search-filter-title">¿A dónde quieres ir?</h2>
 
           <form onSubmit={handleBuscar}>
             <div className="row g-3">
@@ -76,121 +83,161 @@ export default function BuscarViajes({ onEnviarMensaje }) {
               </div>
             </div>
 
-            <div className="d-grid mt-4">
-              <button className="btn btn-primary btn-lg" type="submit" disabled={buscando}>
+            <div className="d-flex justify-content-end mt-4">
+              <button className="btn search-submit" type="submit" disabled={buscando}>
                 {buscando ? "Buscando..." : "Buscar Viajes"}
+                <span aria-hidden="true">→</span>
               </button>
             </div>
           </form>
         </div>
       </div>
 
-      <section className="mt-4" aria-live="polite">
+      <section className="search-results mt-4" aria-live="polite">
         {buscando && <p className="text-center" role="status">Consultando viajes...</p>}
         {error && <div className="alert alert-danger" role="alert">{error}</div>}
         {busquedaRealizada && (
           <>
-            <h3 className="h5 mb-3">
-              {viajes.length} {viajes.length === 1 ? "viaje encontrado" : "viajes encontrados"}
-            </h3>
+            <div className="search-results-heading">
+              <div>
+                <span className="search-eyebrow">OPCIONES PARA TI</span>
+                <h2>
+                  {viajes.length} {viajes.length === 1 ? "viaje encontrado" : "viajes encontrados"}
+                </h2>
+              </div>
+              <button
+                type="button"
+                className="search-adjust-button"
+                onClick={() => document.getElementById("buscar-origen")?.focus()}
+              >
+                <span aria-hidden="true">☷</span> Ajustar búsqueda
+              </button>
+            </div>
             {viajes.length === 0 ? (
-              <p className="texto-secundario">No se encontraron viajes activos con esos filtros.</p>
+              <div className="search-empty-state">
+                <span aria-hidden="true">⌕</span>
+                <h3>No encontramos viajes con esos filtros</h3>
+                <p>Prueba con otro origen, destino o fecha para ver más opciones.</p>
+              </div>
             ) : (
-              <div className="d-flex flex-column gap-3">
+              <div className="search-result-list">
                 {viajes.map((viaje) => (
-                  <article className="card color-card border-0 shadow-sm" key={viaje.id_viaje}>
+                  <article className="card search-result-card border-0" key={viaje.id_viaje}>
                     <div className="card-body">
-                      <div className="d-flex flex-wrap justify-content-between gap-2">
-                        <h4 className="h5 mb-1">
+                      <div className="search-result-route-row">
+                        <div className="search-result-route">
+                          <span className="search-route-point" aria-hidden="true">●</span>
+                          <div>
+                            <span className="search-route-caption">RUTA DEL VIAJE</span>
+                            <h3>
                           {viaje.origen} <span aria-hidden="true">→</span> {viaje.destino}
-                        </h4>
-                        <strong>{formatearPrecio(viaje.precio_pasaje)}</strong>
-                      </div>
-                      <p className="texto-secundario mb-3">
-                        Conductor: {[viaje.primer_nombre, viaje.primer_apellido]
-                          .filter(Boolean)
-                          .join(" ") || "No disponible"}
-                      </p>
-                      <div className="row g-2">
-                        <div className="col-sm-6">
-                          <strong>Salida:</strong> {formatearFecha(viaje.fecha_salida)}
-                          {viaje.hora_salida && ` · ${String(viaje.hora_salida).slice(0, 5)}`}
-                        </div>
-                        <div className="col-sm-6">
-                          <strong>Punto de encuentro:</strong> {viaje.punto_encuentro}
-                        </div>
-                        <div className="col-sm-6">
-                          <strong>Cupos disponibles:</strong> {viaje.cupos_disponibles}
-                        </div>
-                        {viaje.informacion_adicional && (
-                          <div className="col-12">
-                            <strong>Información adicional:</strong> {viaje.informacion_adicional}
+                            </h3>
                           </div>
+                        </div>
+                        <div className="search-result-price">
+                          <strong>{formatearPrecio(viaje.precio_pasaje)}</strong>
+                          <span>por persona</span>
+                        </div>
+                      </div>
+                      <div className="search-result-driver">
+                        <span className="search-driver-avatar" aria-hidden="true">
+                          {([viaje.primer_nombre, viaje.primer_apellido]
+                            .filter(Boolean)
+                            .map((nombre) => nombre[0])
+                            .join("") || "C").slice(0, 2).toUpperCase()}
+                        </span>
+                        <span>
+                          <small>CONDUCTOR</small>
+                          <strong>
+                            {[viaje.primer_nombre, viaje.primer_apellido]
+                              .filter(Boolean)
+                              .join(" ") || "No disponible"}
+                          </strong>
+                        </span>
+                      </div>
+                      <div className="search-result-details">
+                        <span>
+                          <span aria-hidden="true">◷</span>
+                          {formatearFecha(viaje.fecha_salida)}
+                          {viaje.hora_salida && ` · ${String(viaje.hora_salida).slice(0, 5)}`}
+                        </span>
+                        <span>
+                          <span aria-hidden="true">⌖</span>
+                          {viaje.punto_encuentro}
+                        </span>
+                        <span>
+                          <span aria-hidden="true">♧</span>
+                          {viaje.cupos_disponibles} {viaje.cupos_disponibles === 1 ? "cupo" : "cupos"}
+                        </span>
+                        {viaje.informacion_adicional && (
+                          <span className="search-additional-info">
+                            {viaje.informacion_adicional}
+                          </span>
                         )}
-                        <div className="col-12 mt-2">
-                          {idUsuario && String(viaje.id_usuario) === idUsuario && (
-                            <button
-                              className="btn btn-outline-danger me-2"
-                              type="button"
-                              disabled={eliminandoViajeId === viaje.id_viaje}
-                              onClick={() => handleEliminarViaje(viaje)}
-                            >
-                              {eliminandoViajeId === viaje.id_viaje
-                                ? "Eliminando..."
-                                : "Eliminar viaje"}
-                            </button>
-                          )}
-                          {idUsuario && String(viaje.id_usuario) !== idUsuario && (
-                            <button
-                              className="btn btn-outline-primary me-2"
-                              type="button"
-                              onClick={() =>
-                                onEnviarMensaje?.({
-                                  id: String(viaje.id_usuario),
-                                  nombre:
-                                    [viaje.primer_nombre, viaje.primer_apellido]
-                                      .filter(Boolean)
-                                      .join(" ") || "Conductor",
-                                })
-                              }
-                            >
-                              Enviar mensaje
-                            </button>
-                          )}
+                      </div>
+                      <div className="search-result-actions">
+                        {idUsuario && String(viaje.id_usuario) === idUsuario && (
                           <button
-                            className="btn btn-success"
+                            className="btn btn-outline-danger"
                             type="button"
-                            disabled={!puedeAceptarViaje(
-                              idUsuario,
-                              validacionCompletada,
-                              tieneViajePublicado,
-                            )}
-                            title={
-                              !idUsuario
-                                ? "Inicia sesión para poder aceptar un viaje."
-                                : tieneViajePublicado
-                                  ? "Ya tienes un viaje publicado."
-                                  : undefined
+                            disabled={eliminandoViajeId === viaje.id_viaje}
+                            onClick={() => handleEliminarViaje(viaje)}
+                          >
+                            {eliminandoViajeId === viaje.id_viaje
+                              ? "Eliminando..."
+                              : "Eliminar viaje"}
+                          </button>
+                        )}
+                        {idUsuario && String(viaje.id_usuario) !== idUsuario && (
+                          <button
+                            className="btn search-message-button"
+                            type="button"
+                            onClick={() =>
+                              onEnviarMensaje?.({
+                                id: String(viaje.id_usuario),
+                                nombre:
+                                  [viaje.primer_nombre, viaje.primer_apellido]
+                                    .filter(Boolean)
+                                    .join(" ") || "Conductor",
+                              })
                             }
                           >
-                            Aceptar viaje
+                            Enviar mensaje
                           </button>
-                          {!idUsuario && (
-                            <small className="texto-secundario ms-2">
-                              Inicia sesión para poder aceptar un viaje.
-                            </small>
+                        )}
+                        <button
+                          className="btn search-accept-button"
+                          type="button"
+                          disabled={!puedeAceptarViaje(
+                            idUsuario,
+                            validacionCompletada,
+                            tieneViajePublicado,
                           )}
-                          {tieneViajePublicado && (
-                            <small className="texto-secundario ms-2">
-                              Solo puedes aceptar un viaje si no tienes uno publicado.
-                            </small>
-                          )}
-                          {idUsuario && !validacionCompletada && (
-                            <small className="texto-secundario ms-2" role="status">
-                              Validando tus viajes publicados...
-                            </small>
-                          )}
-                        </div>
+                          title={
+                            !idUsuario
+                              ? "Inicia sesión para poder aceptar un viaje."
+                              : tieneViajePublicado
+                                ? "Ya tienes un viaje publicado."
+                                : undefined
+                          }
+                        >
+                          Aceptar viaje <span aria-hidden="true">→</span>
+                        </button>
+                        {!idUsuario && (
+                          <small className="search-action-note">
+                            Inicia sesión para poder aceptar un viaje.
+                          </small>
+                        )}
+                        {tieneViajePublicado && (
+                          <small className="search-action-note">
+                            Solo puedes aceptar un viaje si no tienes uno publicado.
+                          </small>
+                        )}
+                        {idUsuario && !validacionCompletada && (
+                          <small className="search-action-note" role="status">
+                            Validando tus viajes publicados...
+                          </small>
+                        )}
                       </div>
                     </div>
                   </article>

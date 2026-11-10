@@ -1,26 +1,10 @@
-/*.register-page {
-  min-height: 100vh;
-  background-image: url("/fondoRegister.jpg");
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.register-card {
-  width: min(850px, calc(100% - 2rem));
-  min-height: 600px;
-}*/
-
 .register-page {
   min-height: 100vh;
-  background-color: #85d8e3;
-  background-image: url("/register-background.jpg");
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  padding: 1.5rem 0;
+  background:
+    radial-gradient(ellipse at 12% 12%, rgba(181, 244, 224, 0.55), transparent 34rem),
+    radial-gradient(ellipse at 85% 85%, rgba(216, 226, 255, 0.75), transparent 32rem),
+    #f7f8fc;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -29,42 +13,51 @@
 .register-card {
   width: min(850px, calc(100% - 2rem));
   min-height: 600px;
-  background-color: #fbfaf8;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  background-color: #fff;
+  box-shadow: 0 24px 70px rgba(24, 54, 43, 0.1) !important;
 }
 
 .register-card h1 {
-  color: #0b1922;
+  color: var(--cozymov-ink);
 }
 
 .register-card h2 {
-  color: #4ec1ed !important;
+  color: var(--cozymov-primary) !important;
 }
 
 .register-card h5 {
-  color: #0b1922;
+  color: var(--cozymov-muted);
 }
 
 .register-card .form-control {
-  border: 2px solid #4ec1ed;
+  min-height: 2.8rem;
+  border: 1px solid var(--cozymov-border);
+  border-radius: 0.7rem;
+  background: #f8f9fc;
 }
 
 .register-card .form-control:focus {
-  border-color: #4fe8e0;
-  box-shadow: 0 0 0 0.2rem rgba(79, 232, 224, 0.25);
+  border-color: #31b789;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.13);
 }
 
 #siguiente {
-  background-color: #4ec1ed;
-  border-color: #4ec1ed;
-  color: #0b1922;
+  border-color: var(--cozymov-primary);
+  border-radius: 0.7rem;
+  background-color: var(--cozymov-primary);
+  color: #fff;
 }
 
 #siguiente:hover {
-  background-color: #73c5e5;
-  border-color: #3a7394;
+  border-color: var(--cozymov-primary-dark);
+  background-color: var(--cozymov-primary-dark);
 }
 
 #volver {
-  background-color: #fbfaf8;
-  color: #0b1922;
+  border-color: var(--cozymov-border);
+  border-radius: 0.7rem;
+  background-color: #f8f9fc;
+  color: var(--cozymov-ink);
 }

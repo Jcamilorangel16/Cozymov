@@ -1,0 +1,44 @@
+/* Estilos compartidos del isotipo y logotipo de Cozymov. */
+.cozymov-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    color: var(--cozymov-ink);
+}
+
+.cozymov-logo-mark {
+    width: 2.5rem;
+    height: 2.5rem;
+    flex: 0 0 auto;
+    display: block;
+    color: var(--cozymov-primary);
+}
+
+.cozymov-logo-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.1;
+}
+
+.cozymov-logo-name {
+    color: var(--cozymov-ink);
+    font-size: 1.15rem;
+    font-weight: 750;
+    letter-spacing: -0.04em;
+}
+
+.cozymov-logo-caption {
+    display: block;
+    margin-top: 0.05rem;
+    color: var(--cozymov-muted);
+    font-size: 0.68rem;
+}
+
+.cozymov-logo-lg .cozymov-logo-mark {
+    width: 3rem;
+    height: 3rem;
+}
+
+.cozymov-logo-lg .cozymov-logo-name {
+    font-size: 1.75rem;
+}
