@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Swal from "sweetalert2";
 import { formatearFecha, formatearPrecio } from "../../buscar-viajes/utils/viajes";
 import "../styles/viaje-en-curso.css";
 
@@ -14,6 +15,7 @@ export default function ViajeEnCurso({ onNavigate, onMensajeConductor }) {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
   const [intento, setIntento] = useState(0);
+  const [cancelando, setCancelando] = useState(false);
 
   useEffect(() => {
     const controlador = new AbortController();
@@ -84,6 +86,41 @@ export default function ViajeEnCurso({ onNavigate, onMensajeConductor }) {
     onNavigate("mensajes");
   };
 
+  async function salirDelViaje() {
+    const confirmacion = await Swal.fire({
+      icon: "warning",
+      title: "¿Salir del viaje?",
+      text: "Se cancelará tu reserva y el cupo quedará disponible para otra persona.",
+      showCancelButton: true,
+      confirmButtonText: "Sí, salir del viaje",
+      cancelButtonText: "Seguir en el viaje",
+      confirmButtonColor: "#dc3545",
+      reverseButtons: true,
+    });
+    if (!confirmacion.isConfirmed) return;
+
+    setCancelando(true);
+    setError("");
+    try {
+      const respuesta = await fetch("/api/viajes/en-curso", { method: "DELETE" });
+      const resultado = await respuesta.json();
+      if (!respuesta.ok) {
+        throw new Error(resultado.error || "No se pudo salir del viaje.");
+      }
+
+      setViaje(null);
+      await Swal.fire({
+        icon: "success",
+        title: "Reserva cancelada",
+        text: "Has salido del viaje y el cupo quedó disponible.",
+      });
+    } catch (errorCancelacion) {
+      setError(errorCancelacion.message || "No se pudo salir del viaje.");
+    } finally {
+      setCancelando(false);
+    }
+  }
+
   return (
     <div className="row g-4">
       <div className="col-lg-8">
@@ -114,6 +151,15 @@ export default function ViajeEnCurso({ onNavigate, onMensajeConductor }) {
           <button type="button" className="btn btn-primary w-100 mt-3" onClick={escribirAlConductor}>
             💬 Enviar mensaje
           </button>
+          <button
+            type="button"
+            className="btn btn-outline-danger w-100 mt-2"
+            onClick={salirDelViaje}
+            disabled={cancelando}
+          >
+            {cancelando ? "Cancelando reserva..." : "Salir del viaje"}
+          </button>
+          {error && <p className="alert alert-danger mt-3 mb-0" role="alert">{error}</p>}
         </section>
 
         <section className="panel-lateral">

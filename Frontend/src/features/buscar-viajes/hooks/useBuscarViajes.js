@@ -209,7 +209,6 @@ export function useBuscarViajes() {
       });
       alAceptar?.();
     } catch (errorAceptacion) {
-      console.error("No se pudo aceptar el viaje:", errorAceptacion);
       setError(errorAceptacion.message || "No se pudo aceptar el viaje.");
     } finally {
       setAceptandoViajeId(null);

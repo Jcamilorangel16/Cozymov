@@ -212,6 +212,16 @@ namespace Backend.Controllers
                 return BadRequest("El origen y el destino son obligatorios.");
             }
 
+            await using var transaccion = await _context.Database.BeginTransactionAsync();
+            await _context.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT pg_advisory_xact_lock({(long)viajeCreate.IdUsuario})");
+
+            if (await _context.ReservasViaje.AnyAsync(r =>
+                    r.IdPasajero == viajeCreate.IdUsuario && r.Estado == "activa"))
+            {
+                return Conflict("No puedes publicar un viaje mientras tengas uno en curso.");
+            }
+
             var viaje = new Viaje
             {
                 IdConductor = viajeCreate.IdConductor,
@@ -227,6 +237,7 @@ namespace Backend.Controllers
 
             _context.Viajes.Add(viaje);
             await _context.SaveChangesAsync();
+            await transaccion.CommitAsync();
 
             var viajeDto = new ViajeDTO
             {

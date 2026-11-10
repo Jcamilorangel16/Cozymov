@@ -104,3 +104,78 @@ export async function listarViajesActivos(filtros: FiltrosViajes) {
 
   return resultado.rows;
 }
+
+/**
+ * Lista viajes activos con los datos públicos del conductor y su vehículo.
+ * No devuelve correo, documento ni datos de autenticación del conductor.
+ */
+export async function listarViajesPublicos(
+  filtros: FiltrosViajes,
+  opciones: { idUsuario?: string; idViaje?: string } = {},
+) {
+  const valores: (string | number)[] = [];
+  const condiciones = ["LOWER(v.estado) = 'activo'", "v.cupos_disponibles > 0"];
+
+  if (filtros.origen) {
+    valores.push(filtros.origen);
+    condiciones.push(
+      `POSITION(LOWER($${valores.length}) IN LOWER(COALESCE(v.origen, r.origen))) > 0`,
+    );
+  }
+  if (filtros.destino) {
+    valores.push(filtros.destino);
+    condiciones.push(
+      `POSITION(LOWER($${valores.length}) IN LOWER(COALESCE(v.destino, r.destino))) > 0`,
+    );
+  }
+  if (filtros.fecha) {
+    valores.push(filtros.fecha);
+    condiciones.push(`v.fecha_hora_salida::date = $${valores.length}::date`);
+  }
+  if (opciones.idUsuario) {
+    valores.push(Number(opciones.idUsuario));
+    condiciones.push(`v."IdUsuario" = $${valores.length}`);
+  }
+  if (opciones.idViaje) {
+    valores.push(Number(opciones.idViaje));
+    condiciones.push(`v.id_viaje = $${valores.length}`);
+  }
+
+  const resultado = await getDbPool().query(
+    `SELECT
+       v.id_viaje,
+       v."IdUsuario" AS id_usuario,
+       v.id_conductor,
+       v.id_ruta AS id_ruta,
+       COALESCE(v.origen, r.origen) AS origen,
+       COALESCE(v.destino, r.destino) AS destino,
+       to_char(v.fecha_hora_salida, 'YYYY-MM-DD"T"HH24:MI:SS') AS fecha_hora_salida,
+       v.fecha_hora_salida::date AS fecha_salida,
+       to_char(v.fecha_hora_salida, 'HH24:MI:SS') AS hora_salida,
+       v.costo AS precio_pasaje,
+       v.cupos_disponibles,
+       v.estado,
+       concat_ws(' ', u."PrimerNombre", u."SegundoNombre") AS primer_nombre,
+       concat_ws(' ', u."PrimerApellido", u."SegundoApellido") AS primer_apellido,
+       concat_ws(' ', u."PrimerNombre", u."SegundoNombre",
+                 u."PrimerApellido", u."SegundoApellido") AS nombre_conductor,
+       u.ocupacion AS ocupacion_conductor,
+       veh."Tipo" AS tipo_vehiculo,
+       veh."Modelo" AS modelo_vehiculo,
+       veh."Capacidad" AS capacidad_vehiculo,
+       veh."Foto" AS foto_vehiculo,
+       auto.numero_puertas,
+       moto.modalidad AS modalidad_moto
+     FROM viaje v
+     JOIN "Usuarios" u ON u."IdPersonas" = v."IdUsuario"
+     LEFT JOIN ruta r ON r.id_ruta = v.id_ruta
+     LEFT JOIN vehiculo veh ON veh."IdUsuario" = v."IdUsuario"
+     LEFT JOIN automovil auto ON auto.id_vehiculo = veh.id_vehiculo
+     LEFT JOIN moto ON moto.id_vehiculo = veh.id_vehiculo
+     WHERE ${condiciones.join(" AND ")}
+     ORDER BY v.fecha_hora_salida ASC, v.id_viaje ASC`,
+    valores,
+  );
+
+  return resultado.rows;
+}

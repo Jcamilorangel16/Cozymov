@@ -46,6 +46,8 @@ export function useOfrecerViajes({ pasajeroSeleccionado, setMensajeAccion }) {
   const [horaSalida, setHoraSalida] = useState("");
   const [atajoSalida, setAtajoSalida] = useState(String(MINUTOS_POR_DEFECTO_SALIDA));
   const [errorPublicacion, setErrorPublicacion] = useState("");
+  const [estadoViajeEnCurso, setEstadoViajeEnCurso] = useState("cargando");
+  const [intentoViajeEnCurso, setIntentoViajeEnCurso] = useState(0);
   const [viajePublicado, setViajePublicado] = useState(null);
   const [viajeEnEdicion, setViajeEnEdicion] = useState(null);
   const viajeEnEdicionRef = useRef(null);
@@ -58,6 +60,31 @@ export function useOfrecerViajes({ pasajeroSeleccionado, setMensajeAccion }) {
     },
     [],
   );
+
+  useEffect(() => {
+    if (!idUsuario) return;
+    const controlador = new AbortController();
+
+    fetch("/api/viajes/en-curso", { signal: controlador.signal })
+      .then(async (respuesta) => {
+        const resultado = await respuesta.json();
+        if (!respuesta.ok) {
+          throw new Error(resultado.error || "No se pudo validar tu viaje en curso.");
+        }
+        if (!("viaje" in resultado)) {
+          throw new Error("No se pudo validar tu viaje en curso.");
+        }
+        setEstadoViajeEnCurso(resultado.viaje ? "en-curso" : "sin-viaje");
+      })
+      .catch((error) => {
+        if (error.name !== "AbortError") {
+          console.error("No se pudo validar el viaje en curso:", error);
+          setEstadoViajeEnCurso("error");
+        }
+      });
+
+    return () => controlador.abort();
+  }, [idUsuario, intentoViajeEnCurso]);
 
   useEffect(() => {
     if (!idUsuario) return;
@@ -228,6 +255,15 @@ export function useOfrecerViajes({ pasajeroSeleccionado, setMensajeAccion }) {
    */
   async function publicarViaje(evento) {
     evento.preventDefault();
+    if (estadoViajeEnCurso !== "sin-viaje") {
+      setErrorPublicacion(
+        estadoViajeEnCurso === "en-curso"
+          ? "No puedes publicar un viaje mientras tengas uno en curso."
+          : "Espera a que se valide si tienes un viaje en curso.",
+      );
+      return;
+    }
+
     const errorPermiso = validarPermisoPublicarViaje(
       idUsuario,
       vehiculoGuardado?.id_vehiculo,
@@ -343,6 +379,11 @@ export function useOfrecerViajes({ pasajeroSeleccionado, setMensajeAccion }) {
     setIntentoConsulta((intento) => intento + 1);
   }
 
+  function reintentarValidacionViajeEnCurso() {
+    setEstadoViajeEnCurso("cargando");
+    setIntentoViajeEnCurso((intento) => intento + 1);
+  }
+
   /**
    * Restaura los valores del viaje publicado en el formulario.
    * @returns {void}
@@ -428,12 +469,14 @@ export function useOfrecerViajes({ pasajeroSeleccionado, setMensajeAccion }) {
     setAtajoSalida,
     errorPublicacion,
     setErrorPublicacion,
+    estadoViajeEnCurso,
     viajePublicado,
     editandoViaje: viajeEnEdicion !== null,
     cambiarCampoVehiculo,
     guardarVehiculo,
     publicarViaje,
     reintentarConsulta,
+    reintentarValidacionViajeEnCurso,
     editarViajePublicado,
     prepararOtroViaje,
     aceptarPasajero,
