@@ -4,3 +4,9 @@ GET {{Backend_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+
+### Usuarios disponibles para iniciar un chat (omite al usuario actual y filtra por nombre)
+GET {{Backend_HostAddress}}/api/Mensajes/contactos?yo=1&q=ana
+Accept: application/json
+
+###
