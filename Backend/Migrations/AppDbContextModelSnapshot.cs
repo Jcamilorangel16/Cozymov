@@ -104,6 +104,48 @@ namespace Backend.Migrations
                     b.ToTable("moto", (string)null);
                 });
 
+            modelBuilder.Entity("Backend.Models.Ruta", b =>
+                {
+                    b.Property<long>("IdRuta")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id_ruta");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("IdRuta"));
+
+                    b.Property<string>("Destino")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("destino");
+
+                    b.Property<decimal>("LatDestino")
+                        .HasColumnType("numeric(9,6)")
+                        .HasColumnName("lat_destino");
+
+                    b.Property<decimal>("LatOrigen")
+                        .HasColumnType("numeric(9,6)")
+                        .HasColumnName("lat_origen");
+
+                    b.Property<decimal>("LonDestino")
+                        .HasColumnType("numeric(9,6)")
+                        .HasColumnName("lon_destino");
+
+                    b.Property<decimal>("LonOrigen")
+                        .HasColumnType("numeric(9,6)")
+                        .HasColumnName("lon_origen");
+
+                    b.Property<string>("Origen")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("origen");
+
+                    b.HasKey("IdRuta");
+
+                    b.ToTable("ruta", (string)null);
+                });
+
             modelBuilder.Entity("Backend.Models.Usuarios", b =>
                 {
                     b.Property<int>("IdPersonas")
@@ -229,10 +271,12 @@ namespace Backend.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("id_ruta");
 
-                    b.Property<int?>("IdUsuario")
+                    b.Property<int>("IdUsuario")
                         .HasColumnType("integer");
 
                     b.HasKey("IdViaje");
+
+                    b.HasIndex("IdRuta");
 
                     b.HasIndex("IdUsuario");
 
@@ -304,12 +348,26 @@ namespace Backend.Migrations
 
             modelBuilder.Entity("Backend.Models.Viaje", b =>
                 {
+                    b.HasOne("Backend.Models.Ruta", "Ruta")
+                        .WithMany("Viajes")
+                        .HasForeignKey("IdRuta")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("Backend.Models.Usuarios", "Usuario")
                         .WithMany("Viajes")
                         .HasForeignKey("IdUsuario")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Ruta");
 
                     b.Navigation("Usuario");
+                });
+
+            modelBuilder.Entity("Backend.Models.Ruta", b =>
+                {
+                    b.Navigation("Viajes");
                 });
 
             modelBuilder.Entity("Backend.Models.Usuarios", b =>

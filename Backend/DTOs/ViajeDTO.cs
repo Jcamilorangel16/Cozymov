@@ -6,7 +6,7 @@ namespace Backend.DTOs
     {
         public long IdViaje { get; set; }
         public string IdConductor { get; set; } = string.Empty;
-        public int? IdUsuario { get; set; }
+        public int IdUsuario { get; set; }
         public long IdRuta { get; set; }
         public DateTime FechaHoraSalida { get; set; }
         public decimal Costo { get; set; }
@@ -18,7 +18,7 @@ namespace Backend.DTOs
     {
         public long IdViaje { get; set; }
         public string IdConductor { get; set; } = string.Empty;
-        public int? IdUsuario { get; set; }
+        public int IdUsuario { get; set; }
         public long IdRuta { get; set; }
         public DateTime FechaHoraSalida { get; set; } 
         public decimal Costo { get; set; }
