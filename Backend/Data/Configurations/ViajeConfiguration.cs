@@ -15,7 +15,6 @@ public sealed class ViajeConfiguration : IEntityTypeConfiguration<Viaje>
             .WithMany(u => u.Viajes)
             .HasForeignKey(v => v.IdUsuario)
             .HasPrincipalKey(u => u.IdPersonas)
-            .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }
