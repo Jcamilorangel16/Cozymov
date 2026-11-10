@@ -23,7 +23,7 @@ export async function GET(request: Request) {
 
 	try {
 		const respuesta = await fetch(
-			`${base}/Usuarios/contactos?yo=${yo}&q=${encodeURIComponent(q)}`,
+			`${base}/api/Usuarios/contactos?yo=${yo}&q=${encodeURIComponent(q)}`,
 			{ cache: "no-store" },
 		);
 		if (!respuesta.ok) {

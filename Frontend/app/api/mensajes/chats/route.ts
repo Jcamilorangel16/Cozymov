@@ -20,7 +20,7 @@ export async function GET() {
 	}
 
 	try {
-		const respuesta = await fetch(`${base}/Mensajes/chats?yo=${yo}`, { cache: "no-store" });
+		const respuesta = await fetch(`${base}/api/Mensajes/chats?yo=${yo}`, { cache: "no-store" });
 		if (!respuesta.ok) {
 			const detalle = await respuesta.text();
 			return NextResponse.json(
