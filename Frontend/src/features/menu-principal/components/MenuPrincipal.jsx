@@ -13,9 +13,10 @@ import ViajeEnCurso from "../../viaje-en-curso/components/ViajeEnCurso";
 
 /**
  * Compone la barra lateral y las vistas del menú de usuario.
+ * @param {{usuarioActualId: string}} props Identidad autenticada.
  * @returns Vista principal de la aplicación.
  */
-export default function MenuPrincipal() {
+export default function MenuPrincipal({ usuarioActualId }) {
   const {
     vistaActiva,
     viajeSeleccionado,
@@ -60,7 +61,7 @@ export default function MenuPrincipal() {
 
           {vistaActiva === "mensajes" && (
             <div className="vista">
-              <MensajesView usuarioActualId="usuario_actual" receptorId="receptor_ejemplo" />
+              <MensajesView usuarioActualId={usuarioActualId} />
             </div>
           )}
           {vistaActiva === "en-curso" && (<div className="vista"> <ViajeEnCurso onNavigate={irAVista} /> </div>)}

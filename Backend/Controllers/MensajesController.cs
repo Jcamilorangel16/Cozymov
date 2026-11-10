@@ -25,10 +25,10 @@ namespace Backend.Controllers
             if (yo <= 0)
                 return BadRequest("Falta el parámetro yo.");
 
-            return await _context.Mensajes
+            var chats = await _context.Mensajes
                 .Where(m => m.IdEmisor == yo || m.IdReceptor == yo)
                 .GroupBy(m => m.IdEmisor == yo ? m.IdReceptor : m.IdEmisor)
-                .Select(g => new MensajeListaDTO
+                .Select(g => new
                 {
                     Otro = g.Key,
                     UltimoMensaje = g.OrderByDescending(m => m.FechaHora).First().Contenido,
@@ -37,6 +37,23 @@ namespace Backend.Controllers
                 })
                 .OrderByDescending(c => c.UltimaFecha)
                 .ToListAsync();
+
+            var idsOtros = chats.Select(c => c.Otro).ToArray();
+            var usuarios = await _context.Usuarios
+                .Where(u => idsOtros.Contains(u.IdPersonas))
+                .Select(u => new { u.IdPersonas, u.PrimerNombre, u.PrimerApellido })
+                .ToDictionaryAsync(
+                    u => u.IdPersonas,
+                    u => $"{u.PrimerNombre} {u.PrimerApellido}".Trim());
+
+            return chats.Select(c => new MensajeListaDTO
+            {
+                Otro = c.Otro,
+                OtroNombre = usuarios[c.Otro],
+                UltimoMensaje = c.UltimoMensaje,
+                UltimaFecha = c.UltimaFecha,
+                NoLeidos = c.NoLeidos
+            }).ToList();
         }
 
         // GET: api/Mensajes/conversacion?yo=1&otro=2

@@ -19,15 +19,20 @@ export function useFormularioMensaje(onEnviarMensaje) {
    * @param {React.FormEvent<HTMLFormElement>} evento Evento de envío.
    * @returns {Promise<void>}
    */
-  async function handleSubmit(evento) {
-    evento.preventDefault();
-    if (!esMensajeListoParaEnviar(texto, enviando)) return;
+   async function handleSubmit(evento) {
+      evento.preventDefault();
+      if (!esMensajeListoParaEnviar(texto, enviando)) return;
 
-    setEnviando(true);
-    await onEnviarMensaje(texto);
-    setTexto("");
-    setEnviando(false);
-  }
+      setEnviando(true);
+      try {
+        await onEnviarMensaje(texto);
+        setTexto(""); // solo se limpia si el envío salió bien
+      } catch (error) {
+        console.error("Error al enviar el mensaje:", error);
+      } finally {
+        setEnviando(false);
+      }
+    }
 
   return {
     texto,
