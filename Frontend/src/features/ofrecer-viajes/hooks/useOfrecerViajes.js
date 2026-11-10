@@ -47,6 +47,8 @@ export function useOfrecerViajes({ pasajeroSeleccionado, setMensajeAccion }) {
   const [atajoSalida, setAtajoSalida] = useState(String(MINUTOS_POR_DEFECTO_SALIDA));
   const [errorPublicacion, setErrorPublicacion] = useState("");
   const [viajePublicado, setViajePublicado] = useState(null);
+  const [viajeEnEdicion, setViajeEnEdicion] = useState(null);
+  const viajeEnEdicionRef = useRef(null);
   const temporizadorPublicacion = useRef(null);
 
   useEffect(
@@ -265,10 +267,23 @@ export function useOfrecerViajes({ pasajeroSeleccionado, setMensajeAccion }) {
     });
 
     try {
+      const idViajeEnEdicion = viajeEnEdicionRef.current;
+      const editando = idViajeEnEdicion !== null;
+      if (
+        editando &&
+        (!Number.isSafeInteger(Number(idViajeEnEdicion)) || Number(idViajeEnEdicion) <= 0)
+      ) {
+        throw new Error("No se pudo identificar el viaje que quieres editar. Vuelve a cargarlo.");
+      }
+
       const respuesta = await fetch("/api/viajes", {
-        method: "POST",
+        method: editando ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(validacion.datos),
+        body: JSON.stringify(
+          editando
+            ? { ...validacion.datos, id_viaje: idViajeEnEdicion }
+            : validacion.datos,
+        ),
       });
       const resultado = await respuesta.json();
       if (!respuesta.ok) {
@@ -276,7 +291,7 @@ export function useOfrecerViajes({ pasajeroSeleccionado, setMensajeAccion }) {
       }
 
       const viajeGuardadoServidor = {
-        idViaje: resultado.viaje.id_viaje,
+        idViaje: resultado.viaje.id_viaje ?? idViajeEnEdicion,
         origen: resultado.viaje.origen,
         destino: resultado.viaje.destino,
         puntoEncuentro: resultado.viaje.punto_encuentro,
@@ -293,13 +308,19 @@ export function useOfrecerViajes({ pasajeroSeleccionado, setMensajeAccion }) {
 
       void Swal.fire({
         icon: "success",
-        title: "¡Viaje publicado!",
-        text: "Tu viaje se ha guardado correctamente en la base de datos.",
+        title: editando ? "¡Viaje actualizado!" : "¡Viaje publicado!",
+        text: editando
+          ? "Los cambios de tu viaje se guardaron correctamente."
+          : "Tu viaje se ha guardado correctamente en la base de datos.",
         confirmButtonText: "Continuar",
         allowOutsideClick: false,
         allowEscapeKey: false,
       }).then(({ isConfirmed }) => {
-        if (isConfirmed) setViajePublicado(viajeGuardadoServidor);
+        if (isConfirmed) {
+          setViajePublicado(viajeGuardadoServidor);
+          viajeEnEdicionRef.current = null;
+          setViajeEnEdicion(null);
+        }
       });
     } catch (error) {
       console.error("Error al guardar el viaje:", error);
@@ -327,6 +348,13 @@ export function useOfrecerViajes({ pasajeroSeleccionado, setMensajeAccion }) {
    * @returns {void}
    */
   function editarViajePublicado() {
+    if (!viajePublicado?.idViaje) {
+      setErrorPublicacion("No se encontró el identificador del viaje para editarlo.");
+      return;
+    }
+
+    viajeEnEdicionRef.current = viajePublicado.idViaje;
+    setViajeEnEdicion(viajePublicado.idViaje);
     setOrigen(viajePublicado.origen);
     setDestino(viajePublicado.destino);
     setPuntoEncuentro(viajePublicado.puntoEncuentro);
@@ -345,6 +373,8 @@ export function useOfrecerViajes({ pasajeroSeleccionado, setMensajeAccion }) {
    * @returns {void}
    */
   function prepararOtroViaje() {
+    viajeEnEdicionRef.current = null;
+    setViajeEnEdicion(null);
     setViajePublicado(null);
     setOrigen(UNIVERSIDAD_POPULAR_CESAR);
     setDestino(UNIVERSIDAD_POPULAR_CESAR);
@@ -399,6 +429,7 @@ export function useOfrecerViajes({ pasajeroSeleccionado, setMensajeAccion }) {
     errorPublicacion,
     setErrorPublicacion,
     viajePublicado,
+    editandoViaje: viajeEnEdicion !== null,
     cambiarCampoVehiculo,
     guardarVehiculo,
     publicarViaje,

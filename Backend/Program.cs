@@ -6,7 +6,9 @@ using Backend.Models;
 
 
 var builder = WebApplication.CreateBuilder(args);
-var connectionString = builder.Configuration.GetConnectionString("AppDBContext");
+var connectionString = builder.Configuration.GetConnectionString("Supabase")
+    ?? throw new InvalidOperationException(
+        "No se encontró ConnectionStrings:Supabase. Configure la conexión en User Secrets.");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));

@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace Backend.Models;
 
@@ -14,5 +15,6 @@ public class Automovil
     [Range(2, 5)]
     public short NumeroPuertas { get; set; }
 
+    [JsonIgnore]
     public Vehiculo Vehiculo { get; set; } = null!;
 }

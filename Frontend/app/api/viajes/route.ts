@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { obtenerSesionActual } from "../../../src/lib/auth";
+import { validarDatosNuevoViaje } from "../../../src/features/viajes/validations/viajes";
 
 export const runtime = "nodejs";
 
@@ -19,13 +20,8 @@ function obtenerCampo(registro: Registro, ...nombres: string[]): unknown {
 }
 
 function obtenerUrlApi(): string | null {
-	const apiUrl = process.env.VITE_API_URL;
+	const apiUrl = process.env.API_URL ?? process.env.VITE_API_URL;
 	return apiUrl ? `${apiUrl.replace(/\/+$/, "")}/api/Viajes` : null;
-}
-
-function obtenerUrlRutas(): string | null {
-	const apiUrl = process.env.VITE_API_URL;
-	return apiUrl ? `${apiUrl.replace(/\/+$/, "")}/api/rutas` : null;
 }
 
 async function responderErrorApi(respuesta: Response, mensaje: string) {
@@ -52,19 +48,6 @@ function normalizarTexto(valor: unknown): string {
 		.toLocaleLowerCase("es")
 		.replace(/[^\p{L}\p{N}]+/gu, " ")
 		.trim();
-}
-
-async function consultarRutas(apiUrl: string): Promise<Registro[]> {
-	const respuesta = await fetch(apiUrl, { cache: "no-store" });
-	if (!respuesta.ok) {
-		throw new Error(`La API de rutas respondió con estado ${respuesta.status}.`);
-	}
-
-	const resultado: unknown = await respuesta.json();
-	if (!Array.isArray(resultado) || !resultado.every(esRegistro)) {
-		throw new Error("La API de rutas devolvió una lista inválida.");
-	}
-	return resultado;
 }
 
 function viajeActivo(viaje: unknown): viaje is Registro {
@@ -107,9 +90,6 @@ function normalizarViaje(viaje: Registro, respaldo: Registro = {}): Registro {
 	};
 }
 
-/**
- * Consulta viajes de la API; el backend actualmente solo acepta búsqueda por ID.
- */
 export async function GET(request: Request) {
 	const sesion = await obtenerSesionActual();
 	if (!sesion) {
@@ -147,10 +127,9 @@ export async function GET(request: Request) {
 	}
 
 	const apiUrl = obtenerUrlApi();
-	const rutasUrl = obtenerUrlRutas();
-	if (!apiUrl || !rutasUrl) {
+	if (!apiUrl) {
 		return NextResponse.json(
-			{ error: "Falta configurar VITE_API_URL." },
+			{ error: "Falta configurar API_URL." },
 			{ status: 500 },
 		);
 	}
@@ -164,42 +143,16 @@ export async function GET(request: Request) {
 	}
 
 	try {
-		const [respuesta, rutas] = await Promise.all([
-			fetch(
-				idViaje ? `${apiUrl}/${encodeURIComponent(idViaje)}` : apiUrl,
-				{ cache: "no-store" },
-			),
-			consultarRutas(rutasUrl),
-		]);
+		const respuesta = await fetch(
+			idViaje ? `${apiUrl}/${encodeURIComponent(idViaje)}` : apiUrl,
+			{ cache: "no-store" },
+		);
 		if (!respuesta.ok) {
 			return responderErrorApi(respuesta, "No se pudieron consultar los viajes.");
 		}
 
 		const resultado: unknown = await respuesta.json();
-		const rutasPorId = new Map(
-			rutas.map((ruta) => [
-				String(obtenerCampo(ruta, "idRuta", "IdRuta", "id_ruta")),
-				ruta,
-			]),
-		);
-		const agregarRuta = (viaje: Registro): Registro => {
-			const idRuta = obtenerCampo(viaje, "idRuta", "IdRuta", "id_ruta");
-			const ruta = rutasPorId.get(String(idRuta));
-			if (!ruta) {
-				return normalizarViaje(viaje);
-			}
-			return normalizarViaje(
-				{
-					...viaje,
-					origen: obtenerCampo(ruta, "origen", "Origen"),
-					destino: obtenerCampo(ruta, "destino", "Destino"),
-				},
-				{
-					origen: obtenerCampo(ruta, "origen", "Origen"),
-					destino: obtenerCampo(ruta, "destino", "Destino"),
-				},
-			);
-		};
+
 		if (idViaje) {
 			if (!esRegistro(resultado)) {
 				console.error("La API devolvió un viaje con formato inválido.");
@@ -208,7 +161,7 @@ export async function GET(request: Request) {
 					{ status: 502 },
 				);
 			}
-			return NextResponse.json({ viaje: agregarRuta(resultado) });
+			return NextResponse.json({ viaje: normalizarViaje(resultado) });
 		}
 		if (!Array.isArray(resultado) || !resultado.every(esRegistro)) {
 			console.error("La API de viajes devolvió una lista inválida.");
@@ -224,14 +177,14 @@ export async function GET(request: Request) {
 				return String(idPropietario) === sesion.id && viajeActivo(item);
 			});
 			return NextResponse.json({
-				viaje: viaje ? agregarRuta(viaje) : null,
+				viaje: viaje ? normalizarViaje(viaje) : null,
 			});
 		}
 
 		return NextResponse.json({
 			viajes: resultado
 				.filter(viajeActivo)
-				.map(agregarRuta)
+				.map((viaje) => normalizarViaje(viaje))
 				.filter((viaje) => {
 					const origen = normalizarTexto(viaje.origen);
 					const destino = normalizarTexto(viaje.destino);
@@ -252,9 +205,6 @@ export async function GET(request: Request) {
 	}
 }
 
-/**
- * Registra un viaje en el backend asociándolo al usuario autenticado.
- */
 export async function POST(request: Request) {
 	const sesion = await obtenerSesionActual();
 	if (!sesion) {
@@ -270,7 +220,6 @@ export async function POST(request: Request) {
 			{ status: 400 },
 		);
 	}
-
 	if (!esRegistro(body)) {
 		return NextResponse.json(
 			{ error: "El cuerpo de la solicitud debe ser un objeto JSON." },
@@ -279,10 +228,9 @@ export async function POST(request: Request) {
 	}
 
 	const apiUrl = obtenerUrlApi();
-	const rutasUrl = obtenerUrlRutas();
-	if (!apiUrl || !rutasUrl) {
+	if (!apiUrl) {
 		return NextResponse.json(
-			{ error: "Falta configurar VITE_API_URL." },
+			{ error: "Falta configurar API_URL." },
 			{ status: 500 },
 		);
 	}
@@ -295,63 +243,17 @@ export async function POST(request: Request) {
 		);
 	}
 
-	let rutaSeleccionada: Registro | undefined;
-	const idRutaRecibido = obtenerCampo(body, "IdRuta", "idRuta", "id_ruta");
-	if (idRutaRecibido !== undefined && idRutaRecibido !== null && idRutaRecibido !== "") {
-		const idRuta = Number(idRutaRecibido);
-		if (!Number.isSafeInteger(idRuta) || idRuta <= 0) {
-			return NextResponse.json(
-				{ error: "IdRuta debe ser un identificador válido." },
-				{ status: 400 },
-			);
-		}
-	}
-
 	const origen = obtenerCampo(body, "Origen", "origen");
 	const destino = obtenerCampo(body, "Destino", "destino");
-	let rutas: Registro[];
-	try {
-		rutas = await consultarRutas(rutasUrl);
-	} catch (error) {
-		console.error("No se pudieron consultar las rutas del backend:", error);
+	if (typeof origen !== "string" || !origen.trim() || origen.length > 200) {
 		return NextResponse.json(
-			{ error: "No se pudo consultar la lista de rutas del backend." },
-			{ status: 502 },
+			{ error: "El origen es obligatorio y no puede superar 200 caracteres." },
+			{ status: 400 },
 		);
 	}
-
-	if (idRutaRecibido !== undefined && idRutaRecibido !== null && idRutaRecibido !== "") {
-		rutaSeleccionada = rutas.find(
-			(ruta) =>
-				String(obtenerCampo(ruta, "idRuta", "IdRuta", "id_ruta")) ===
-				String(idRutaRecibido),
-		);
-		if (!rutaSeleccionada) {
-			return NextResponse.json(
-				{ error: "La ruta indicada no existe." },
-				{ status: 400 },
-			);
-		}
-	} else if (typeof origen === "string" && typeof destino === "string") {
-		const origenNormalizado = normalizarTexto(origen);
-		const destinoNormalizado = normalizarTexto(destino);
-		rutaSeleccionada = rutas.find(
-			(ruta) =>
-				normalizarTexto(obtenerCampo(ruta, "origen", "Origen")) === origenNormalizado &&
-				normalizarTexto(obtenerCampo(ruta, "destino", "Destino")) === destinoNormalizado,
-		);
-	}
-
-	const idRuta = Number(
-		rutaSeleccionada
-			? obtenerCampo(rutaSeleccionada, "idRuta", "IdRuta", "id_ruta")
-			: NaN,
-	);
-	if (!rutaSeleccionada || !Number.isSafeInteger(idRuta) || idRuta <= 0) {
+	if (typeof destino !== "string" || !destino.trim() || destino.length > 200) {
 		return NextResponse.json(
-			{
-				error: "No existe una ruta precargada que coincida con el origen y destino seleccionados.",
-			},
+			{ error: "El destino es obligatorio y no puede superar 200 caracteres." },
 			{ status: 400 },
 		);
 	}
@@ -396,7 +298,9 @@ export async function POST(request: Request) {
 	const viaje = {
 		IdConductor: sesion.id,
 		IdUsuario: idUsuario,
-		IdRuta: idRuta,
+		IdRuta: null,
+		Origen: origen.trim(),
+		Destino: destino.trim(),
 		FechaHoraSalida: fechaHoraSalida,
 		Costo: costo,
 		CuposDisponibles: cuposDisponibles,
@@ -425,16 +329,189 @@ export async function POST(request: Request) {
 
 		return NextResponse.json(
 			{
-				viaje: normalizarViaje(resultado, {
-					...body,
-					origen: obtenerCampo(rutaSeleccionada, "origen", "Origen"),
-					destino: obtenerCampo(rutaSeleccionada, "destino", "Destino"),
-				}),
+				viaje: normalizarViaje(resultado, body),
 			},
 			{ status: respuesta.status },
 		);
 	} catch (error) {
 		console.error("No se pudo registrar el viaje en la API:", error);
+		return NextResponse.json(
+			{ error: "No se pudo conectar con la API de viajes." },
+			{ status: 502 },
+		);
+	}
+}
+
+export async function PUT(request: Request) {
+	const sesion = await obtenerSesionActual();
+	if (!sesion) {
+		return NextResponse.json({ error: "Debes iniciar sesión." }, { status: 401 });
+	}
+
+	let body: unknown;
+	try {
+		body = await request.json();
+	} catch {
+		return NextResponse.json(
+			{ error: "El cuerpo de la solicitud no es un JSON válido." },
+			{ status: 400 },
+		);
+	}
+	if (!esRegistro(body)) {
+		return NextResponse.json(
+			{ error: "El cuerpo de la solicitud debe ser un objeto JSON." },
+			{ status: 400 },
+		);
+	}
+
+	const idViaje = Number(obtenerCampo(body, "id_viaje", "idViaje", "IdViaje"));
+	if (!Number.isSafeInteger(idViaje) || idViaje <= 0) {
+		return NextResponse.json(
+			{ error: "El identificador del viaje no es válido." },
+			{ status: 400 },
+		);
+	}
+
+	const validacion = validarDatosNuevoViaje(body, sesion.id);
+	if (!validacion.valido) {
+		return NextResponse.json({ error: validacion.error }, { status: 400 });
+	}
+
+	const apiUrl = obtenerUrlApi();
+	if (!apiUrl) {
+		return NextResponse.json(
+			{ error: "Falta configurar API_URL." },
+			{ status: 500 },
+		);
+	}
+
+	const urlViaje = `${apiUrl}/${encodeURIComponent(String(idViaje))}`;
+	try {
+		const respuestaActual = await fetch(urlViaje, { cache: "no-store" });
+		if (!respuestaActual.ok) {
+			return responderErrorApi(respuestaActual, "No se pudo consultar el viaje que quieres editar.");
+		}
+
+		const viajeActual: unknown = await respuestaActual.json();
+		if (!esRegistro(viajeActual)) {
+			console.error("La API devolvió un viaje con formato inválido al verificar su propietario.");
+			return NextResponse.json(
+				{ error: "La respuesta de la API de viajes no es válida." },
+				{ status: 502 },
+			);
+		}
+		if (String(obtenerCampo(viajeActual, "idUsuario", "IdUsuario")) !== sesion.id) {
+			return NextResponse.json(
+				{ error: "No puedes editar el viaje de otro usuario." },
+				{ status: 403 },
+			);
+		}
+
+		const datos = validacion.datos;
+		const idRutaActual = obtenerCampo(viajeActual, "idRuta", "IdRuta");
+		const respuesta = await fetch(urlViaje, {
+			method: "PUT",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				IdConductor: sesion.id,
+				IdUsuario: Number(sesion.id),
+				IdRuta: idRutaActual ?? null,
+				Origen: datos.origen,
+				Destino: datos.destino,
+				FechaHoraSalida: `${datos.fecha_salida}T${datos.hora_salida.length === 5
+					? `${datos.hora_salida}:00`
+					: datos.hora_salida}`,
+				Costo: datos.precio_pasaje,
+				CuposDisponibles: datos.cupos_disponibles,
+				Estado: obtenerCampo(viajeActual, "estado", "Estado") ?? "Activo",
+			}),
+			cache: "no-store",
+		});
+		if (!respuesta.ok) {
+			return responderErrorApi(respuesta, "No se pudo actualizar el viaje.");
+		}
+
+		return NextResponse.json({
+			viaje: normalizarViaje(
+				{
+					IdViaje: idViaje,
+					IdConductor: sesion.id,
+					IdUsuario: Number(sesion.id),
+					IdRuta: idRutaActual ?? null,
+					Origen: datos.origen,
+					Destino: datos.destino,
+					FechaHoraSalida: `${datos.fecha_salida}T${datos.hora_salida}`,
+					Costo: datos.precio_pasaje,
+					CuposDisponibles: datos.cupos_disponibles,
+					Estado: obtenerCampo(viajeActual, "estado", "Estado") ?? "Activo",
+				},
+				body,
+			),
+		});
+	} catch (error) {
+		console.error("No se pudo actualizar el viaje en la API:", error);
+		return NextResponse.json(
+			{ error: "No se pudo conectar con la API de viajes." },
+			{ status: 502 },
+		);
+	}
+}
+
+export async function DELETE(request: Request) {
+	const sesion = await obtenerSesionActual();
+	if (!sesion) {
+		return NextResponse.json({ error: "Debes iniciar sesión." }, { status: 401 });
+	}
+
+	const idViaje = new URL(request.url).searchParams.get("id_viaje");
+	if (!idViaje || !/^[1-9]\d*$/.test(idViaje)) {
+		return NextResponse.json(
+			{ error: "El identificador del viaje no es válido." },
+			{ status: 400 },
+		);
+	}
+
+	const apiUrl = obtenerUrlApi();
+	if (!apiUrl) {
+		return NextResponse.json(
+			{ error: "Falta configurar API_URL." },
+			{ status: 500 },
+		);
+	}
+
+	const urlViaje = `${apiUrl}/${encodeURIComponent(idViaje)}`;
+	try {
+		const respuestaActual = await fetch(urlViaje, { cache: "no-store" });
+		if (!respuestaActual.ok) {
+			return responderErrorApi(respuestaActual, "No se pudo consultar el viaje.");
+		}
+
+		const viajeActual: unknown = await respuestaActual.json();
+		if (!esRegistro(viajeActual)) {
+			console.error("La API devolvió un viaje con formato inválido al verificar su propietario.");
+			return NextResponse.json(
+				{ error: "La respuesta de la API de viajes no es válida." },
+				{ status: 502 },
+			);
+		}
+		if (String(obtenerCampo(viajeActual, "idUsuario", "IdUsuario")) !== sesion.id) {
+			return NextResponse.json(
+				{ error: "Solo quien publicó el viaje puede eliminarlo." },
+				{ status: 403 },
+			);
+		}
+
+		const respuesta = await fetch(urlViaje, {
+			method: "DELETE",
+			cache: "no-store",
+		});
+		if (!respuesta.ok) {
+			return responderErrorApi(respuesta, "No se pudo eliminar el viaje.");
+		}
+
+		return NextResponse.json({ eliminado: true, id_viaje: Number(idViaje) });
+	} catch (error) {
+		console.error("No se pudo eliminar el viaje en la API:", error);
 		return NextResponse.json(
 			{ error: "No se pudo conectar con la API de viajes." },
 			{ status: 502 },

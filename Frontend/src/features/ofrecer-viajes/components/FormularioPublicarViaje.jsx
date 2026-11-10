@@ -29,6 +29,7 @@ export default function FormularioPublicarViaje({
   setAtajoSalida,
   errorPublicacion,
   setErrorPublicacion,
+  editandoViaje,
   onSubmit,
 }) {
   return (
@@ -67,7 +68,7 @@ export default function FormularioPublicarViaje({
 
         <div className="d-flex justify-content-end">
           <button type="submit" className="btn btn-primary fw-bold px-4">
-            Publicar viaje
+            {editandoViaje ? "Guardar cambios" : "Publicar viaje"}
           </button>
         </div>
       </form>

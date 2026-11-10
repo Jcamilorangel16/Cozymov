@@ -251,6 +251,11 @@ namespace Backend.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("cupos_disponibles");
 
+                    b.Property<string>("Destino")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("destino");
+
                     b.Property<string>("Estado")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -267,12 +272,17 @@ namespace Backend.Migrations
                         .HasColumnType("character varying(20)")
                         .HasColumnName("id_conductor");
 
-                    b.Property<long>("IdRuta")
+                    b.Property<long?>("IdRuta")
                         .HasColumnType("bigint")
                         .HasColumnName("id_ruta");
 
                     b.Property<int>("IdUsuario")
                         .HasColumnType("integer");
+
+                    b.Property<string>("Origen")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("origen");
 
                     b.HasKey("IdViaje");
 
@@ -351,8 +361,7 @@ namespace Backend.Migrations
                     b.HasOne("Backend.Models.Ruta", "Ruta")
                         .WithMany("Viajes")
                         .HasForeignKey("IdRuta")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Backend.Models.Usuarios", "Usuario")
                         .WithMany("Viajes")

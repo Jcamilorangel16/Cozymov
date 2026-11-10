@@ -27,6 +27,8 @@ namespace Backend.Controllers
                 IdConductor = v.IdConductor,
                 IdUsuario = v.IdUsuario,
                 IdRuta = v.IdRuta,
+                Origen = v.Origen ?? (v.Ruta == null ? null : v.Ruta.Origen),
+                Destino = v.Destino ?? (v.Ruta == null ? null : v.Ruta.Destino),
                 FechaHoraSalida = v.FechaHoraSalida,
                 Costo = v.Costo,
                 CuposDisponibles = v.CuposDisponibles,
@@ -46,6 +48,8 @@ namespace Backend.Controllers
                     IdConductor = v.IdConductor,
                     IdUsuario = v.IdUsuario,
                     IdRuta = v.IdRuta,
+                    Origen = v.Origen ?? (v.Ruta == null ? null : v.Ruta.Origen),
+                    Destino = v.Destino ?? (v.Ruta == null ? null : v.Ruta.Destino),
                     FechaHoraSalida = v.FechaHoraSalida,
                     Costo = v.Costo,
                     CuposDisponibles = v.CuposDisponibles,
@@ -79,6 +83,14 @@ namespace Backend.Controllers
             viaje.IdConductor = viajeUpdate.IdConductor;
             viaje.IdUsuario = viajeUpdate.IdUsuario;
             viaje.IdRuta = viajeUpdate.IdRuta;
+            if (viajeUpdate.Origen is not null)
+            {
+                viaje.Origen = viajeUpdate.Origen.Trim();
+            }
+            if (viajeUpdate.Destino is not null)
+            {
+                viaje.Destino = viajeUpdate.Destino.Trim();
+            }
             viaje.FechaHoraSalida = ToDatabaseDateTime(viajeUpdate.FechaHoraSalida);
             viaje.Costo = viajeUpdate.Costo;
             viaje.CuposDisponibles = viajeUpdate.CuposDisponibles;
@@ -108,12 +120,19 @@ namespace Backend.Controllers
             {
                 return BadRequest($"El usuario {viajeCreate.IdUsuario} no existe.");
             }
+            if (string.IsNullOrWhiteSpace(viajeCreate.Origen) ||
+                string.IsNullOrWhiteSpace(viajeCreate.Destino))
+            {
+                return BadRequest("El origen y el destino son obligatorios.");
+            }
 
             var viaje = new Viaje
             {
                 IdConductor = viajeCreate.IdConductor,
                 IdUsuario = viajeCreate.IdUsuario,
                 IdRuta = viajeCreate.IdRuta,
+                Origen = viajeCreate.Origen.Trim(),
+                Destino = viajeCreate.Destino.Trim(),
                 FechaHoraSalida = ToDatabaseDateTime(viajeCreate.FechaHoraSalida),
                 Costo = viajeCreate.Costo,
                 CuposDisponibles = viajeCreate.CuposDisponibles,
@@ -129,6 +148,8 @@ namespace Backend.Controllers
                 IdConductor = viaje.IdConductor,
                 IdUsuario = viaje.IdUsuario,
                 IdRuta = viaje.IdRuta,
+                Origen = viaje.Origen,
+                Destino = viaje.Destino,
                 FechaHoraSalida = viaje.FechaHoraSalida,
                 Costo = viaje.Costo,
                 CuposDisponibles = viaje.CuposDisponibles,
