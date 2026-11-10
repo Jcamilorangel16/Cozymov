@@ -23,6 +23,15 @@ namespace Backend.Migrations
                 WHERE NULLIF(TRIM(v."id_conductor"), '') = NULLIF(TRIM(u."Cedula"), '');
                 """);
 
+            migrationBuilder.AlterColumn<int>(
+                name: "IdUsuario",
+                table: "viaje",
+                type: "integer",
+                nullable: false,
+                oldClrType: typeof(int),
+                oldType: "integer",
+                oldNullable: true);
+
             migrationBuilder.CreateIndex(
                 name: "IX_viaje_IdUsuario",
                 table: "viaje",

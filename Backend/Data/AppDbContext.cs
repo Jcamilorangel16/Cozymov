@@ -7,6 +7,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 {
     public DbSet<Usuarios> Usuarios { get; set; }
     public DbSet<Viaje> Viajes { get; set; }
+    public DbSet<Ruta> Rutas { get; set; }
     public DbSet<Mensaje> Mensajes { get; set; }
     public DbSet<Vehiculo> Vehiculos => Set<Vehiculo>();
     public DbSet<Automovil> Automoviles => Set<Automovil>();
