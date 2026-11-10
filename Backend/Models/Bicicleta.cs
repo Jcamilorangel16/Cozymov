@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace Backend.Models;
 
@@ -8,5 +9,6 @@ public class Bicicleta
     [Column("id_vehiculo")]
     public long IdVehiculo { get; set; }
 
+    [JsonIgnore]
     public Vehiculo Vehiculo { get; set; } = null!;
 }
