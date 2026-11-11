@@ -61,13 +61,9 @@ La clave primaria de `id_usuario` y la restricción `UNIQUE` de `correo` permite
 
 ## Flujo de registro
 
-<<<<<<< HEAD
 El endpoint guarda en la misma base PostgreSQL que usa el login. Si falta `DATABASE_URL`, el registro y las demás rutas que consultan PostgreSQL no pueden completar la operación.
 
 1. `src/features/register/pages/register.jsx` recopila identificador, primer y segundo nombre, primer y segundo apellido, edad, ocupación, correo y contraseña; los segundos nombres y apellidos son opcionales. La ocupación se elige entre estudiante, profesor u otro; al elegir otro se solicita especificarla.
-=======
-1. `src/features/register/components/Register.jsx` recopila identificador, primer y segundo nombre, primer y segundo apellido, edad, ocupación, correo y contraseña; los segundos nombres y apellidos son opcionales. La ocupación se elige entre estudiante, profesor u otro; al elegir otro se solicita especificarla.
->>>>>>> 91ffad3312f411b8b47fcbda248e7fa4a58181a1
 2. El formulario envía los datos con `POST /api/registro`; ya no los guarda en `localStorage`.
 3. `app/api/registro/route.ts` vuelve a validar los datos en el servidor, guarda cada nombre y apellido en su columna correspondiente, normaliza el correo, asigna `pasajero` como rol y genera un hash con `bcryptjs` antes de insertar en `usuario`.
 4. La consulta SQL usa parámetros (`$1`, `$2`, etc.) para no concatenar los datos recibidos en el comando SQL.
