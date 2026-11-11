@@ -2,6 +2,7 @@
 import PerfilConfiguracion from "../../perfil-configuracion/components/PerfilConfiguracion";
 import { enlacesMenu } from "../constants/menuPrincipal";
 
+
 /**
  * Renderiza los enlaces de navegación del menú.
  * @param {{vistaActiva: string, onNavigate: (id: string) => void}} props Estado y acción de navegación.

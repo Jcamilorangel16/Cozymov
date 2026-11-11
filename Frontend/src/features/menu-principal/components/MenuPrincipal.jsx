@@ -9,15 +9,16 @@ import PanelInicio from "./PanelInicio";
 import SidebarMenu from "./SidebarMenu";
 import { useMenuPrincipal } from "../hooks/useMenuPrincipal";
 import ViajeEnCurso from "../../viaje-en-curso/components/ViajeEnCurso";
-  import ConfiguracionGeneral from "../../configuracion/components/ConfiguracionGeneral";
-  import { PerfilProvider } from "../../configuracion/context/PerfilContext";
-
+import ConfiguracionGeneral from "../../configuracion/components/ConfiguracionGeneral";
+import { PerfilProvider } from "../../configuracion/context/PerfilContext";
+import { useSessionUserId } from "../../../hooks/useSessionUserId";
 
 /**
  * Compone la barra lateral y las vistas del menú de usuario.
  * @returns Vista principal de la aplicación.
  */
 export default function MenuPrincipal() {
+  const usuarioActualId = useSessionUserId();
   const {
     vistaActiva,
     viajeSeleccionado,
@@ -31,14 +32,13 @@ export default function MenuPrincipal() {
     irAVista,
   } = useMenuPrincipal();
 
-    return (
+  return (
     <PerfilProvider>
       <div className="app-shell">
         <SidebarMenu vistaActiva={vistaActiva} onNavigate={irAVista} />
 
         <main className="main-content flex-grow-1 p-4">
           <div className="border rounded-3 p-4 bloque_contenido" style={{ minHeight: 400 }}>
-
             {vistaActiva === "inicio" && <PanelInicio onNavigate={irAVista} />}
 
             {vistaActiva === "buscar" && (
@@ -51,7 +51,6 @@ export default function MenuPrincipal() {
                 />
               </div>
             )}
-
             {vistaActiva === "ofrecer" && (
               <OfrecerViajes
                 pasajeroSeleccionado={pasajeroSeleccionado}
@@ -63,12 +62,21 @@ export default function MenuPrincipal() {
 
             {vistaActiva === "mensajes" && (
               <div className="vista">
-                <MensajesView usuarioActualId="usuario_actual" receptorId="receptor_ejemplo" />
+                <MensajesView usuarioActualId={usuarioActualId} />
               </div>
             )}
-            {vistaActiva === "en-curso" && (<div className="vista"> <ViajeEnCurso onNavigate={irAVista} /> </div>)}
 
-            {vistaActiva === "configuracion" && (<div className="vista"> <ConfiguracionGeneral /> </div>)}
+            {vistaActiva === "en-curso" && (
+              <div className="vista">
+                <ViajeEnCurso onNavigate={irAVista} />
+              </div>
+            )}
+
+            {vistaActiva === "configuracion" && (
+              <div className="vista">
+                <ConfiguracionGeneral />
+              </div>
+            )}
           </div>
         </main>
       </div>
