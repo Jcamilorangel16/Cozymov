@@ -21,9 +21,13 @@ export default function CampoFormulario({
         name={id}
         className={"form-control" + (error ? " is-invalid" : "")}
         aria-invalid={Boolean(error)}
+        aria-describedby={error ? `${id}-error` : undefined}
         {...resto}
       />
-      {error && <small className="config-error">{error}</small>}
+      {error && 
+        <small id={`${id}-error`} className="config-error" role="alert">
+          {error}
+        </small>}
     </div>
   );
 }
