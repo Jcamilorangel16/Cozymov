@@ -59,4 +59,23 @@ namespace Backend.DTOs
         [Required, StringLength(20)]
         public string Estado { get; set; } = string.Empty;
     }
+
+    public class ReservaViajeCreateDTO
+    {
+        [Range(1, int.MaxValue)]
+        public int IdPasajero { get; set; }
+    }
+
+    public class ReservaViajeDTO
+    {
+        public long IdReserva { get; set; }
+        public long IdViaje { get; set; }
+        public int IdPasajero { get; set; }
+        public string? Origen { get; set; }
+        public string? Destino { get; set; }
+        public DateTime FechaHoraSalida { get; set; }
+        public decimal Costo { get; set; }
+        public string IdConductor { get; set; } = string.Empty;
+        public string NombreConductor { get; set; } = string.Empty;
+    }
 }

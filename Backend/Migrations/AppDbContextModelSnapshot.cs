@@ -104,6 +104,46 @@ namespace Backend.Migrations
                     b.ToTable("moto", (string)null);
                 });
 
+            modelBuilder.Entity("Backend.Models.ReservaViaje", b =>
+                {
+                    b.Property<long>("IdReserva")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id_reserva");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("IdReserva"));
+
+                    b.Property<string>("Estado")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("estado");
+
+                    b.Property<DateTime>("FechaReserva")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("fecha_reserva");
+
+                    b.Property<int>("IdPasajero")
+                        .HasColumnType("integer")
+                        .HasColumnName("id_pasajero");
+
+                    b.Property<long>("IdViaje")
+                        .HasColumnType("bigint")
+                        .HasColumnName("id_viaje");
+
+                    b.HasKey("IdReserva");
+
+                    b.HasIndex("IdPasajero", "Estado")
+                        .IsUnique()
+                        .HasFilter("\"estado\" = 'activa'");
+
+                    b.HasIndex("IdViaje", "IdPasajero")
+                        .IsUnique()
+                        .HasFilter("\"estado\" = 'activa'");
+
+                    b.ToTable("reserva_viaje", (string)null);
+                });
+
             modelBuilder.Entity("Backend.Models.Ruta", b =>
                 {
                     b.Property<long>("IdRuta")
@@ -343,6 +383,25 @@ namespace Backend.Migrations
                         .IsRequired();
 
                     b.Navigation("Vehiculo");
+                });
+
+            modelBuilder.Entity("Backend.Models.ReservaViaje", b =>
+                {
+                    b.HasOne("Backend.Models.Usuarios", "Pasajero")
+                        .WithMany()
+                        .HasForeignKey("IdPasajero")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Backend.Models.Viaje", "Viaje")
+                        .WithMany()
+                        .HasForeignKey("IdViaje")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Pasajero");
+
+                    b.Navigation("Viaje");
                 });
 
             modelBuilder.Entity("Backend.Models.Vehiculo", b =>

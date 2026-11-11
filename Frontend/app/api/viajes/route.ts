@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { obtenerSesionActual } from "../../../src/lib/auth";
-import { validarDatosNuevoViaje } from "../../../src/features/viajes/validations/viajes";
+import {
+	validarDatosNuevoViaje,
+	validarFiltrosViajes,
+	validarIdUsuarioViaje,
+} from "../../../src/features/viajes/validations/viajes";
+import { tieneReservaActiva } from "../../../src/features/viajes/repositories/reservaViajeRepository";
+import { listarViajesPublicos } from "../../../src/features/viajes/repositories/viajeRepository";
 
 export const runtime = "nodejs";
 
@@ -39,23 +45,6 @@ async function responderErrorApi(respuesta: Response, mensaje: string) {
 		// El backend puede responder texto plano.
 	}
 	return NextResponse.json({ error }, { status: respuesta.status });
-}
-
-function normalizarTexto(valor: unknown): string {
-	return String(valor ?? "")
-		.normalize("NFD")
-		.replace(/[\u0300-\u036f]/g, "")
-		.toLocaleLowerCase("es")
-		.replace(/[^\p{L}\p{N}]+/gu, " ")
-		.trim();
-}
-
-function viajeActivo(viaje: unknown): viaje is Registro {
-	if (!esRegistro(viaje)) {
-		return false;
-	}
-	const estado = obtenerCampo(viaje, "estado", "Estado");
-	return typeof estado === "string" && estado.toLowerCase() === "activo";
 }
 
 function normalizarViaje(viaje: Registro, respaldo: Registro = {}): Registro {
@@ -98,39 +87,14 @@ export async function GET(request: Request) {
 
 	const { searchParams } = new URL(request.url);
 	const idUsuario = searchParams.get("id_usuario");
-	if (idUsuario !== null && idUsuario.trim() !== sesion.id) {
+	const validacionUsuario = validarIdUsuarioViaje(idUsuario);
+	if (!validacionUsuario.valido) {
+		return NextResponse.json({ error: validacionUsuario.error }, { status: 400 });
+	}
+	if (validacionUsuario.datos !== null && validacionUsuario.datos !== sesion.id) {
 		return NextResponse.json(
 			{ error: "No puedes consultar los viajes de otro usuario." },
 			{ status: 403 },
-		);
-	}
-
-	const origenFiltro = searchParams.get("origen")?.trim() ?? "";
-	const destinoFiltro = searchParams.get("destino")?.trim() ?? "";
-	const fechaFiltro = searchParams.get("fecha")?.trim() ?? "";
-	if (origenFiltro.length > 150 || destinoFiltro.length > 150) {
-		return NextResponse.json(
-			{ error: "El origen y el destino no pueden superar 150 caracteres." },
-			{ status: 400 },
-		);
-	}
-	if (
-		fechaFiltro &&
-		(!/^\d{4}-\d{2}-\d{2}$/.test(fechaFiltro) ||
-			Number.isNaN(Date.parse(`${fechaFiltro}T00:00:00.000Z`)) ||
-			new Date(`${fechaFiltro}T00:00:00.000Z`).toISOString().slice(0, 10) !== fechaFiltro)
-	) {
-		return NextResponse.json(
-			{ error: "La fecha de salida no tiene un formato válido." },
-			{ status: 400 },
-		);
-	}
-
-	const apiUrl = obtenerUrlApi();
-	if (!apiUrl) {
-		return NextResponse.json(
-			{ error: "Falta configurar API_URL." },
-			{ status: 500 },
 		);
 	}
 
@@ -142,65 +106,32 @@ export async function GET(request: Request) {
 		);
 	}
 
-	try {
-		const respuesta = await fetch(
-			idViaje ? `${apiUrl}/${encodeURIComponent(idViaje)}` : apiUrl,
-			{ cache: "no-store" },
+	const validacionFiltros = validarFiltrosViajes(searchParams);
+	if (!validacionFiltros.valido) {
+		return NextResponse.json(
+			{ error: validacionFiltros.error },
+			{ status: 400 },
 		);
-		if (!respuesta.ok) {
-			return responderErrorApi(respuesta, "No se pudieron consultar los viajes.");
-		}
+	}
 
-		const resultado: unknown = await respuesta.json();
+	try {
+		const viajes = await listarViajesPublicos(validacionFiltros.datos, {
+			...(validacionUsuario.datos && { idUsuario: validacionUsuario.datos }),
+			...(idViaje && { idViaje }),
+		});
 
 		if (idViaje) {
-			if (!esRegistro(resultado)) {
-				console.error("La API devolvió un viaje con formato inválido.");
-				return NextResponse.json(
-					{ error: "La respuesta de la API de viajes no es válida." },
-					{ status: 502 },
-				);
-			}
-			return NextResponse.json({ viaje: normalizarViaje(resultado) });
+			return NextResponse.json({ viaje: viajes[0] ?? null });
 		}
-		if (!Array.isArray(resultado) || !resultado.every(esRegistro)) {
-			console.error("La API de viajes devolvió una lista inválida.");
-			return NextResponse.json(
-				{ error: "La respuesta de la API de viajes no es válida." },
-				{ status: 502 },
-			);
+		if (validacionUsuario.datos !== null) {
+			return NextResponse.json({ viaje: viajes[0] ?? null });
 		}
-
-		if (idUsuario !== null) {
-			const viaje = resultado.find((item) => {
-				const idPropietario = obtenerCampo(item, "idUsuario", "IdUsuario");
-				return String(idPropietario) === sesion.id && viajeActivo(item);
-			});
-			return NextResponse.json({
-				viaje: viaje ? normalizarViaje(viaje) : null,
-			});
-		}
-
-		return NextResponse.json({
-			viajes: resultado
-				.filter(viajeActivo)
-				.map((viaje) => normalizarViaje(viaje))
-				.filter((viaje) => {
-					const origen = normalizarTexto(viaje.origen);
-					const destino = normalizarTexto(viaje.destino);
-					const fecha = String(viaje.fecha_salida ?? "").slice(0, 10);
-					return (
-						(!origenFiltro || origen.includes(normalizarTexto(origenFiltro))) &&
-						(!destinoFiltro || destino.includes(normalizarTexto(destinoFiltro))) &&
-						(!fechaFiltro || fecha === fechaFiltro)
-					);
-				}),
-		});
+		return NextResponse.json({ viajes });
 	} catch (error) {
-		console.error("No se pudo consultar la API de viajes:", error);
+		console.error("No se pudieron consultar los viajes públicos:", error);
 		return NextResponse.json(
-			{ error: "No se pudo conectar con la API de viajes." },
-			{ status: 502 },
+			{ error: "No se pudieron consultar los viajes. Inténtalo de nuevo." },
+			{ status: 500 },
 		);
 	}
 }
@@ -240,6 +171,20 @@ export async function POST(request: Request) {
 		return NextResponse.json(
 			{ error: "La sesión no contiene un identificador de usuario válido." },
 			{ status: 400 },
+		);
+	}
+	try {
+		if (await tieneReservaActiva(idUsuario)) {
+			return NextResponse.json(
+				{ error: "No puedes publicar un viaje mientras tengas uno en curso." },
+				{ status: 409 },
+			);
+		}
+	} catch (error) {
+		console.error("No se pudo validar si el usuario tiene un viaje en curso:", error);
+		return NextResponse.json(
+			{ error: "No se pudo validar tu viaje en curso. Inténtalo de nuevo." },
+			{ status: 500 },
 		);
 	}
 
