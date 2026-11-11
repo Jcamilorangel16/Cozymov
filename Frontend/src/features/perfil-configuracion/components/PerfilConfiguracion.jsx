@@ -3,6 +3,7 @@
 // Renderiza el avatar del perfil con acceso a configuración y cierre de sesión.
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { usePerfil } from "../../configuracion/context/PerfilContext";
 
 /**
  * Presenta el avatar como disparador del menú de cuenta.
@@ -11,6 +12,7 @@ import { useRouter } from "next/navigation";
  */
 export default function PerfilConfiguracion({ onConfiguracion }) {
   const router = useRouter();
+  const { perfil } = usePerfil();
 
   const cerrarSesion = async (evento) => {
     evento.preventDefault();
@@ -33,7 +35,17 @@ export default function PerfilConfiguracion({ onConfiguracion }) {
         aria-label="Abrir menú de perfil"
         title="Mi perfil"
       >
-        A
+        {perfil.fotoUrl ? (
+          <Image
+            src={perfil.fotoUrl}
+            alt=""
+            width={36}
+            height={36}
+            unoptimized
+          />
+        ) : (
+          perfil.nombre.trim().charAt(0).toUpperCase() || "A"
+        )}
       </button>
 
       <ul

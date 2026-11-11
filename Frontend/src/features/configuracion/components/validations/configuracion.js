@@ -31,3 +31,16 @@ export function validarVehiculo({ marca, modelo, color, placa, plazas }) {
     errores.plazas = "Entre 1 y 6 plazas.";
   return errores;
 }
+
+const TIPOS_FOTO = ["image/jpeg", "image/png", "image/webp"];
+const MAX_FOTO_MB = 2;
+
+// Devuelve un mensaje de error, o "" si la imagen es válida.
+export function validarFoto(archivo) {
+  if (!archivo) return "";
+  if (!TIPOS_FOTO.includes(archivo.type))
+    return "Usa una imagen JPG, PNG o WEBP.";
+  if (archivo.size > MAX_FOTO_MB * 1024 * 1024)
+    return `La imagen no puede pesar más de ${MAX_FOTO_MB} MB.`;
+  return "";
+}

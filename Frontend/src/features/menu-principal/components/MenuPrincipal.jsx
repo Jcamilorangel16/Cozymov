@@ -10,6 +10,8 @@ import SidebarMenu from "./SidebarMenu";
 import { useMenuPrincipal } from "../hooks/useMenuPrincipal";
 import ViajeEnCurso from "../../viaje-en-curso/components/ViajeEnCurso";
   import ConfiguracionGeneral from "../../configuracion/components/ConfiguracionGeneral";
+  import { PerfilProvider } from "../../configuracion/context/PerfilContext";
+
 
 /**
  * Compone la barra lateral y las vistas del menú de usuario.
@@ -29,45 +31,47 @@ export default function MenuPrincipal() {
     irAVista,
   } = useMenuPrincipal();
 
-  return (
-    <div className="app-shell">
-      <SidebarMenu vistaActiva={vistaActiva} onNavigate={irAVista} />
+    return (
+    <PerfilProvider>
+      <div className="app-shell">
+        <SidebarMenu vistaActiva={vistaActiva} onNavigate={irAVista} />
 
-      <main className="main-content flex-grow-1 p-4">
-        <div className="border rounded-3 p-4 bloque_contenido" style={{ minHeight: 400 }}>
+        <main className="main-content flex-grow-1 p-4">
+          <div className="border rounded-3 p-4 bloque_contenido" style={{ minHeight: 400 }}>
 
-          {vistaActiva === "inicio" && <PanelInicio onNavigate={irAVista} />}
+            {vistaActiva === "inicio" && <PanelInicio onNavigate={irAVista} />}
 
-          {vistaActiva === "buscar" && (
-            <div className="vista">
-              <BuscarViajes
-                viajeSeleccionado={viajeSeleccionado}
-                setViajeSeleccionado={setViajeSeleccionado}
-                mensajeAccion={mensajeBusqueda}
-                setMensajeAccion={setMensajeBusqueda}
+            {vistaActiva === "buscar" && (
+              <div className="vista">
+                <BuscarViajes
+                  viajeSeleccionado={viajeSeleccionado}
+                  setViajeSeleccionado={setViajeSeleccionado}
+                  mensajeAccion={mensajeBusqueda}
+                  setMensajeAccion={setMensajeBusqueda}
+                />
+              </div>
+            )}
+
+            {vistaActiva === "ofrecer" && (
+              <OfrecerViajes
+                pasajeroSeleccionado={pasajeroSeleccionado}
+                setPasajeroSeleccionado={setPasajeroSeleccionado}
+                mensajeAccion={mensajePasajero}
+                setMensajeAccion={setMensajePasajero}
               />
-            </div>
-          )}
+            )}
 
-          {vistaActiva === "ofrecer" && (
-            <OfrecerViajes
-              pasajeroSeleccionado={pasajeroSeleccionado}
-              setPasajeroSeleccionado={setPasajeroSeleccionado}
-              mensajeAccion={mensajePasajero}
-              setMensajeAccion={setMensajePasajero}
-            />
-          )}
+            {vistaActiva === "mensajes" && (
+              <div className="vista">
+                <MensajesView usuarioActualId="usuario_actual" receptorId="receptor_ejemplo" />
+              </div>
+            )}
+            {vistaActiva === "en-curso" && (<div className="vista"> <ViajeEnCurso onNavigate={irAVista} /> </div>)}
 
-          {vistaActiva === "mensajes" && (
-            <div className="vista">
-              <MensajesView usuarioActualId="usuario_actual" receptorId="receptor_ejemplo" />
-            </div>
-          )}
-          {vistaActiva === "en-curso" && (<div className="vista"> <ViajeEnCurso onNavigate={irAVista} /> </div>)}
-
-          {vistaActiva === "configuracion" && (<div className="vista"> <ConfiguracionGeneral /> </div>)}
-        </div>
-      </main>
-    </div>
+            {vistaActiva === "configuracion" && (<div className="vista"> <ConfiguracionGeneral /> </div>)}
+          </div>
+        </main>
+      </div>
+    </PerfilProvider>
   );
 }
