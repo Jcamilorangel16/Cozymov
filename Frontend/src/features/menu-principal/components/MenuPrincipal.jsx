@@ -1,4 +1,4 @@
-// Compone el cabezal de navegación y las vistas del menú principal.
+﻿// Compone el cabezal de navegaciÃ³n y las vistas del menÃº principal.
 "use client";
 
 import OfrecerViajes from "../../ofrecer-viajes/components/OfrecerViajes";
@@ -14,8 +14,9 @@ import { PerfilProvider } from "../../configuracion/context/PerfilContext";
 import { useSessionUserId } from "../../../hooks/useSessionUserId";
 
 /**
- * Compone la barra lateral y las vistas del menú de usuario.
- * @returns Vista principal de la aplicación.
+ * Compone la barra lateral y las vistas del menÃº de usuario.
+ * @param {{usuarioActualId: string}} props Identidad autenticada.
+ * @returns Vista principal de la aplicaciÃ³n.
  */
 export default function MenuPrincipal() {
   const usuarioActualId = useSessionUserId();

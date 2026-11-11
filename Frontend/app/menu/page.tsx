@@ -14,14 +14,15 @@ import MenuPrincipal from '../../src/features/menu-principal/components/MenuPrin
  */
 export default async function MenuPage() {
   const token = (await cookies()).get(NOMBRE_COOKIE_SESION)?.value;
+  const sesion = token ? await verificarSesion(token) : null;
 
-  if (!token || !(await verificarSesion(token))) {
+  if (!sesion) {
     redirect('/');
   }
 
   return (
     <div className="d-flex min-vh-100" style={{ backgroundColor: '#FBFAF8' }}>
-      <MenuPrincipal />
+      <MenuPrincipal usuarioActualId={sesion.id} />
     </div>
   );
 }

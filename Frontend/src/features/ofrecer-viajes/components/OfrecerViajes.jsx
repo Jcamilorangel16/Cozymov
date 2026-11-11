@@ -47,6 +47,7 @@ export default function OfrecerViajes({
     errorPublicacion,
     setErrorPublicacion,
     viajePublicado,
+    editandoViaje,
     cambiarCampoVehiculo,
     guardarVehiculo,
     publicarViaje,
@@ -129,6 +130,7 @@ export default function OfrecerViajes({
           setAtajoSalida={setAtajoSalida}
           errorPublicacion={errorPublicacion}
           setErrorPublicacion={setErrorPublicacion}
+          editandoViaje={editandoViaje}
           onSubmit={publicarViaje}
         />
       ) : (

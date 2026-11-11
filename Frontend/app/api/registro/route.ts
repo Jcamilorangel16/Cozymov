@@ -24,7 +24,7 @@ export async function POST(request: Request) {
   const usuario = validacion.datos;
 
   try {
-    const respuesta = await fetch(`${apiUrl.replace(/\/$/, "")}/Usuarios`, {
+    const respuesta = await fetch(`${apiUrl.replace(/\/+$/, "")}/api/Usuarios`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

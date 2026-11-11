@@ -1,20 +1,76 @@
-// Endpoints para consultar y registrar el vehículo de un usuario.
 import { NextResponse } from "next/server";
-import type { PoolClient } from "pg";
 import {
 	validarIdUsuarioVehiculo,
 	validarNuevoVehiculo,
 } from "../../../src/features/ofrecer-viajes/validations/vehiculos";
-import { getDbPool } from "../../../src/lib/db";
 import { obtenerSesionActual } from "../../../src/lib/auth";
 
 export const runtime = "nodejs";
 
-/**
- * Obtiene el último vehículo registrado para el usuario autenticado.
- * @param request Solicitud con el identificador opcional de usuario en la query.
- * @returns Vehículo encontrado o respuesta de error.
- */
+type Registro = Record<string, unknown>;
+
+function esRegistro(valor: unknown): valor is Registro {
+	return typeof valor === "object" && valor !== null && !Array.isArray(valor);
+}
+
+function obtenerCampo(registro: Registro, ...nombres: string[]): unknown {
+	for (const nombre of nombres) {
+		if (registro[nombre] !== undefined) {
+			return registro[nombre];
+		}
+	}
+	return undefined;
+}
+
+function obtenerBaseApi(): string | null {
+	const apiUrl = process.env.API_URL ?? process.env.VITE_API_URL;
+	return apiUrl ? apiUrl.replace(/\/+$/, "") : null;
+}
+
+async function responderErrorApi(respuesta: Response, mensaje: string) {
+	const detalle = await respuesta.text();
+	let error = detalle || mensaje;
+	try {
+		const resultado: unknown = JSON.parse(detalle);
+		if (esRegistro(resultado)) {
+			const detalleApi = obtenerCampo(resultado, "error", "detail", "title");
+			if (typeof detalleApi === "string" && detalleApi) {
+				error = detalleApi;
+			}
+		}
+	} catch {
+		// El backend puede responder texto plano.
+	}
+	return NextResponse.json({ error }, { status: respuesta.status });
+}
+
+function normalizarVehiculo(valor: unknown): Registro | null {
+	if (!esRegistro(valor)) {
+		return null;
+	}
+
+	const automovil = obtenerCampo(valor, "automovil", "Automovil");
+	const moto = obtenerCampo(valor, "moto", "Moto");
+	const puertas = esRegistro(automovil)
+		? obtenerCampo(automovil, "numeroPuertas", "NumeroPuertas", "numero_puertas")
+		: undefined;
+	const modalidad = esRegistro(moto)
+		? obtenerCampo(moto, "modalidad", "Modalidad")
+		: undefined;
+
+	return {
+		id_vehiculo: obtenerCampo(valor, "idVehiculo", "IdVehiculo", "id_vehiculo"),
+		id_usuario: String(obtenerCampo(valor, "idUsuario", "IdUsuario", "id_usuario") ?? ""),
+		tipo: obtenerCampo(valor, "tipo", "Tipo"),
+		modelo: obtenerCampo(valor, "modelo", "Modelo"),
+		capacidad: obtenerCampo(valor, "capacidad", "Capacidad"),
+		ruta_cotidiana: obtenerCampo(valor, "rutaCotidiana", "RutaCotidiana", "ruta_cotidiana") ?? null,
+		foto_vehiculo: obtenerCampo(valor, "foto", "Foto", "foto_vehiculo") ?? null,
+		...(puertas !== undefined && { numero_puertas: puertas }),
+		...(modalidad !== undefined && { modalidad }),
+	};
+}
+
 export async function GET(request: Request) {
 	const sesion = await obtenerSesionActual();
 	if (!sesion) {
@@ -32,35 +88,53 @@ export async function GET(request: Request) {
 		);
 	}
 
-	try {
-		const result = await getDbPool().query(
-			`SELECT v.id_vehiculo, v.id_usuario, v.tipo, v.modelo, v.capacidad,
-			        v.ruta_cotidiana, v.foto_vehiculo,
-			        a.numero_puertas, m.modalidad
-			 FROM vehiculo v
-			 LEFT JOIN automovil a ON a.id_vehiculo = v.id_vehiculo
-			 LEFT JOIN moto m ON m.id_vehiculo = v.id_vehiculo
-			 WHERE v.id_usuario = $1
-			 ORDER BY v.id_vehiculo DESC
-			 LIMIT 1`,
-			[sesion.id],
-		);
-
-		return NextResponse.json({ vehiculo: result.rows[0] ?? null });
-	} catch (error) {
-		console.error("Error al consultar vehículo:", error);
+	const baseApi = obtenerBaseApi();
+	if (!baseApi) {
 		return NextResponse.json(
-			{ error: "No se pudo consultar el vehículo." },
+			{ error: "Falta configurar API_URL." },
 			{ status: 500 },
+		);
+	}
+
+	try {
+		const respuesta = await fetch(`${baseApi}/api/vehiculos`, {
+			cache: "no-store",
+		});
+		if (!respuesta.ok) {
+			return responderErrorApi(respuesta, "No se pudieron consultar los vehículos.");
+		}
+
+		const resultado: unknown = await respuesta.json();
+		if (!Array.isArray(resultado) || !resultado.every(esRegistro)) {
+			console.error("La API de vehículos devolvió una lista inválida.");
+			return NextResponse.json(
+				{ error: "La respuesta de la API de vehículos no es válida." },
+				{ status: 502 },
+			);
+		}
+
+		const vehiculos = resultado
+			.filter((item) =>
+				String(obtenerCampo(item, "idUsuario", "IdUsuario", "id_usuario")) === sesion.id
+			)
+			.sort((a, b) => {
+				const idA = Number(obtenerCampo(a, "idVehiculo", "IdVehiculo", "id_vehiculo"));
+				const idB = Number(obtenerCampo(b, "idVehiculo", "IdVehiculo", "id_vehiculo"));
+				return idB - idA;
+			});
+
+		return NextResponse.json({
+			vehiculo: vehiculos.length > 0 ? normalizarVehiculo(vehiculos[0]) : null,
+		});
+	} catch (error) {
+		console.error("No se pudo consultar el vehículo en el backend:", error);
+		return NextResponse.json(
+			{ error: "No se pudo conectar con la API de vehículos." },
+			{ status: 502 },
 		);
 	}
 }
 
-/**
- * Registra un vehículo y sus datos específicos dentro de una transacción.
- * @param request Solicitud con los datos del vehículo en JSON.
- * @returns Vehículo creado o respuesta de error.
- */
 export async function POST(request: Request) {
 	const sesion = await obtenerSesionActual();
 	if (!sesion) {
@@ -81,74 +155,98 @@ export async function POST(request: Request) {
 	if (!validacion.valido) {
 		return NextResponse.json({ error: validacion.error }, { status: 400 });
 	}
-	const datos = validacion.datos;
 
-	let client: PoolClient | null = null;
-	try {
-		client = await getDbPool().connect();
-		await client.query("BEGIN");
-		const result = await client.query(
-			`INSERT INTO vehiculo (id_usuario, tipo, modelo, capacidad, ruta_cotidiana, foto_vehiculo)
-			 VALUES ($1, $2, $3, $4, $5, $6)
-			 RETURNING id_vehiculo, id_usuario, tipo, modelo, capacidad, ruta_cotidiana, foto_vehiculo`,
-			[
-				datos.id_usuario,
-				datos.tipo,
-				datos.modelo,
-				datos.capacidad,
-				datos.ruta_cotidiana,
-				datos.foto_vehiculo,
-			],
-		);
-		const vehiculo = result.rows[0];
-
-		if (datos.tipo === "Automovil") {
-			await client.query(
-				"INSERT INTO automovil (id_vehiculo, numero_puertas) VALUES ($1, $2)",
-				[vehiculo.id_vehiculo, datos.numero_puertas],
-			);
-		} else if (datos.tipo === "Moto") {
-			await client.query(
-				"INSERT INTO moto (id_vehiculo, modalidad) VALUES ($1, $2)",
-				[vehiculo.id_vehiculo, datos.modalidad],
-			);
-		}
-
-		await client.query("COMMIT");
-		return NextResponse.json({ vehiculo }, { status: 201 });
-	} catch (error) {
-		if (client) {
-			try {
-				await client.query("ROLLBACK");
-			} catch (rollbackError) {
-				console.error(
-					"No se pudo revertir el registro del vehículo:",
-					rollbackError,
-				);
-			}
-		}
-		console.error("Error al registrar vehículo:", error);
-		const code =
-			typeof error === "object" && error !== null && "code" in error
-				? error.code
-				: undefined;
-		if (code === "23503") {
-			return NextResponse.json(
-				{ error: "El usuario indicado no existe." },
-				{ status: 400 },
-			);
-		}
-		if (code === "23514") {
-			return NextResponse.json(
-				{ error: "Los datos no cumplen las restricciones del vehículo." },
-				{ status: 400 },
-			);
-		}
+	const baseApi = obtenerBaseApi();
+	if (!baseApi) {
 		return NextResponse.json(
-			{ error: "No se pudo registrar el vehículo." },
+			{ error: "Falta configurar API_URL." },
 			{ status: 500 },
 		);
-	} finally {
-		client?.release();
+	}
+
+	const datos = validacion.datos;
+	try {
+		const respuesta = await fetch(`${baseApi}/api/vehiculos`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				Tipo: datos.tipo,
+				Modelo: datos.modelo,
+				Capacidad: datos.capacidad,
+				Foto: datos.foto_vehiculo,
+				IdUsuario: Number(sesion.id),
+			}),
+			cache: "no-store",
+		});
+		if (!respuesta.ok) {
+			return responderErrorApi(respuesta, "No se pudo registrar el vehículo.");
+		}
+
+		const vehiculoApi: unknown = await respuesta.json();
+		const vehiculo = normalizarVehiculo(vehiculoApi);
+		const idVehiculo = vehiculo?.id_vehiculo;
+		if (!vehiculo || (typeof idVehiculo !== "number" && typeof idVehiculo !== "string")) {
+			console.error("La API no devolvió el identificador del vehículo creado.");
+			return NextResponse.json(
+				{ error: "La respuesta de la API de vehículos no es válida." },
+				{ status: 502 },
+			);
+		}
+
+		const id = encodeURIComponent(String(idVehiculo));
+		const subtipo = datos.tipo === "Automovil"
+			? { ruta: "automoviles", cuerpo: { NumeroPuertas: datos.numero_puertas } }
+			: datos.tipo === "Moto"
+				? { ruta: "motos", cuerpo: { Modalidad: datos.modalidad } }
+				: { ruta: "bicicletas-electricas", cuerpo: {} };
+		const respuestaSubtipo = await fetch(`${baseApi}/api/${subtipo.ruta}/${id}`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(subtipo.cuerpo),
+			cache: "no-store",
+		});
+
+		if (!respuestaSubtipo.ok) {
+			const errorSubtipo = await respuestaSubtipo.text();
+			try {
+				const respuestaLimpieza = await fetch(`${baseApi}/api/vehiculos/${id}`, {
+					method: "DELETE",
+					cache: "no-store",
+				});
+				if (!respuestaLimpieza.ok) {
+					console.error(
+						`No se pudo eliminar el vehículo incompleto ${idVehiculo}:`,
+						await respuestaLimpieza.text(),
+					);
+				}
+			} catch (error) {
+				console.error(`No se pudo limpiar el vehículo incompleto ${idVehiculo}:`, error);
+			}
+			return NextResponse.json(
+				{ error: errorSubtipo || "No se pudo registrar el tipo de vehículo." },
+				{ status: respuestaSubtipo.status },
+			);
+		}
+
+		return NextResponse.json(
+			{
+				vehiculo: {
+					...vehiculo,
+					ruta_cotidiana: datos.ruta_cotidiana,
+					foto_vehiculo: datos.foto_vehiculo,
+					...(datos.tipo === "Automovil" && {
+						numero_puertas: datos.numero_puertas,
+					}),
+					...(datos.tipo === "Moto" && { modalidad: datos.modalidad }),
+				},
+			},
+			{ status: 201 },
+		);
+	} catch (error) {
+		console.error("No se pudo registrar el vehículo en la API:", error);
+		return NextResponse.json(
+			{ error: "No se pudo conectar con la API de vehículos." },
+			{ status: 502 },
+		);
 	}
 }

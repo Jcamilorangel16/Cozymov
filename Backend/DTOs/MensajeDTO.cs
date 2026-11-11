@@ -15,9 +15,17 @@
     public class MensajeListaDTO
     {
         public int Otro { get; set; }
+        public string OtroNombre { get; set; } = null!;
         public string UltimoMensaje { get; set; } = null!;
         public DateTime UltimaFecha { get; set; }
         public int NoLeidos { get; set; }
+    }
+
+    public class MensajeContactoDTO
+    {
+        public int IdPersonas { get; set; }
+        public string Nombre { get; set; } = null!;
+        public string Ocupacion { get; set; } = null!;
     }
 
     // Lo que recibe el POST

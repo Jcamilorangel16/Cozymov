@@ -17,6 +17,59 @@ namespace Backend.Controllers
             _context = context;
         }
 
+        // GET: api/Mensajes/contactos?yo=1&q=ana
+        [HttpGet("contactos")]
+        [HttpGet("~/api/Usuarios/contactos")]
+        public async Task<ActionResult<IEnumerable<MensajeContactoDTO>>> GetContactos(
+            [FromQuery] int yo,
+            [FromQuery] string? q,
+            CancellationToken cancellationToken)
+        {
+            if (yo <= 0)
+                return BadRequest("Falta un identificador de usuario válido.");
+
+            var consulta = _context.Usuarios
+                .AsNoTracking()
+                .Where(u => u.IdPersonas != yo);
+
+            var termino = q?.Trim().ToLower();
+            if (!string.IsNullOrEmpty(termino))
+            {
+                consulta = consulta.Where(u =>
+                    u.PrimerNombre.ToLower().Contains(termino) ||
+                    u.SegundoNombre.ToLower().Contains(termino) ||
+                    u.PrimerApellido.ToLower().Contains(termino) ||
+                    u.SegundoApellido.ToLower().Contains(termino));
+            }
+
+            var usuarios = await consulta
+                .OrderBy(u => u.PrimerNombre)
+                .ThenBy(u => u.PrimerApellido)
+                .Select(u => new
+                {
+                    u.IdPersonas,
+                    u.PrimerNombre,
+                    u.SegundoNombre,
+                    u.PrimerApellido,
+                    u.SegundoApellido,
+                    u.ocupacion
+                })
+                .ToListAsync(cancellationToken);
+
+            return usuarios.Select(u => new MensajeContactoDTO
+            {
+                IdPersonas = u.IdPersonas,
+                Nombre = string.Join(" ", new[]
+                {
+                    u.PrimerNombre,
+                    u.SegundoNombre,
+                    u.PrimerApellido,
+                    u.SegundoApellido
+                }.Where(nombre => !string.IsNullOrWhiteSpace(nombre))),
+                Ocupacion = u.ocupacion
+            }).ToList();
+        }
+
         // GET: api/Mensajes/chats?yo=1
         [HttpGet("chats")]
         public async Task<ActionResult<IEnumerable<MensajeListaDTO>>> GetChats([FromQuery] int yo)
@@ -25,10 +78,10 @@ namespace Backend.Controllers
             if (yo <= 0)
                 return BadRequest("Falta el parámetro yo.");
 
-            return await _context.Mensajes
+            var chats = await _context.Mensajes
                 .Where(m => m.IdEmisor == yo || m.IdReceptor == yo)
                 .GroupBy(m => m.IdEmisor == yo ? m.IdReceptor : m.IdEmisor)
-                .Select(g => new MensajeListaDTO
+                .Select(g => new
                 {
                     Otro = g.Key,
                     UltimoMensaje = g.OrderByDescending(m => m.FechaHora).First().Contenido,
@@ -37,6 +90,23 @@ namespace Backend.Controllers
                 })
                 .OrderByDescending(c => c.UltimaFecha)
                 .ToListAsync();
+
+            var idsOtros = chats.Select(c => c.Otro).ToArray();
+            var usuarios = await _context.Usuarios
+                .Where(u => idsOtros.Contains(u.IdPersonas))
+                .Select(u => new { u.IdPersonas, u.PrimerNombre, u.PrimerApellido })
+                .ToDictionaryAsync(
+                    u => u.IdPersonas,
+                    u => $"{u.PrimerNombre} {u.PrimerApellido}".Trim());
+
+            return chats.Select(c => new MensajeListaDTO
+            {
+                Otro = c.Otro,
+                OtroNombre = usuarios[c.Otro],
+                UltimoMensaje = c.UltimoMensaje,
+                UltimaFecha = c.UltimaFecha,
+                NoLeidos = c.NoLeidos
+            }).ToList();
         }
 
         // GET: api/Mensajes/conversacion?yo=1&otro=2
