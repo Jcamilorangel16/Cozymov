@@ -11,15 +11,15 @@ import { useMenuPrincipal } from "../hooks/useMenuPrincipal";
 import ViajeEnCurso from "../../viaje-en-curso/components/ViajeEnCurso";
 import ConfiguracionGeneral from "../../configuracion/components/ConfiguracionGeneral";
 import { PerfilProvider } from "../../configuracion/context/PerfilContext";
-import { useSessionUserId } from "../../../hooks/useSessionUserId";
+
 
 /**
  * Compone la barra lateral y las vistas del menÃº de usuario.
  * @param {{usuarioActualId: string}} props Identidad autenticada.
  * @returns Vista principal de la aplicaciÃ³n.
  */
-export default function MenuPrincipal() {
-  const usuarioActualId = useSessionUserId();
+export default function MenuPrincipal({ usuarioActualId }) {
+  
   const {
     vistaActiva,
     viajeSeleccionado,
