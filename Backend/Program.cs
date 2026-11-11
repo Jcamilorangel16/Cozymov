@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Identity;
 using Backend.Models;
+using Backend.Middleware;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -37,6 +38,8 @@ if (app.Environment.IsDevelopment())
 }
 
 // Configure the HTTP request pipeline.
+app.UseMiddleware<InternalApiMiddleware>();
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();

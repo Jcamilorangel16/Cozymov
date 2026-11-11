@@ -5,8 +5,7 @@ import {
 	validarFiltrosViajes,
 	validarIdUsuarioViaje,
 } from "../../../src/features/viajes/validations/viajes";
-import { tieneReservaActiva } from "../../../src/features/viajes/repositories/reservaViajeRepository";
-import { listarViajesPublicos } from "../../../src/features/viajes/repositories/viajeRepository";
+import { getBackendApiConfig } from "../../../src/lib/backendApi";
 
 export const runtime = "nodejs";
 
@@ -25,9 +24,9 @@ function obtenerCampo(registro: Registro, ...nombres: string[]): unknown {
 	return undefined;
 }
 
-function obtenerUrlApi(): string | null {
-	const apiUrl = process.env.API_URL ?? process.env.VITE_API_URL;
-	return apiUrl ? `${apiUrl.replace(/\/+$/, "")}/api/Viajes` : null;
+function obtenerUrlApi() {
+	const api = getBackendApiConfig();
+	return api ? { ...api, url: `${api.baseUrl}/api/Viajes` } : null;
 }
 
 async function responderErrorApi(respuesta: Response, mensaje: string) {
@@ -72,8 +71,26 @@ function normalizarViaje(viaje: Registro, respaldo: Registro = {}): Registro {
 			obtenerCampo(viaje, "cupos_disponibles", "cuposDisponibles", "CuposDisponibles"),
 		fecha_salida: fecha,
 		hora_salida: hora,
+		primer_nombre: obtenerCampo(viaje, "primerNombre", "PrimerNombre", "primer_nombre"),
+		primer_apellido: obtenerCampo(viaje, "primerApellido", "PrimerApellido", "primer_apellido"),
+		nombre_conductor:
+			obtenerCampo(viaje, "nombreConductor", "NombreConductor", "nombre_conductor"),
+		ocupacion_conductor:
+			obtenerCampo(viaje, "ocupacionConductor", "OcupacionConductor", "ocupacion_conductor"),
+		tipo_vehiculo:
+			obtenerCampo(viaje, "tipoVehiculo", "TipoVehiculo", "tipo_vehiculo"),
+		modelo_vehiculo:
+			obtenerCampo(viaje, "modeloVehiculo", "ModeloVehiculo", "modelo_vehiculo"),
+		capacidad_vehiculo:
+			obtenerCampo(viaje, "capacidadVehiculo", "CapacidadVehiculo", "capacidad_vehiculo"),
+		foto_vehiculo:
+			obtenerCampo(viaje, "fotoVehiculo", "FotoVehiculo", "foto_vehiculo"),
+		numero_puertas:
+			obtenerCampo(viaje, "numeroPuertas", "NumeroPuertas", "numero_puertas"),
+		modalidad_moto:
+			obtenerCampo(viaje, "modalidadMoto", "ModalidadMoto", "modalidad_moto"),
 		informacion_adicional:
-			obtenerCampo(viaje, "informacion_adicional", "informacionAdicional") ??
+			obtenerCampo(viaje, "informacion_adicional", "informacionAdicional", "InformacionAdicional") ??
 			obtenerCampo(respaldo, "informacion_adicional") ?? null,
 		estado: obtenerCampo(viaje, "estado", "Estado"),
 	};
@@ -114,11 +131,50 @@ export async function GET(request: Request) {
 		);
 	}
 
+	const apiUrl = obtenerUrlApi();
+	if (!apiUrl) {
+		return NextResponse.json(
+			{ error: "Falta configurar VITE_API_URL e INTERNAL_API_KEY." },
+			{ status: 500 },
+		);
+	}
+
+	const parametrosApi = new URLSearchParams();
+	if (validacionFiltros.datos.origen) {
+		parametrosApi.set("origen", validacionFiltros.datos.origen);
+	}
+	if (validacionFiltros.datos.destino) {
+		parametrosApi.set("destino", validacionFiltros.datos.destino);
+	}
+	if (validacionFiltros.datos.fecha) {
+		parametrosApi.set("fecha", validacionFiltros.datos.fecha);
+	}
+	if (validacionUsuario.datos) {
+		parametrosApi.set("id_usuario", validacionUsuario.datos);
+	}
+	if (idViaje) {
+		parametrosApi.set("id_viaje", idViaje);
+	}
+
 	try {
-		const viajes = await listarViajesPublicos(validacionFiltros.datos, {
-			...(validacionUsuario.datos && { idUsuario: validacionUsuario.datos }),
-			...(idViaje && { idViaje }),
-		});
+		const query = parametrosApi.toString();
+		const respuesta = await fetch(
+			`${apiUrl.url}${query ? `?${query}` : ""}`,
+			{ headers: apiUrl.headers, cache: "no-store" },
+		);
+		if (!respuesta.ok) {
+			return responderErrorApi(respuesta, "No se pudieron consultar los viajes.");
+		}
+
+		const resultado: unknown = await respuesta.json();
+		if (!Array.isArray(resultado) || !resultado.every(esRegistro)) {
+			console.error("La API de viajes devolvió una lista inválida.");
+			return NextResponse.json(
+				{ error: "La respuesta de la API de viajes no es válida." },
+				{ status: 502 },
+			);
+		}
+		const viajes = resultado.map((viaje) => normalizarViaje(viaje));
 
 		if (idViaje) {
 			return NextResponse.json({ viaje: viajes[0] ?? null });
@@ -128,10 +184,10 @@ export async function GET(request: Request) {
 		}
 		return NextResponse.json({ viajes });
 	} catch (error) {
-		console.error("No se pudieron consultar los viajes públicos:", error);
+		console.error("No se pudieron consultar los viajes en la API:", error);
 		return NextResponse.json(
-			{ error: "No se pudieron consultar los viajes. Inténtalo de nuevo." },
-			{ status: 500 },
+			{ error: "No se pudo conectar con la API de viajes." },
+			{ status: 502 },
 		);
 	}
 }
@@ -151,111 +207,45 @@ export async function POST(request: Request) {
 			{ status: 400 },
 		);
 	}
-	if (!esRegistro(body)) {
-		return NextResponse.json(
-			{ error: "El cuerpo de la solicitud debe ser un objeto JSON." },
-			{ status: 400 },
-		);
-	}
 
 	const apiUrl = obtenerUrlApi();
 	if (!apiUrl) {
 		return NextResponse.json(
-			{ error: "Falta configurar API_URL." },
+			{ error: "Falta configurar VITE_API_URL e INTERNAL_API_KEY." },
 			{ status: 500 },
 		);
 	}
 
-	const idUsuario = Number(sesion.id);
-	if (!Number.isSafeInteger(idUsuario) || idUsuario <= 0) {
-		return NextResponse.json(
-			{ error: "La sesión no contiene un identificador de usuario válido." },
-			{ status: 400 },
-		);
-	}
-	try {
-		if (await tieneReservaActiva(idUsuario)) {
-			return NextResponse.json(
-				{ error: "No puedes publicar un viaje mientras tengas uno en curso." },
-				{ status: 409 },
-			);
-		}
-	} catch (error) {
-		console.error("No se pudo validar si el usuario tiene un viaje en curso:", error);
-		return NextResponse.json(
-			{ error: "No se pudo validar tu viaje en curso. Inténtalo de nuevo." },
-			{ status: 500 },
-		);
+	const validacion = validarDatosNuevoViaje(body, sesion.id);
+	if (!validacion.valido) {
+		return NextResponse.json({ error: validacion.error }, { status: 400 });
 	}
 
-	const origen = obtenerCampo(body, "Origen", "origen");
-	const destino = obtenerCampo(body, "Destino", "destino");
-	if (typeof origen !== "string" || !origen.trim() || origen.length > 200) {
-		return NextResponse.json(
-			{ error: "El origen es obligatorio y no puede superar 200 caracteres." },
-			{ status: 400 },
-		);
-	}
-	if (typeof destino !== "string" || !destino.trim() || destino.length > 200) {
-		return NextResponse.json(
-			{ error: "El destino es obligatorio y no puede superar 200 caracteres." },
-			{ status: 400 },
-		);
-	}
-
-	const fechaHoraRecibida = obtenerCampo(
-		body,
-		"FechaHoraSalida",
-		"fechaHoraSalida",
-		"fecha_hora_salida",
-	);
-	const fechaSalida = obtenerCampo(body, "fecha_salida", "fechaSalida");
-	const horaSalida = obtenerCampo(body, "hora_salida", "horaSalida");
-	const fechaHoraSalida = typeof fechaHoraRecibida === "string"
-		? fechaHoraRecibida
-		: typeof fechaSalida === "string" && typeof horaSalida === "string"
-			? `${fechaSalida}T${horaSalida.length === 5 ? `${horaSalida}:00` : horaSalida}`
-			: "";
-	if (!fechaHoraSalida || Number.isNaN(Date.parse(fechaHoraSalida))) {
-		return NextResponse.json(
-			{ error: "La fecha y hora de salida no son válidas." },
-			{ status: 400 },
-		);
-	}
-
-	const costo = Number(obtenerCampo(body, "Costo", "costo", "precio_pasaje", "precioPasaje"));
-	const cuposDisponibles = Number(
-		obtenerCampo(body, "CuposDisponibles", "cuposDisponibles", "cupos_disponibles"),
-	);
-	if (!Number.isFinite(costo) || costo <= 0) {
-		return NextResponse.json(
-			{ error: "El costo debe ser un número mayor a cero." },
-			{ status: 400 },
-		);
-	}
-	if (!Number.isInteger(cuposDisponibles) || cuposDisponibles < 1) {
-		return NextResponse.json(
-			{ error: "Los cupos disponibles deben ser un entero positivo." },
-			{ status: 400 },
-		);
-	}
-
+	const datos = validacion.datos;
 	const viaje = {
 		IdConductor: sesion.id,
-		IdUsuario: idUsuario,
+		IdUsuario: Number(sesion.id),
+		IdVehiculo: datos.id_vehiculo,
 		IdRuta: null,
-		Origen: origen.trim(),
-		Destino: destino.trim(),
-		FechaHoraSalida: fechaHoraSalida,
-		Costo: costo,
-		CuposDisponibles: cuposDisponibles,
-		Estado: obtenerCampo(body, "Estado", "estado") ?? "Activo",
+		Origen: datos.origen,
+		Destino: datos.destino,
+		PuntoEncuentro: datos.punto_encuentro,
+		InformacionAdicional: datos.informacion_adicional,
+		FechaHoraSalida: `${datos.fecha_salida}T${datos.hora_salida.length === 5
+			? `${datos.hora_salida}:00`
+			: datos.hora_salida}`,
+		Costo: datos.precio_pasaje,
+		CuposDisponibles: datos.cupos_disponibles,
+		Estado: "Activo",
 	};
 
 	try {
-		const respuesta = await fetch(apiUrl, {
+		const respuesta = await fetch(apiUrl.url, {
 			method: "POST",
-			headers: { "Content-Type": "application/json" },
+			headers: {
+				...apiUrl.headers,
+				"Content-Type": "application/json",
+			},
 			body: JSON.stringify(viaje),
 			cache: "no-store",
 		});
@@ -274,7 +264,7 @@ export async function POST(request: Request) {
 
 		return NextResponse.json(
 			{
-				viaje: normalizarViaje(resultado, body),
+				viaje: normalizarViaje(resultado, viaje),
 			},
 			{ status: respuesta.status },
 		);
@@ -325,14 +315,17 @@ export async function PUT(request: Request) {
 	const apiUrl = obtenerUrlApi();
 	if (!apiUrl) {
 		return NextResponse.json(
-			{ error: "Falta configurar API_URL." },
+			{ error: "Falta configurar VITE_API_URL e INTERNAL_API_KEY." },
 			{ status: 500 },
 		);
 	}
 
-	const urlViaje = `${apiUrl}/${encodeURIComponent(String(idViaje))}`;
+	const urlViaje = `${apiUrl.url}/${encodeURIComponent(String(idViaje))}`;
 	try {
-		const respuestaActual = await fetch(urlViaje, { cache: "no-store" });
+		const respuestaActual = await fetch(urlViaje, {
+			headers: apiUrl.headers,
+			cache: "no-store",
+		});
 		if (!respuestaActual.ok) {
 			return responderErrorApi(respuestaActual, "No se pudo consultar el viaje que quieres editar.");
 		}
@@ -356,13 +349,19 @@ export async function PUT(request: Request) {
 		const idRutaActual = obtenerCampo(viajeActual, "idRuta", "IdRuta");
 		const respuesta = await fetch(urlViaje, {
 			method: "PUT",
-			headers: { "Content-Type": "application/json" },
+			headers: {
+				...apiUrl.headers,
+				"Content-Type": "application/json",
+			},
 			body: JSON.stringify({
 				IdConductor: sesion.id,
 				IdUsuario: Number(sesion.id),
 				IdRuta: idRutaActual ?? null,
+				IdVehiculo: datos.id_vehiculo,
 				Origen: datos.origen,
 				Destino: datos.destino,
+				PuntoEncuentro: datos.punto_encuentro,
+				InformacionAdicional: datos.informacion_adicional,
 				FechaHoraSalida: `${datos.fecha_salida}T${datos.hora_salida.length === 5
 					? `${datos.hora_salida}:00`
 					: datos.hora_salida}`,
@@ -419,14 +418,17 @@ export async function DELETE(request: Request) {
 	const apiUrl = obtenerUrlApi();
 	if (!apiUrl) {
 		return NextResponse.json(
-			{ error: "Falta configurar API_URL." },
+			{ error: "Falta configurar VITE_API_URL e INTERNAL_API_KEY." },
 			{ status: 500 },
 		);
 	}
 
-	const urlViaje = `${apiUrl}/${encodeURIComponent(idViaje)}`;
+	const urlViaje = `${apiUrl.url}/${encodeURIComponent(idViaje)}`;
 	try {
-		const respuestaActual = await fetch(urlViaje, { cache: "no-store" });
+		const respuestaActual = await fetch(urlViaje, {
+			headers: apiUrl.headers,
+			cache: "no-store",
+		});
 		if (!respuestaActual.ok) {
 			return responderErrorApi(respuestaActual, "No se pudo consultar el viaje.");
 		}
@@ -448,6 +450,7 @@ export async function DELETE(request: Request) {
 
 		const respuesta = await fetch(urlViaje, {
 			method: "DELETE",
+			headers: apiUrl.headers,
 			cache: "no-store",
 		});
 		if (!respuesta.ok) {

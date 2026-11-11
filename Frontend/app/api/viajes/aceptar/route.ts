@@ -1,14 +1,52 @@
 import { NextResponse } from "next/server";
 import { obtenerSesionActual } from "../../../../src/lib/auth";
-import {
-	ErrorReservaViaje,
-	reservarViaje,
-} from "../../../../src/features/viajes/repositories/reservaViajeRepository";
+import { getBackendApiConfig } from "../../../../src/lib/backendApi";
 
 type Registro = Record<string, unknown>;
 
 function esRegistro(valor: unknown): valor is Registro {
 	return typeof valor === "object" && valor !== null && !Array.isArray(valor);
+}
+
+function normalizarReserva(valor: Registro): Registro {
+	const fechaHora = valor.fechaHoraSalida ?? valor.FechaHoraSalida;
+	const fechaHoraTexto = typeof fechaHora === "string" ? fechaHora : "";
+
+	return {
+		id_reserva: valor.idReserva ?? valor.IdReserva,
+		id_viaje: valor.idViaje ?? valor.IdViaje,
+		id_pasajero: valor.idPasajero ?? valor.IdPasajero,
+		origen: valor.origen ?? valor.Origen,
+		destino: valor.destino ?? valor.Destino,
+		fecha_hora_salida: fechaHoraTexto,
+		costo: valor.costo ?? valor.Costo,
+		id_conductor: valor.idConductor ?? valor.IdConductor,
+		nombre_conductor: valor.nombreConductor ?? valor.NombreConductor ?? "",
+	};
+}
+
+async function errorApi(respuesta: Response, mensaje: string) {
+	const detalle = await respuesta.text();
+	if (!detalle) {
+		return NextResponse.json({ error: mensaje }, { status: respuesta.status });
+	}
+
+	try {
+		const resultado: unknown = JSON.parse(detalle);
+		if (typeof resultado === "string") {
+			return NextResponse.json({ error: resultado }, { status: respuesta.status });
+		}
+		if (esRegistro(resultado)) {
+			const error = resultado.error ?? resultado.detail ?? resultado.title;
+			if (typeof error === "string") {
+				return NextResponse.json({ error }, { status: respuesta.status });
+			}
+		}
+	} catch {
+		return NextResponse.json({ error: detalle }, { status: respuesta.status });
+	}
+
+	return NextResponse.json({ error: detalle }, { status: respuesta.status });
 }
 
 export async function POST(request: Request) {
@@ -42,20 +80,49 @@ export async function POST(request: Request) {
 		);
 	}
 
+	const api = getBackendApiConfig();
+	if (!api) {
+		return NextResponse.json(
+			{ error: "Falta configurar VITE_API_URL e INTERNAL_API_KEY." },
+			{ status: 500 },
+		);
+	}
+
 	try {
-		const reserva = await reservarViaje(idViaje, idPasajero);
-		return NextResponse.json({ reserva });
-	} catch (error) {
-		if (error instanceof ErrorReservaViaje) {
+		const respuesta = await fetch(
+			`${api.baseUrl}/api/Viajes/${idViaje}/reservar`,
+			{
+				method: "POST",
+				headers: {
+					...api.headers,
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({ idPasajero }),
+				cache: "no-store",
+			},
+		);
+		if (!respuesta.ok) {
+			return errorApi(respuesta, "No se pudo registrar la reserva.");
+		}
+
+		const resultado: unknown = await respuesta.json();
+		if (!esRegistro(resultado)) {
+			console.error("La API de viajes devolvió una reserva inválida.");
 			return NextResponse.json(
-				{ error: error.message },
-				{ status: error.status },
+				{ error: "La respuesta de la API de viajes no es válida." },
+				{ status: 502 },
 			);
 		}
-		console.error("No se pudo aceptar el viaje:", error);
+
 		return NextResponse.json(
-			{ error: "No se pudo registrar la reserva. Inténtalo de nuevo." },
-			{ status: 500 },
+			{ reserva: normalizarReserva(resultado) },
+			{ status: respuesta.status },
+		);
+	} catch (error) {
+		console.error("No se pudo conectar con la API para aceptar el viaje:", error);
+		return NextResponse.json(
+			{ error: "No se pudo conectar con la API de viajes." },
+			{ status: 502 },
 		);
 	}
 }

@@ -319,10 +319,24 @@ namespace Backend.Migrations
                     b.Property<int>("IdUsuario")
                         .HasColumnType("integer");
 
+                    b.Property<long?>("IdVehiculo")
+                        .HasColumnType("bigint")
+                        .HasColumnName("id_vehiculo");
+
+                    b.Property<string>("InformacionAdicional")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("informacion_adicional");
+
                     b.Property<string>("Origen")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)")
                         .HasColumnName("origen");
+
+                    b.Property<string>("PuntoEncuentro")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("punto_encuentro");
 
                     b.HasKey("IdViaje");
 

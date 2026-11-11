@@ -12,15 +12,16 @@ public sealed class AppDbContextFactory : IDesignTimeDbContextFactory<AppDbConte
 
         var configuration = new ConfigurationBuilder()
             .SetBasePath(Directory.GetCurrentDirectory())
-            .AddJsonFile("appsettings.json", optional: false)
+            .AddJsonFile("appsettings.json", optional: true)
             .AddJsonFile($"appsettings.{environment}.json", optional: true)
             .AddUserSecrets<AppDbContextFactory>(optional: true)
             .AddEnvironmentVariables()
             .Build();
 
-        var connectionString = configuration.GetConnectionString("AppDBContext")
+        var connectionString = configuration.GetConnectionString("Supabase")
+            ?? configuration.GetConnectionString("AppDBContext")
             ?? throw new InvalidOperationException(
-                "No se encontró ConnectionStrings:AppDBContext. Configure la conexión de Supabase.");
+                "No se encontró ConnectionStrings:Supabase. Configure la conexión de Supabase.");
 
         var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
         optionsBuilder.UseNpgsql(connectionString);
