@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 export function useMenuPrincipal() {
   // Sección visible y estado local de sus dos flujos interactivos.
   const [vistaActiva, setVistaActiva] = useState("inicio");
+  const [contactoInicial, setContactoInicial] = useState(null);
   const [viajeSeleccionado, setViajeSeleccionado] = useState(null);
   const [mensajeBusqueda, setMensajeBusqueda] = useState("");
   const [pasajeroSeleccionado, setPasajeroSeleccionado] = useState(null);
@@ -26,6 +27,9 @@ export function useMenuPrincipal() {
    */
   function irAVista(id) {
     setVistaActiva(id);
+    if (id !== "mensajes") {
+      setContactoInicial(null);
+    }
     if (id === "buscar") {
       setViajeSeleccionado(null);
       setMensajeBusqueda("");
@@ -36,8 +40,15 @@ export function useMenuPrincipal() {
     }
   }
 
+  function abrirChatConUsuario(contacto) {
+    setContactoInicial(contacto);
+    setVistaActiva("mensajes");
+  }
+
   return {
     vistaActiva,
+    contactoInicial,
+    abrirChatConUsuario,
     viajeSeleccionado,
     setViajeSeleccionado,
     mensajeBusqueda,

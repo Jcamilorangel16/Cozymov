@@ -22,6 +22,8 @@ export default function MenuPrincipal({ usuarioActualId }) {
   
   const {
     vistaActiva,
+    contactoInicial,
+    abrirChatConUsuario,
     viajeSeleccionado,
     setViajeSeleccionado,
     mensajeBusqueda,

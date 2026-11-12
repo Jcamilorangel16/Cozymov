@@ -46,12 +46,14 @@ export default function OfrecerViajes({
     setAtajoSalida,
     errorPublicacion,
     setErrorPublicacion,
+    estadoViajeEnCurso,
     viajePublicado,
     editandoViaje,
     cambiarCampoVehiculo,
     guardarVehiculo,
     publicarViaje,
     reintentarConsulta,
+    reintentarValidacionViajeEnCurso,
     editarViajePublicado,
     prepararOtroViaje,
     aceptarPasajero,
@@ -108,6 +110,23 @@ export default function OfrecerViajes({
           onEditarViaje={editarViajePublicado}
           onPublicarOtro={prepararOtroViaje}
         />
+      ) : estadoViajeEnCurso === "en-curso" ? (
+        <div className="alert alert-warning" role="alert">
+          No puedes publicar un viaje mientras tengas uno en curso. Completa tu viaje actual antes de publicar otro.
+        </div>
+      ) : estadoViajeEnCurso === "cargando" ? (
+        <p role="status">Validando si tienes un viaje en curso...</p>
+      ) : estadoViajeEnCurso === "error" ? (
+        <div className="alert alert-danger" role="alert">
+          No se pudo validar si tienes un viaje en curso.
+          <button
+            className="btn btn-outline-danger d-block mt-3"
+            type="button"
+            onClick={reintentarValidacionViajeEnCurso}
+          >
+            Volver a consultar
+          </button>
+        </div>
       ) : pasajeroSeleccionado === null ? (
         <FormularioPublicarViaje
           origen={origen}

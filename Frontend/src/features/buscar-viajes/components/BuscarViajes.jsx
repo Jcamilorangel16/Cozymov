@@ -7,9 +7,10 @@ import { formatearFecha, formatearPrecio } from "../utils/viajes";
 
 /**
  * Muestra filtros de viaje y resultados de búsqueda.
+ * @param {{onEnviarMensaje?: (contacto: {id: string, nombre: string}) => void, onNavigate?: (id: string) => void}} props Acciones para el chat y la navegación.
  * @returns Interfaz de búsqueda de viajes.
  */
-export default function BuscarViajes() {
+export default function BuscarViajes({ onEnviarMensaje, onNavigate }) {
   const {
     origen,
     setOrigen,
@@ -22,11 +23,14 @@ export default function BuscarViajes() {
     busquedaRealizada,
     error,
     tieneViajePublicado,
+    tieneViajeEnCurso,
     validacionCompletada,
     idUsuario,
     eliminandoViajeId,
+    aceptandoViajeId,
     handleBuscar,
     handleEliminarViaje,
+    handleAceptarViaje,
   } = useBuscarViajes();
 
   return (
@@ -105,18 +109,87 @@ export default function BuscarViajes() {
                         </h4>
                         <strong>{formatearPrecio(viaje.precio_pasaje)}</strong>
                       </div>
-                      <p className="texto-secundario mb-3">
-                        Conductor: {[viaje.primer_nombre, viaje.primer_apellido]
-                          .filter(Boolean)
-                          .join(" ") || "No disponible"}
-                      </p>
+                      <section
+                        className="border rounded-3 p-3 my-3"
+                        aria-label="Información pública del conductor"
+                      >
+                        <h5 className="h6 fw-bold letra-contenido">Conductor</h5>
+                        <div className="d-flex flex-wrap gap-3 align-items-center">
+                          {viaje.foto_vehiculo && (
+                            <img
+                              src={viaje.foto_vehiculo}
+                              alt={`Vehículo de ${viaje.nombre_conductor || viaje.primer_nombre || "el conductor"}`}
+                              className="rounded object-fit-cover"
+                              width="96"
+                              height="72"
+                              loading="lazy"
+                            />
+                          )}
+                          <div>
+                            <div className="fw-semibold">
+                              {viaje.nombre_conductor ||
+                                [viaje.primer_nombre, viaje.primer_apellido]
+                                  .filter(Boolean)
+                                  .join(" ") ||
+                                "Nombre no disponible"}
+                            </div>
+                            {viaje.ocupacion_conductor && (
+                              <div className="texto-secundario small">
+                                {viaje.ocupacion_conductor}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        {viaje.tipo_vehiculo || viaje.modelo_vehiculo ? (
+                          <dl className="row g-2 mt-2 mb-0 small">
+                            <dt className="col-sm-4">Vehículo</dt>
+                            <dd className="col-sm-8 mb-0">
+                              {[viaje.tipo_vehiculo, viaje.modelo_vehiculo]
+                                .filter(Boolean)
+                                .join(" · ")}
+                            </dd>
+                            {viaje.capacidad_vehiculo != null && (
+                              <>
+                                <dt className="col-sm-4">Capacidad</dt>
+                                <dd className="col-sm-8 mb-0">
+                                  {viaje.capacidad_vehiculo} personas
+                                </dd>
+                              </>
+                            )}
+                            {viaje.numero_puertas != null && (
+                              <>
+                                <dt className="col-sm-4">Puertas</dt>
+                                <dd className="col-sm-8 mb-0">
+                                  {viaje.numero_puertas}
+                                </dd>
+                              </>
+                            )}
+                            {viaje.modalidad_moto && (
+                              <>
+                                <dt className="col-sm-4">Modalidad</dt>
+                                <dd className="col-sm-8 mb-0">
+                                  {viaje.modalidad_moto}
+                                </dd>
+                              </>
+                            )}
+                          </dl>
+                        ) : (
+                          <p className="texto-secundario small mb-0 mt-2">
+                            No hay información de vehículo disponible.
+                          </p>
+                        )}
+                      </section>
                       <div className="row g-2">
                         <div className="col-sm-6">
                           <strong>Salida:</strong> {formatearFecha(viaje.fecha_salida)}
                           {viaje.hora_salida && ` · ${String(viaje.hora_salida).slice(0, 5)}`}
                         </div>
                         <div className="col-sm-6">
-                          <strong>Punto de encuentro:</strong> {viaje.punto_encuentro}
+                          {viaje.punto_encuentro && (
+                            <>
+                              <strong>Punto de encuentro:</strong> {viaje.punto_encuentro}
+                            </>
+                          )}
                         </div>
                         <div className="col-sm-6">
                           <strong>Cupos disponibles:</strong> {viaje.cupos_disponibles}
@@ -139,23 +212,54 @@ export default function BuscarViajes() {
                                 : "Eliminar viaje"}
                             </button>
                           )}
+                          {idUsuario && String(viaje.id_usuario) !== idUsuario && (
+                            <button
+                              className="btn btn-outline-primary me-2"
+                              type="button"
+                              onClick={() =>
+                                onEnviarMensaje?.({
+                                  id: String(viaje.id_usuario),
+                                  nombre:
+                                    [viaje.primer_nombre, viaje.primer_apellido]
+                                      .filter(Boolean)
+                                      .join(" ") || "Conductor",
+                                })
+                              }
+                            >
+                              Enviar mensaje
+                            </button>
+                          )}
                           <button
                             className="btn btn-success"
                             type="button"
-                            disabled={!puedeAceptarViaje(
-                              idUsuario,
-                              validacionCompletada,
-                              tieneViajePublicado,
-                            )}
+                            disabled={
+                              !puedeAceptarViaje(
+                                idUsuario,
+                                validacionCompletada,
+                                tieneViajePublicado,
+                                tieneViajeEnCurso,
+                              ) ||
+                              aceptandoViajeId === viaje.id_viaje ||
+                              Number(viaje.cupos_disponibles) < 1
+                            }
+                            onClick={() =>
+                              handleAceptarViaje(viaje, () => onNavigate?.("en-curso"))
+                            }
                             title={
                               !idUsuario
                                 ? "Inicia sesión para poder aceptar un viaje."
                                 : tieneViajePublicado
                                   ? "Ya tienes un viaje publicado."
-                                  : undefined
+                                  : tieneViajeEnCurso
+                                    ? "Ya tienes un viaje en curso."
+                                    : Number(viaje.cupos_disponibles) < 1
+                                      ? "Este viaje ya no tiene cupos disponibles."
+                                      : undefined
                             }
                           >
-                            Aceptar viaje
+                            {aceptandoViajeId === viaje.id_viaje
+                              ? "Aceptando..."
+                              : "Aceptar viaje"}
                           </button>
                           {!idUsuario && (
                             <small className="texto-secundario ms-2">
@@ -165,6 +269,11 @@ export default function BuscarViajes() {
                           {tieneViajePublicado && (
                             <small className="texto-secundario ms-2">
                               Solo puedes aceptar un viaje si no tienes uno publicado.
+                            </small>
+                          )}
+                          {tieneViajeEnCurso && (
+                            <small className="texto-secundario ms-2">
+                              Ya tienes un viaje en curso.
                             </small>
                           )}
                           {idUsuario && !validacionCompletada && (

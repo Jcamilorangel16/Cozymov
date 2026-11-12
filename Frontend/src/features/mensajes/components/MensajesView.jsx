@@ -7,10 +7,10 @@ import { useMensajes } from "../hooks/useMensajes";
 
 /**
  * Muestra los chats del usuario, el buscador de usuarios o la conversación abierta.
- * @param {{usuarioActualId: string}} props Identidad del usuario de la sesión.
+ * @param {{usuarioActualId: string, contactoInicial?: {id: string, nombre: string}|null}} props Identidad de sesión y contacto opcional.
  * @returns Vista de mensajería.
  */
-export default function MensajesView({ usuarioActualId }) {
+export default function MensajesView({ usuarioActualId, contactoInicial = null }) {
   const {
     vista,
     setVista,
@@ -24,7 +24,7 @@ export default function MensajesView({ usuarioActualId }) {
     manejarEnvio,
     volverALista,
     error,
-  } = useMensajes(usuarioActualId);
+  } = useMensajes(usuarioActualId, contactoInicial);
 
   if (contactoSeleccionado) {
     return (

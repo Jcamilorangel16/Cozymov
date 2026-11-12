@@ -10,14 +10,14 @@ async function pedir(url, opciones) {
   return data;
 }
 
-export function useMensajes(usuarioActualId) {
+export function useMensajes(usuarioActualId, contactoInicial = null) {
   const yo = String(usuarioActualId);
 
   const [vista, setVista] = useState("chats"); // "chats" | "nuevo"
   const [chats, setChats] = useState([]);
   const [contactos, setContactos] = useState([]);
   const [busqueda, setBusqueda] = useState("");
-  const [contactoSeleccionado, setContactoSeleccionado] = useState(null);
+  const [contactoSeleccionado, setContactoSeleccionado] = useState(contactoInicial);
   const [mensajes, setMensajes] = useState([]);
   const [error, setError] = useState(null);
 
