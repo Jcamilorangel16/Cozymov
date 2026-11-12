@@ -1,0 +1,92 @@
+import { NextResponse } from "next/server";
+import { obtenerSesionActual } from "../../../src/lib/auth";
+
+export const runtime = "nodejs";
+
+type Registro = Record<string, unknown>;
+
+function esRegistro(valor: unknown): valor is Registro {
+	return typeof valor === "object" && valor !== null && !Array.isArray(valor);
+}
+
+function obtenerCampo(registro: Registro, ...nombres: string[]): unknown {
+	for (const nombre of nombres) {
+		if (registro[nombre] !== undefined) {
+			return registro[nombre];
+		}
+	}
+	return undefined;
+}
+
+function obtenerBaseApi(): string | null {
+	const apiUrl = process.env.API_URL ?? process.env.VITE_API_URL;
+	return apiUrl ? apiUrl.replace(/\/+$/, "") : null;
+}
+
+async function responderErrorApi(respuesta: Response, mensaje: string) {
+	const detalle = await respuesta.text();
+	let error = detalle || mensaje;
+	try {
+		const resultado: unknown = JSON.parse(detalle);
+		if (esRegistro(resultado)) {
+			const detalleApi = obtenerCampo(resultado, "error", "detail", "title");
+			if (typeof detalleApi === "string" && detalleApi) {
+				error = detalleApi;
+			}
+		}
+	} catch {
+		// El backend puede responder texto plano.
+	}
+	return NextResponse.json({ error }, { status: respuesta.status });
+}
+
+export async function GET() {
+	const sesion = await obtenerSesionActual();
+	if (!sesion) {
+		return NextResponse.json({ error: "Debes iniciar sesión." }, { status: 401 });
+	}
+
+	const baseApi = obtenerBaseApi();
+	if (!baseApi) {
+		return NextResponse.json(
+			{ error: "Falta configurar API_URL." },
+			{ status: 500 },
+		);
+	}
+
+	try {
+		
+		const respuesta = await fetch(`${baseApi}/api/Usuarios/${sesion.id}`, {
+			cache: "no-store",
+		});
+
+		if (!respuesta.ok) {
+			return responderErrorApi(respuesta, "No se pudo consultar la información del usuario.");
+		}
+
+		const usuarioApi: unknown = await respuesta.json();
+		if (!esRegistro(usuarioApi)) {
+			return NextResponse.json(
+				{ error: "La respuesta de la API de usuarios no es válida." },
+				{ status: 502 },
+			);
+		}
+
+		// Mapeamos los campos del DTO que retorna tu controlador de .NET
+		const primerNombre = String(obtenerCampo(usuarioApi, "primerNombre", "PrimerNombre") ?? "Pedro");
+		const primerApellido = String(obtenerCampo(usuarioApi, "primerApellido", "PrimerApellido") ?? "");
+		
+		return NextResponse.json({
+			nombre: `${primerNombre} ${primerApellido}`.trim(),
+			fotoUrl: obtenerCampo(usuarioApi, "fotoUrl", "FotoUrl") ?? null,
+			ocupacion: obtenerCampo(usuarioApi, "ocupacion", "Ocupacion") ?? "",
+			cedula: obtenerCampo(usuarioApi, "cedula", "Cedula") ?? "",
+		});
+	} catch (error) {
+		console.error("No se pudo conectar con el backend para obtener el usuario:", error);
+		return NextResponse.json(
+			{ error: "No se pudo conectar con la API de usuarios." },
+			{ status: 502 },
+		);
+	}
+}
