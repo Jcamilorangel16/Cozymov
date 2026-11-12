@@ -10,3 +10,33 @@ GET {{Backend_HostAddress}}/api/Mensajes/contactos?yo=1&q=ana
 Accept: application/json
 
 ###
+
+@userId = 1
+@tripId = 1
+@InternalApiKey = REPLACE_WITH_INTERNAL_API_KEY
+
+### Buscar viajes activos
+GET {{Backend_HostAddress}}/api/Viajes?origen=Centro&fecha=2026-11-15
+Accept: application/json
+X-Internal-Api-Key: {{InternalApiKey}}
+
+### Consultar reserva activa de un usuario
+GET {{Backend_HostAddress}}/api/Viajes/reserva-activa/{{userId}}
+Accept: application/json
+X-Internal-Api-Key: {{InternalApiKey}}
+
+### Reservar un viaje (usa un viaje y usuario de prueba)
+POST {{Backend_HostAddress}}/api/Viajes/{{tripId}}/reservar
+Content-Type: application/json
+X-Internal-Api-Key: {{InternalApiKey}}
+
+{
+  "idPasajero": {{userId}}
+}
+
+### Cancelar la reserva activa del usuario
+DELETE {{Backend_HostAddress}}/api/Viajes/reserva-activa/{{userId}}
+Accept: application/json
+X-Internal-Api-Key: {{InternalApiKey}}
+
+###

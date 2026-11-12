@@ -15,7 +15,7 @@ Frontend/
 │   │   ├── mensajes/            # Consulta y envío de mensajes
 │   │   ├── registro/            # Creación de cuentas
 │   │   ├── vehiculo/            # Registro y consulta de vehículos
-│   │   └── viajes/              # Publicación y búsqueda de viajes
+│   │   └── viajes/              # Publicación, búsqueda y reservas
 │   ├── menu/                    # Página protegida del menú principal
 │   ├── register/                # Página de registro
 │   ├── layout.tsx               # Layout raíz, metadatos y estilos globales
@@ -29,9 +29,9 @@ Frontend/
 │   │   ├── ofrecer-viajes/      # Vehículos, publicación y datos de ruta
 │   │   ├── perfil-configuracion/# Perfil y configuración del usuario
 │   │   ├── register/            # Formulario, hook y validaciones de registro
-│   │   └── viajes/              # Tipos, validaciones, servicios y repositorio
+│   │   └── viajes/              # Tipos y validaciones de viajes
 │   ├── hooks/                   # Hooks compartidos entre features
-│   └── lib/                     # Base de datos y utilidades de sesión
+│   └── lib/                     # API del backend y utilidades de sesión
 ├── public/                      # Imágenes y otros recursos públicos
 └── README_BASE_DATOS.md         # Documentación de configuración de la base
 ```
@@ -42,8 +42,7 @@ Cada dominio mantiene cerca los elementos que implementan su funcionalidad:
 
 - `components/`: componentes visuales del dominio.
 - `hooks/`: estado y comportamiento de interfaz reutilizable.
-- `services/` y `repositories/`: operaciones del dominio y acceso a datos,
-  cuando aplica.
+- `services/`: coordinación de operaciones del dominio, cuando aplica.
 - `types/`: tipos e interfaces propios del dominio.
 - `validations/`: validación de datos de entrada del dominio.
 - `constants/`, `utils/` y `styles/`: datos de referencia, funciones auxiliares
