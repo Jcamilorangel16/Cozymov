@@ -98,7 +98,12 @@ export async function GET() {
 			return errorApi(respuesta, "No se pudo consultar tu viaje en curso.");
 		}
 
-		const reserva: unknown = await respuesta.json();
+		const cuerpo = await respuesta.text();
+		if (!cuerpo.trim()) {
+			return NextResponse.json({ viaje: null });
+		}
+
+		const reserva: unknown = JSON.parse(cuerpo);
 		if (reserva === null) {
 			return NextResponse.json({ viaje: null });
 		}
