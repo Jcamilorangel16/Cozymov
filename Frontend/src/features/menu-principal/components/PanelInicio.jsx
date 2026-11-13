@@ -21,15 +21,14 @@ export default function PanelInicio({ onNavigate }) {
     reintentar,
   } = usePanelInicio();
   const [origenFiltro, setOrigenFiltro] = useState("");
-  const [fechaFiltro, setFechaFiltro] = useState("");
+  
 
   const viajesFiltrados = useMemo(() => {
     const origen = origenFiltro.trim().toLocaleLowerCase("es");
     return viajes.filter((viaje) => (
-      (!origen || String(viaje.origen || "").toLocaleLowerCase("es").includes(origen)) &&
-      (!fechaFiltro || String(viaje.fecha_salida || "").slice(0, 10) === fechaFiltro)
+      !origen || String(viaje.origen || "").toLocaleLowerCase("es").includes(origen)
     ));
-  }, [viajes, origenFiltro, fechaFiltro]);
+  }, [viajes, origenFiltro]);
 
   const viajesPropios = [viajeReservado, viajePublicado]
     .filter(Boolean)
@@ -48,39 +47,34 @@ export default function PanelInicio({ onNavigate }) {
       <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
         <h3 className="mb-0 letra-contenido">Tu Panel de Control</h3>
 
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={() => onNavigate("ofrecer")}
+        >
+          + Ofrecer viaje
+        </button>
+      </div>
+
+      <section className="mb-4" aria-labelledby="titulo-buscador">
+        <h5 id="titulo-buscador" className="mb-3 letra-contenido fw-bold">
+          ¿A dónde quieres ir?
+        </h5>
+
         <div className="d-flex flex-wrap gap-2">
-          <div className="input-group" style={{ width: 200 }}>
+          <div className="input-group" style={{ width: 260 }}>
             <span className="input-group-text" aria-hidden="true">🔍</span>
             <input
               type="text"
               className="form-control"
-              placeholder="Origen..."
+              placeholder=""
               aria-label="Filtrar por origen"
               value={origenFiltro}
               onChange={(evento) => setOrigenFiltro(evento.target.value)}
             />
           </div>
-
-          <div className="input-group" style={{ width: 170 }}>
-            <span className="input-group-text" aria-hidden="true">📅</span>
-            <input
-              type="date"
-              className="form-control"
-              aria-label="Fecha del viaje"
-              value={fechaFiltro}
-              onChange={(evento) => setFechaFiltro(evento.target.value)}
-            />
-          </div>
-
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => onNavigate("ofrecer")}
-          >
-            + Ofrecer viaje
-          </button>
         </div>
-      </div>
+    </section>
 
       <div className="row g-4">
         <div className="col-md-8">
