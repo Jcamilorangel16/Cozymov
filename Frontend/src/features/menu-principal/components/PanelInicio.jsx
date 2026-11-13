@@ -2,7 +2,7 @@
 
 // Muestra viajes disponibles y actividad real de la cuenta.
 import { useMemo, useState } from "react";
-import { formatearFecha, formatearPrecio } from "../../buscar-viajes/utils/viajes";
+import { formatearPrecio } from "../../buscar-viajes/utils/viajes";
 import { usePanelInicio } from "../hooks/usePanelInicio";
 
 /**
@@ -14,8 +14,6 @@ export default function PanelInicio({ onNavigate }) {
   const {
     idUsuario,
     viajes,
-    viajePublicado,
-    viajeReservado,
     cargando,
     error,
     reintentar,
@@ -28,10 +26,6 @@ export default function PanelInicio({ onNavigate }) {
       !origen || String(viaje.origen || "").toLocaleLowerCase("es").includes(origen)
     ));
   }, [viajes, origenFiltro]);
-
-  const viajesPropios = [viajeReservado, viajePublicado]
-    .filter(Boolean)
-    .sort((a, b) => String(a.fecha_salida).localeCompare(String(b.fecha_salida)));
 
   if (!idUsuario) {
     return (
@@ -55,140 +49,80 @@ export default function PanelInicio({ onNavigate }) {
         </button>
       </div>
 
-      <div className="row g-4">
-        <div className="col-md-8">
-          <section className="mb-4" aria-labelledby="titulo-buscador">
-            <h5 id="titulo-buscador" className="mb-3 letra-contenido fw-bold">
-              ¿A dónde quieres ir?
-            </h5>
+      <div style={{ maxWidth: 640 }}>
+        <section className="mb-4" aria-labelledby="titulo-buscador">
+          <h5 id="titulo-buscador" className="mb-3 letra-contenido fw-bold">
+            ¿A dónde quieres ir?
+          </h5>
 
-            <div className="d-flex flex-wrap gap-2">
-              <div className="input-group" style={{ width: 260 }}>
-                <span className="input-group-text" aria-hidden="true">🔍</span>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder=""
-                  aria-label="Filtrar por origen"
-                  value={origenFiltro}
-                  onChange={(evento) => setOrigenFiltro(evento.target.value)}
-                />
-              </div>
+          <div className="d-flex flex-wrap gap-2">
+            <div className="input-group" style={{ width: 260 }}>
+              <span className="input-group-text" aria-hidden="true">🔍</span>
+              <input
+                type="text"
+                className="form-control"
+                placeholder=""
+                aria-label="Filtrar por origen"
+                value={origenFiltro}
+                onChange={(evento) => setOrigenFiltro(evento.target.value)}
+              />
             </div>
-          </section>
+          </div>
+        </section>
 
-          {cargando ? (
-            <p role="status">Cargando viajes disponibles...</p>
-          ) : error ? (
-            <div className="alert alert-danger" role="alert">
-              <p>{error}</p>
-              <button type="button" className="btn btn-outline-danger" onClick={reintentar}>
-                Reintentar
-              </button>
-            </div>
-          ) : viajesFiltrados.length === 0 ? (
-            <p className="texto-secundario">
-              No hay viajes disponibles con esos filtros.
-            </p>
-          ) : (
-            <div className="d-flex flex-column gap-3">
-              {viajesFiltrados.slice(0, 5).map((viaje) => (
-                <article className="viaje-item" key={viaje.id_viaje}>
-                  <div className="viaje-info">
-                    <div className="fw-semibold letra-contenido">
-                      {viaje.origen} → {viaje.destino}
-                    </div>
-                    <span
-                      className={`viaje-cupos${Number(viaje.cupos_disponibles) === 1 ? " viaje-cupos-ultimo" : ""}`}
-                    >
-                      {Number(viaje.cupos_disponibles) === 1
-                        ? "Última plaza"
-                        : `${viaje.cupos_disponibles} plazas libres`}
-                    </span>
-                    <small className="d-block texto-secundario">
-                      {formatearPrecio(viaje.precio_pasaje)}
-                    </small>
-                  </div>
-
-                  <button
-                    type="button"
-                    className="btn-reservar"
-                    onClick={() => onNavigate("buscar")}
-                  >
-                    Aceptar viaje
-                  </button>
-                </article>
-              ))}
-            </div>
-          )}
-          {!cargando && !error && viajes.length > 5 && (
-            <button
-              type="button"
-              className="btn btn-outline-primary mt-3"
-              onClick={() => onNavigate("buscar")}
-            >
-              Ver todos los viajes
+        {cargando ? (
+          <p role="status">Cargando viajes disponibles...</p>
+        ) : error ? (
+          <div className="alert alert-danger" role="alert">
+            <p>{error}</p>
+            <button type="button" className="btn btn-outline-danger" onClick={reintentar}>
+              Reintentar
             </button>
-          )}
-        </div>
-
-        <div className="col-md-4">
-          <section className="panel-lateral mb-4">
-            <h5 className="letra-contenido fw-bold mb-3">Tu próximo viaje</h5>
-            {cargando ? (
-              <p role="status">Consultando tus viajes...</p>
-            ) : error ? (
-              <p className="texto-secundario">No se pudo consultar tu próximo viaje.</p>
-            ) : viajesPropios.length > 0 ? (
-              <div className="proximo-destacado">
-                <small className="proximo-dia">
-                  {viajesPropios[0].fecha_salida
-                    ? `${formatearFecha(viajesPropios[0].fecha_salida)}${viajesPropios[0].hora_salida ? ` · ${viajesPropios[0].hora_salida}` : ""}`
-                    : "Fecha sin definir"}
-                </small>
-                <div className="fw-bold letra-contenido">
-                  {viajesPropios[0].origen} → {viajesPropios[0].destino}
-                </div>
-                <small className="texto-secundario">
-                  {viajeReservado && String(viajeReservado.id_viaje) === String(viajesPropios[0].id_viaje)
-                    ? "Viaje reservado"
-                    : "Viaje publicado"}
-                </small>
-              </div>
-            ) : (
-              <p className="texto-secundario mb-0">No tienes viajes próximos.</p>
-            )}
-          </section>
-
-          <h5 className="mb-3 letra-contenido fw-bold">Estado de tus viajes</h5>
-          {!idUsuario ? (
-            <p className="texto-secundario">Inicia sesión para consultar tus viajes.</p>
-          ) : cargando ? (
-            <p role="status">Consultando tus viajes...</p>
-          ) : error ? (
-            <p className="texto-secundario">No se pudo consultar el estado de tus viajes.</p>
-          ) : viajesPropios.length > 0 ? (
-            <div className="d-flex flex-column gap-2">
-              {viajesPropios.map((viaje) => (
-                <div className="actividad-item" key={`${viaje.id_viaje}-${viaje.id_conductor}`}>
-                  <span className="actividad-icono" aria-hidden="true">🚗</span>
-                  <div>
-                    <div className="fw-semibold letra-contenido small">
-                      {viajeReservado && String(viajeReservado.id_viaje) === String(viaje.id_viaje)
-                        ? "Reserva activa"
-                        : "Viaje publicado"}
-                    </div>
-                    <small className="texto-secundario">
-                      {viaje.origen} → {viaje.destino}
-                    </small>
+          </div>
+        ) : viajesFiltrados.length === 0 ? (
+          <p className="texto-secundario">
+            No hay viajes disponibles con esos filtros.
+          </p>
+        ) : (
+          <div className="d-flex flex-column gap-3">
+            {viajesFiltrados.slice(0, 5).map((viaje) => (
+              <article className="viaje-item" key={viaje.id_viaje}>
+                <div className="viaje-info">
+                  <div className="fw-semibold letra-contenido">
+                    {viaje.origen} → {viaje.destino}
                   </div>
+                  <span
+                    className={`viaje-cupos${Number(viaje.cupos_disponibles) === 1 ? " viaje-cupos-ultimo" : ""}`}
+                  >
+                    {Number(viaje.cupos_disponibles) === 1
+                      ? "Última plaza"
+                      : `${viaje.cupos_disponibles} plazas libres`}
+                  </span>
+                  <small className="d-block texto-secundario">
+                    {formatearPrecio(viaje.precio_pasaje)}
+                  </small>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <p className="texto-secundario">Aún no tienes viajes activos.</p>
-          )}
-        </div>
+
+                <button
+                  type="button"
+                  className="btn-reservar"
+                  onClick={() => onNavigate("buscar")}
+                >
+                  Aceptar viaje
+                </button>
+              </article>
+            ))}
+          </div>
+        )}
+        {!cargando && !error && viajes.length > 5 && (
+          <button
+            type="button"
+            className="btn btn-outline-primary mt-3"
+            onClick={() => onNavigate("buscar")}
+          >
+            Ver todos los viajes
+          </button>
+        )}
       </div>
     </div>
   );
