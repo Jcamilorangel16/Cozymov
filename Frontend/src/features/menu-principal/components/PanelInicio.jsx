@@ -55,18 +55,16 @@ export default function PanelInicio({ onNavigate }) {
             ¿A dónde quieres ir?
           </h5>
 
-          <div className="d-flex flex-wrap gap-2">
-            <div className="input-group" style={{ width: 260 }}>
-              <span className="input-group-text" aria-hidden="true">🔍</span>
-              <input
-                type="text"
-                className="form-control"
-                placeholder=""
-                aria-label="Filtrar por origen"
-                value={origenFiltro}
-                onChange={(evento) => setOrigenFiltro(evento.target.value)}
-              />
-            </div>
+          <div className="input-group">
+            <span className="input-group-text" aria-hidden="true">🔍</span>
+            <input
+              type="text"
+              className="form-control"
+              placeholder=""
+              aria-label="Filtrar por origen"
+              value={origenFiltro}
+              onChange={(evento) => setOrigenFiltro(evento.target.value)}
+            />
           </div>
         </section>
 
