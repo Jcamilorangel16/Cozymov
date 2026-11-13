@@ -94,15 +94,6 @@ export default function PanelInicio({ onNavigate }) {
             <div className="d-flex flex-column gap-3">
               {viajesFiltrados.slice(0, 5).map((viaje) => (
                 <article className="viaje-item" key={viaje.id_viaje}>
-                  <div className="viaje-hora">
-                    <span className="viaje-hora-valor">
-                      {viaje.hora_salida || "Hora sin definir"}
-                    </span>
-                    <small className="texto-secundario">
-                      {formatearFecha(viaje.fecha_salida)}
-                    </small>
-                  </div>
-
                   <div className="viaje-info">
                     <div className="fw-semibold letra-contenido">
                       {viaje.origen} → {viaje.destino}
@@ -124,7 +115,7 @@ export default function PanelInicio({ onNavigate }) {
                     className="btn-reservar"
                     onClick={() => onNavigate("buscar")}
                   >
-                    Buscar viaje
+                    Aceptar viaje
                   </button>
                 </article>
               ))}
