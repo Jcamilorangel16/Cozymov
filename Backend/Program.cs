@@ -15,7 +15,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 // Add services to the container.
 
-builder.Services.AddHttpClient<IEmailService, ResendEmailService>();
+builder.Services.AddHttpClient<IEmailService, BrevoEmailService>();
 builder.Services.AddHostedService<VerificacionCorreoCleanupService>();
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
