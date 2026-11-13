@@ -3,6 +3,7 @@
 
 import DatosPersonalesRegistro from "./DatosPersonalesRegistro";
 import CredencialesRegistro from "./CredencialesRegistro";
+import ModalVerificacionCorreo from "./ModalVerificacionCorreo";
 import { useRegisterForm } from "../hooks/useRegisterForm";
 import "../styles/register.css";
 
@@ -25,7 +26,25 @@ export default function Register() {
     manejarCambio,
     manejarTeclado,
     manejarSiguiente,
+    correoVerificado,
+    correoVerificadoValor,
+    modalVerificacionAbierto,
+    codigoVerificacion,
+    setCodigoVerificacion,
+    enviandoCodigo,
+    verificandoCodigo,
+    errorVerificacion,
+    mensajeVerificacion,
+    segundosReenvio,
+    solicitarCodigo,
+    verificarCodigo,
+    reenviarCodigo,
+    cerrarModalVerificacion,
   } = useRegisterForm();
+
+  const correoConfirmado =
+    correoVerificado &&
+    correoVerificadoValor === datosUsuario.correo.trim().toLowerCase();
 
   return (
     <div className="register-page d-flex justify-content-center align-items-center min-vh-100">
@@ -55,9 +74,27 @@ export default function Register() {
             manejarCambio={manejarCambio}
             manejarTeclado={manejarTeclado}
             manejarSiguiente={manejarSiguiente}
+            correoConfirmado={correoConfirmado}
+            enviandoCodigo={enviandoCodigo}
+            solicitarCodigo={solicitarCodigo}
           />
         </div>
       </div>
+
+      <ModalVerificacionCorreo
+        abierto={modalVerificacionAbierto}
+        correo={datosUsuario.correo}
+        codigo={codigoVerificacion}
+        setCodigo={setCodigoVerificacion}
+        enviandoCodigo={enviandoCodigo}
+        verificandoCodigo={verificandoCodigo}
+        errorVerificacion={errorVerificacion}
+        mensajeVerificacion={mensajeVerificacion}
+        segundosReenvio={segundosReenvio}
+        onVerificar={verificarCodigo}
+        onReenviar={reenviarCodigo}
+        onCerrar={cerrarModalVerificacion}
+      />
     </div>
   );
 }

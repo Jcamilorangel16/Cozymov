@@ -1,8 +1,9 @@
 using Backend.Data;
+using Backend.Models;
+using Backend.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Identity;
-using Backend.Models;
 using Backend.Middleware;
 
 
@@ -23,6 +24,8 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddCors();
 builder.Services.AddScoped<IPasswordHasher<Usuarios>,PasswordHasher<Usuarios>>();
+builder.Services.AddScoped<IPasswordHasher<RegistroPendiente>,PasswordHasher<RegistroPendiente>>();
+builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 
 
 

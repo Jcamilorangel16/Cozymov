@@ -10,5 +10,9 @@ public sealed class UsuariosConfiguration : IEntityTypeConfiguration<Usuarios>
     {
         entity.ToTable("Usuarios");
         entity.HasKey(u => u.IdPersonas);
+
+        // Las cuentas existentes quedan verificadas al aplicar la migración.
+        entity.Property(u => u.EmailVerificado)
+            .HasDefaultValue(true);
     }
 }

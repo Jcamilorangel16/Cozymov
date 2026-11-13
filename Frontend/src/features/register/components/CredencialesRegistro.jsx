@@ -14,6 +14,9 @@ export default function CredencialesRegistro({
   manejarCambio,
   manejarTeclado,
   manejarSiguiente,
+  correoConfirmado,
+  enviandoCodigo,
+  solicitarCodigo,
 }) {
   return (
     <>
@@ -33,6 +36,24 @@ export default function CredencialesRegistro({
           onKeyDown={(e) => manejarTeclado(e, "correo")}
           ref={asignarRef("correo")}
         />
+        <button
+          id="confirmar-correo"
+          type="button"
+          className={`btn w-100 mt-2 ${correoConfirmado ? "btn-success" : "btn-outline-primary"}`}
+          onClick={solicitarCodigo}
+          disabled={correoConfirmado || enviandoCodigo || guardando}
+        >
+          {correoConfirmado
+            ? "✓ Correo confirmado"
+            : enviandoCodigo
+              ? "Enviando código..."
+              : "Confirmar correo"}
+        </button>
+        <div className="form-text" aria-live="polite">
+          {correoConfirmado
+            ? "Tu correo institucional ya fue verificado."
+            : "Te enviaremos un código de 6 dígitos para confirmar tu correo."}
+        </div>
       </div>
       <div className="col-md-6">
         <label htmlFor="contrasena" className="form-label">Contraseña</label>

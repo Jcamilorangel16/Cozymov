@@ -42,6 +42,12 @@
         public string Contrasena { get; set; }
         public string rol { get; set; }
         public string ocupacion { get; set; }
+
+        /// <summary>
+        /// Token devuelto por /api/registro/verificar-codigo. Es obligatorio
+        /// para demostrar que el correo fue confirmado.
+        /// </summary>
+        public string? TokenVerificacion { get; set; }
     }
 }
 

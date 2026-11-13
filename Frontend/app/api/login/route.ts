@@ -7,6 +7,7 @@ import {
   firmarSesion,
   NOMBRE_COOKIE_SESION,
 } from "../../../src/lib/auth";
+import { getBackendApiConfig } from "../../../src/lib/backendApi";
 
 export const runtime = "nodejs";
 
@@ -43,10 +44,10 @@ export async function POST(request: Request) {
   }
 
   // Esta variable ya se usa en la ruta de registro del frontend.
-  const apiUrl = process.env.VITE_API_URL;
-  if (!apiUrl) {
+  const config = getBackendApiConfig();
+  if (!config) {
     return NextResponse.json(
-      { error: "Falta configurar VITE_API_URL." },
+      { error: "Falta configurar VITE_API_URL o INTERNAL_API_KEY." },
       { status: 500 },
     );
   }
@@ -62,10 +63,13 @@ export async function POST(request: Request) {
 
   try {
     respuestaApi = await fetch(
-      `${apiUrl.replace(/\/+$/, "")}/api/Usuarios/Login`,
+      `${config.baseUrl}/api/Usuarios/Login`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          ...config.headers,
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           Correo: validacion.datos.correo,
           Contrasena: validacion.datos.contrasena,
@@ -83,6 +87,19 @@ export async function POST(request: Request) {
 
   if (!respuestaApi.ok) {
     const esCredencialIncorrecta = respuestaApi.status === 401;
+    const correoNoConfirmado = respuestaApi.status === 403;
+
+    if (correoNoConfirmado) {
+      const detalle = await respuestaApi.text().catch(() => "");
+      return NextResponse.json(
+        {
+          error:
+            detalle.trim() ||
+            "Debes confirmar tu correo electrónico antes de iniciar sesión.",
+        },
+        { status: 403 },
+      );
+    }
 
     return NextResponse.json(
       {

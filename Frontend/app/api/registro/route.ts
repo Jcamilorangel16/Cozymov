@@ -1,4 +1,8 @@
-import { validarRegistroUsuario } from "../../../src/features/register/validations/usuarios";
+import {
+  validarRegistroUsuario,
+  validarTokenVerificacion,
+} from "../../../src/features/register/validations/usuarios";
+import { getBackendApiConfig } from "../../../src/lib/backendApi";
 
 export const runtime = "nodejs";
 
@@ -16,17 +20,31 @@ export async function POST(request: Request) {
     return Response.json({ error: validacion.error }, { status: 400 });
   }
 
-  const apiUrl = process.env.VITE_API_URL;
-  if (!apiUrl) {
-    return Response.json({ error: "Falta configurar VITE_API_URL." }, { status: 500 });
+  const token = body && typeof body === "object"
+    ? (body as Record<string, unknown>).tokenVerificacion
+    : undefined;
+  const validacionToken = validarTokenVerificacion(token);
+  if (!validacionToken.valido) {
+    return Response.json({ error: validacionToken.error }, { status: 400 });
+  }
+
+  const config = getBackendApiConfig();
+  if (!config) {
+    return Response.json(
+      { error: "Falta configurar VITE_API_URL o INTERNAL_API_KEY." },
+      { status: 500 },
+    );
   }
 
   const usuario = validacion.datos;
 
   try {
-    const respuesta = await fetch(`${apiUrl.replace(/\/+$/, "")}/api/Usuarios`, {
+    const respuesta = await fetch(`${config.baseUrl}/api/Usuarios`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        ...config.headers,
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
         Cedula: usuario.idUsuario,
         PrimerNombre: usuario.primerNombre,
@@ -38,6 +56,7 @@ export async function POST(request: Request) {
         Contrasena: usuario.contrasena,
         rol: "usuario",
         ocupacion: usuario.ocupacion,
+        TokenVerificacion: validacionToken.datos,
       }),
       cache: "no-store",
     });

@@ -4,6 +4,8 @@ using Backend.Models;
 using Backend.Data;
 using Backend.DTOs;
 using Microsoft.AspNetCore.Identity;
+using System.Security.Cryptography;
+using System.Text;
 
 [Route("api/[controller]")]
 [ApiController]
@@ -40,9 +42,9 @@ public class UsuariosController : ControllerBase
 
     // GET: api/Usuarios/5
     [HttpGet("{idpersonas}")]
-    public async Task<ActionResult<UsuariosDTO>> GetUsuarios(int Id)
+    public async Task<ActionResult<UsuariosDTO>> GetUsuarios(int idpersonas)
     {
-        var usuarios = await _context.Usuarios.Where(u => u.IdPersonas == Id).Select(u => new UsuariosDTO
+        var usuarios = await _context.Usuarios.Where(u => u.IdPersonas == idpersonas).Select(u => new UsuariosDTO
         {
             IdPersonas = u.IdPersonas,
             Cedula = u.Cedula,
@@ -68,10 +70,10 @@ public class UsuariosController : ControllerBase
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     [HttpPut("{idpersonas}")]
     public async Task<IActionResult> PutUsuarios(
-         int ID,
+         int idpersonas,
          UsuariosUpdateDTO datos)
     {
-        var usuario = await _context.Usuarios.FindAsync(ID);
+        var usuario = await _context.Usuarios.FindAsync(idpersonas);
 
         if (usuario == null)
         {
@@ -93,10 +95,69 @@ public class UsuariosController : ControllerBase
     }
 
     // POST: api/Usuarios
-    // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+    // Solo crea la cuenta si el correo fue confirmado con el código enviado por
+    // /api/registro/solicitar-codigo y validado en /api/registro/verificar-codigo.
     [HttpPost]
     public async Task<ActionResult<UsuariosDTO>> PostUsuarios(UsuariosCreateDTO usuarios)
     {
+        var correo = (usuarios.Correo ?? string.Empty).Trim().ToLowerInvariant();
+        var tokenVerificacion = usuarios.TokenVerificacion?.Trim();
+
+        if (string.IsNullOrWhiteSpace(correo))
+        {
+            return BadRequest("El correo es obligatorio.");
+        }
+
+        if (string.IsNullOrWhiteSpace(usuarios.Contrasena))
+        {
+            return BadRequest("La contraseña es obligatoria.");
+        }
+
+        if (string.IsNullOrWhiteSpace(tokenVerificacion))
+        {
+            return BadRequest("Debes confirmar tu correo antes de crear la cuenta.");
+        }
+
+        await using var transaccion = await _context.Database.BeginTransactionAsync();
+
+        // Bloquea la fila del registro pendiente para que el token se use una sola vez.
+        await _context.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT 1 FROM registro_pendiente WHERE correo = {correo} FOR UPDATE");
+
+        var pendiente = await _context.RegistrosPendientes
+            .FirstOrDefaultAsync(registro => registro.Correo == correo);
+
+        if (pendiente is null ||
+            pendiente.VerificadoEn is null ||
+            string.IsNullOrWhiteSpace(pendiente.TokenHash) ||
+            pendiente.TokenExpiraEn is null ||
+            pendiente.TokenExpiraEn <= DateTime.UtcNow)
+        {
+            return BadRequest("La confirmación del correo expiró. Vuelve a confirmar tu correo.");
+        }
+
+        var hashRecibido = Convert.ToHexString(
+            SHA256.HashData(Encoding.UTF8.GetBytes(tokenVerificacion)));
+        var hashEsperado = Encoding.ASCII.GetBytes(pendiente.TokenHash);
+        var hashRecibidoBytes = Encoding.ASCII.GetBytes(hashRecibido);
+
+        if (hashEsperado.Length != hashRecibidoBytes.Length ||
+            !CryptographicOperations.FixedTimeEquals(hashEsperado, hashRecibidoBytes))
+        {
+            return BadRequest("La confirmación del correo no es válida. Vuelve a confirmar tu correo.");
+        }
+
+        if (await _context.Usuarios.AnyAsync(usuario => usuario.Correo.ToLower() == correo))
+        {
+            return Conflict("Ese correo ya está registrado.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(usuarios.Cedula) &&
+            await _context.Usuarios.AnyAsync(usuario => usuario.Cedula == usuarios.Cedula))
+        {
+            return Conflict("Esa cédula ya está registrada.");
+        }
+
         var usuario = new Usuarios
         {
             Cedula = usuarios.Cedula,
@@ -105,14 +166,27 @@ public class UsuariosController : ControllerBase
             PrimerApellido = usuarios.PrimerApellido,
             SegundoApellido = usuarios.SegundoApellido,
             Edad = usuarios.Edad,
-            Correo = usuarios.Correo,
+            Correo = correo,
             rol = usuarios.rol,
-            ocupacion = usuarios.ocupacion
+            ocupacion = usuarios.ocupacion,
+            EmailVerificado = true
         };
         usuario.Contrasena = _passwordHasher.HashPassword(usuario, usuarios.Contrasena);
 
         _context.Usuarios.Add(usuario);
-        await _context.SaveChangesAsync();
+        _context.RegistrosPendientes.Remove(pendiente);
+
+        try
+        {
+            await _context.SaveChangesAsync();
+            await transaccion.CommitAsync();
+        }
+        catch (DbUpdateException)
+        {
+            await transaccion.RollbackAsync();
+            return Conflict(
+                "No se pudo crear la cuenta. Verifica que el correo y la cédula no estén registrados.");
+        }
 
         var respuesta = new UsuariosDTO
         {
@@ -123,6 +197,7 @@ public class UsuariosController : ControllerBase
             PrimerApellido = usuario.PrimerApellido,
             SegundoApellido = usuario.SegundoApellido,
             Edad = usuario.Edad,
+            Correo = usuario.Correo,
             rol = usuario.rol,
             ocupacion = usuario.ocupacion,
             fechaderegistro = usuario.fechaderegistro
@@ -138,8 +213,9 @@ public class UsuariosController : ControllerBase
     [HttpPost("Login")]
     public async Task<ActionResult<UsuariosDTO>> Login(UsuariosLoginDTO datos)
     {
+        var correo = (datos.Correo ?? string.Empty).Trim().ToLowerInvariant();
         var usuario = await _context.Usuarios
-           .FirstOrDefaultAsync(u => u.Correo == datos.Correo);
+           .FirstOrDefaultAsync(u => u.Correo.ToLower() == correo);
         if (usuario == null)
         {
             return Unauthorized("Credenciales inválidas");
@@ -149,6 +225,14 @@ public class UsuariosController : ControllerBase
         if (resultado == PasswordVerificationResult.Failed)
         {
             return Unauthorized("Credenciales inválidas");
+        }
+
+        // Sin correo confirmado no se permite iniciar sesión.
+        if (!usuario.EmailVerificado)
+        {
+            return StatusCode(
+                StatusCodes.Status403Forbidden,
+                "Debes confirmar tu correo electrónico antes de iniciar sesión.");
         }
 
         var respuesta = new UsuariosDTO
@@ -171,10 +255,10 @@ public class UsuariosController : ControllerBase
     }
 
     // DELETE: api/Usuarios/5
-    [HttpDelete("{Id}")]
-    public async Task<IActionResult> DeleteUsuarios(int IdPersonas)
+    [HttpDelete("{idpersonas}")]
+    public async Task<IActionResult> DeleteUsuarios(int idpersonas)
     {
-        var usuarios = await _context.Usuarios.FindAsync(IdPersonas);
+        var usuarios = await _context.Usuarios.FindAsync(idpersonas);
         if (usuarios == null)
         {
             return NotFound();
