@@ -21,7 +21,6 @@ export default function PanelInicio({ onNavigate }) {
     reintentar,
   } = usePanelInicio();
   const [origenFiltro, setOrigenFiltro] = useState("");
-  
 
   const viajesFiltrados = useMemo(() => {
     const origen = origenFiltro.trim().toLocaleLowerCase("es");
@@ -56,29 +55,28 @@ export default function PanelInicio({ onNavigate }) {
         </button>
       </div>
 
-      <section className="mb-4" aria-labelledby="titulo-buscador">
-        <h5 id="titulo-buscador" className="mb-3 letra-contenido fw-bold">
-          ¿A dónde quieres ir?
-        </h5>
-
-        <div className="d-flex flex-wrap gap-2">
-          <div className="input-group" style={{ width: 260 }}>
-            <span className="input-group-text" aria-hidden="true">🔍</span>
-            <input
-              type="text"
-              className="form-control"
-              placeholder=""
-              aria-label="Filtrar por origen"
-              value={origenFiltro}
-              onChange={(evento) => setOrigenFiltro(evento.target.value)}
-            />
-          </div>
-        </div>
-    </section>
-
       <div className="row g-4">
         <div className="col-md-8">
-          <h5 className="mb-3 letra-contenido fw-bold">Viajes para ti</h5>
+          <section className="mb-4" aria-labelledby="titulo-buscador">
+            <h5 id="titulo-buscador" className="mb-3 letra-contenido fw-bold">
+              ¿A dónde quieres ir?
+            </h5>
+
+            <div className="d-flex flex-wrap gap-2">
+              <div className="input-group" style={{ width: 260 }}>
+                <span className="input-group-text" aria-hidden="true">🔍</span>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder=""
+                  aria-label="Filtrar por origen"
+                  value={origenFiltro}
+                  onChange={(evento) => setOrigenFiltro(evento.target.value)}
+                />
+              </div>
+            </div>
+          </section>
+
           {cargando ? (
             <p role="status">Cargando viajes disponibles...</p>
           ) : error ? (
