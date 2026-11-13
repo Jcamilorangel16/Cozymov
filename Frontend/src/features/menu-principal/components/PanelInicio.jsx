@@ -49,7 +49,7 @@ export default function PanelInicio({ onNavigate }) {
         </button>
       </div>
 
-      <div style={{ maxWidth: 640 }}>
+      <div className="mx-auto" style={{ maxWidth: 640 }}>
         <section className="mb-4" aria-labelledby="titulo-buscador">
           <h5 id="titulo-buscador" className="mb-3 letra-contenido fw-bold">
             ¿A dónde quieres ir?
