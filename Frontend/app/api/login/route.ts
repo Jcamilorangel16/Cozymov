@@ -62,7 +62,7 @@ export async function POST(request: Request) {
 
   try {
     respuestaApi = await fetch(
-      `${apiUrl.replace(/\/+$/, "")}/api/Usuarios/Login`,
+      `${apiUrl.replace(/\/+$/, "")}/Usuarios/Login`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
