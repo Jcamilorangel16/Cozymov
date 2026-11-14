@@ -59,9 +59,7 @@ export default function PanelInicio({ onNavigate }) {
 
   return (
     <div className="vista">
-      <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-        <h3 className="mb-0 letra-contenido">Tu Panel de Control</h3>
-
+      <div className="d-flex justify-content-end align-items-center flex-wrap gap-2 mb-3">
         {mostrarBotonConductor && (
           <button
             type="button"
@@ -74,17 +72,13 @@ export default function PanelInicio({ onNavigate }) {
       </div>
 
       <div className="mx-auto" style={{ maxWidth: 640 }}>
-        <section className="mb-4" aria-labelledby="titulo-buscador">
-          <h5 id="titulo-buscador" className="mb-3 letra-contenido fw-bold">
-            ¿A dónde quieres ir?
-          </h5>
-
+        <section className="mb-4">
           <div className="input-group">
             <span className="input-group-text" aria-hidden="true">🔍</span>
             <input
               type="text"
               className="form-control"
-              placeholder=""
+              placeholder="¿A dónde quieres ir?"
               aria-label="Filtrar por origen"
               value={origenFiltro}
               onChange={(evento) => setOrigenFiltro(evento.target.value)}
