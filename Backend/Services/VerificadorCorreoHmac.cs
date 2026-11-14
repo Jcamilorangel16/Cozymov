@@ -133,7 +133,8 @@ public sealed class VerificadorCorreoHmac : IVerificadorCorreo
     }
 
     private static string NormalizarCorreo(string correo) =>
-        correo.Trim().ToLowerInvariant();
+        string.Concat(correo.Where(caracter => !char.IsWhiteSpace(caracter)))
+            .ToLowerInvariant();
 
     private sealed record DatosComprobante(string Correo, long Vence, string Firma);
 }

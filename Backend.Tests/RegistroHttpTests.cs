@@ -87,6 +87,49 @@ public sealed class RegistroHttpTests
     }
 
     [Fact]
+    public async Task RegistroConCodigoEquivocadoDevuelve400()
+    {
+        using var factory = new RegistroFactory();
+        using var client = CrearCliente(factory);
+        const string correo = "persona@example.edu.co";
+        var comprobante = await SolicitarCodigo(client, correo);
+        var codigoIncorrecto = factory.CorreoFalso.UltimoCodigo == "000000"
+            ? "000001"
+            : "000000";
+
+        var respuesta = await client.PostAsJsonAsync(
+            "/api/registro",
+            CrearUsuario(correo, new
+            {
+                comprobante,
+                codigo = codigoIncorrecto
+            }));
+
+        Assert.Equal(HttpStatusCode.BadRequest, respuesta.StatusCode);
+        var error = await respuesta.Content.ReadAsStringAsync();
+        Assert.Contains("correcto", error, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task RegistroConCodigoDeOtroCorreoDevuelve400()
+    {
+        using var factory = new RegistroFactory();
+        using var client = CrearCliente(factory);
+        var comprobante = await SolicitarCodigo(client, "primero@example.edu.co");
+        var codigo = factory.CorreoFalso.UltimoCodigo;
+
+        var respuesta = await client.PostAsJsonAsync(
+            "/api/registro",
+            CrearUsuario(
+                "segundo@example.edu.co",
+                new { comprobante, codigo }));
+
+        Assert.Equal(HttpStatusCode.BadRequest, respuesta.StatusCode);
+        var error = await respuesta.Content.ReadAsStringAsync();
+        Assert.Contains("otro correo", error, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task RegistroCompletoUsaCodigoLeidoDelCorreoFalsoYDevuelve201()
     {
         using var factory = new RegistroFactory();

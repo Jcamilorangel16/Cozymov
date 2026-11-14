@@ -100,7 +100,8 @@ public class RegistroController(
     }
 
     private static string NormalizarCorreo(string? correo) =>
-        (correo ?? string.Empty).Trim().ToLowerInvariant();
+        string.Concat((correo ?? string.Empty).Where(caracter => !char.IsWhiteSpace(caracter)))
+            .ToLowerInvariant();
 
     private static bool EsCorreoInstitucional(string correo) =>
         correo.Length <= 150 &&

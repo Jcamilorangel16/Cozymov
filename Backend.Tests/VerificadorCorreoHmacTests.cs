@@ -72,6 +72,20 @@ public sealed class VerificadorCorreoHmacTests
     }
 
     [Fact]
+    public void RechazaComprobanteFalso()
+    {
+        var verificador = CrearVerificador("secreto-prueba", new RelojFalso(Ahora));
+
+        var resultado = verificador.Verificar(
+            "usuario@example.edu.co",
+            "esto-no-es-un-comprobante",
+            "001234");
+
+        Assert.False(resultado.EsValido);
+        Assert.Contains("comprobante", resultado.Error, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void RechazaComprobanteFirmadoConOtraClave()
     {
         var reloj = new RelojFalso(Ahora);

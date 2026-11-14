@@ -78,7 +78,7 @@ export function validarRegistroUsuario(
   const apellido = primerApellido.trim();
   const segundoApellidoNormalizado =
     typeof segundoApellido === "string" ? segundoApellido.trim() || null : null;
-  const correoNormalizado = correo.trim().toLowerCase();
+  const correoNormalizado = correo.replace(/\s+/g, "").toLowerCase();
   const ocupacionNormalizada = ocupacion.trim();
 
   if (
@@ -155,7 +155,7 @@ export function validarCorreoInstitucional(
     return { valido: false, error: "Ingresa tu correo institucional." };
   }
 
-  const correo = valor.trim().toLowerCase();
+  const correo = valor.replace(/\s+/g, "").toLowerCase();
   const expresionCorreo = ES_DESARROLLO
     ? EXPRESION_CORREO
     : EXPRESION_CORREO_INSTITUCIONAL;
