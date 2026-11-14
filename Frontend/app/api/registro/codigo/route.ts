@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
-import { validarCorreoInstitucional } from "../../../../src/features/register/validations/usuarios";
-import { getBackendApiConfig } from "../../../../src/lib/backendApi";
+import { validarCorreoInstitucional } from "../../../../src/features/register/validations/usuarios.ts";
+import { getBackendApiConfig } from "../../../../src/lib/backendApi.ts";
 
 export const runtime = "nodejs";
 

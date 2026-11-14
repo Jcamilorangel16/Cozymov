@@ -138,10 +138,18 @@ export function useRegisterForm() {
       const resultado = await respuesta.json().catch(() => ({}));
 
       if (!respuesta.ok) {
+        const mensaje =
+          resultado.error || "No se pudo enviar el código de verificación.";
         setErrorVerificacion(
-          resultado.error || "No se pudo enviar el código de verificación.",
+          mensaje,
         );
         setMensajeVerificacion("");
+        if (respuesta.status === 409) {
+          setComprobante("");
+          setCodigoSolicitadoPara("");
+          setCodigoVerificacion("");
+        }
+        if (!pasoCorreo) mostrarError(mensaje);
         return;
       }
 
@@ -219,6 +227,8 @@ export function useRegisterForm() {
     setGuardando(true);
     setErrorVerificacion("");
 
+    let mostrandoCargaRegistro = false;
+
     try {
       const respuestaVerificacion = await fetch("/api/registro/codigo/verificar", {
         method: "POST",
@@ -238,6 +248,7 @@ export function useRegisterForm() {
         return;
       }
 
+      mostrandoCargaRegistro = true;
       void Swal.fire({
         title: "Creando tu cuenta",
         text: "Estamos guardando tu información.",
@@ -272,6 +283,7 @@ export function useRegisterForm() {
           temporizadorRegistro.current = window.setTimeout(resolve, tiempoRestante);
         });
       }
+      mostrandoCargaRegistro = false;
       void Swal.fire({
         icon: "success",
         title: "¡Registro exitoso!",
@@ -287,6 +299,9 @@ export function useRegisterForm() {
         "No se pudo conectar con el servidor. Inténtalo de nuevo.",
       );
     } finally {
+      if (mostrandoCargaRegistro) {
+        Swal.close();
+      }
       setVerificandoCodigo(false);
       setGuardando(false);
     }

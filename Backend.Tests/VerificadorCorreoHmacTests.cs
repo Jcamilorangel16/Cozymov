@@ -1,3 +1,7 @@
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using Microsoft.AspNetCore.WebUtilities;
 using Backend.Services;
 using Microsoft.Extensions.Configuration;
 
@@ -22,6 +26,26 @@ public sealed class VerificadorCorreoHmacTests
 
         Assert.True(resultado.EsValido);
         Assert.Equal(Ahora.AddMinutes(10), comprobante.Vence);
+    }
+
+    [Fact]
+    public void DerivaLaClaveConElPrefijoYLaClaveJwtConfigurados()
+    {
+        const string secreto = "secreto-prueba";
+        const string correo = "usuario@example.edu.co";
+        const string codigo = "001234";
+        var verificador = CrearVerificador(secreto, new RelojFalso(Ahora));
+        var comprobante = verificador.CrearComprobante(correo, codigo);
+        using var documento = JsonDocument.Parse(
+            WebEncoders.Base64UrlDecode(comprobante.Valor));
+        var datos = documento.RootElement;
+        var vence = datos.GetProperty("Vence").GetInt64();
+        var firma = WebEncoders.Base64UrlDecode(datos.GetProperty("Firma").GetString()!);
+        var clave = SHA256.HashData(
+            Encoding.UTF8.GetBytes($"gymbrot-verificacion-correo|{secreto}"));
+        var mensaje = Encoding.UTF8.GetBytes($"{correo}|{codigo}|{vence}");
+
+        Assert.Equal(HMACSHA256.HashData(clave, mensaje), firma);
     }
 
     [Fact]
@@ -101,6 +125,18 @@ public sealed class VerificadorCorreoHmacTests
         Assert.False(resultado.EsValido);
     }
 
+    [Fact]
+    public void RechazaFaltaDeClaveDeFirma()
+    {
+        var configuracion = new ConfigurationBuilder().Build();
+        var verificador = new VerificadorCorreoHmac(
+            configuracion,
+            new RelojFalso(Ahora));
+
+        Assert.Throws<VerificacionCorreoNoConfiguradaException>(
+            () => verificador.CrearComprobante("usuario@example.edu.co", "001234"));
+    }
+
     private static VerificadorCorreoHmac CrearVerificador(
         string secreto,
         TimeProvider reloj)
@@ -108,7 +144,7 @@ public sealed class VerificadorCorreoHmacTests
         var configuracion = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["INTERNAL_API_KEY"] = secreto
+                ["Jwt:Clave"] = secreto
             })
             .Build();
 

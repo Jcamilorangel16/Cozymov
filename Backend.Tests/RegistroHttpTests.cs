@@ -50,6 +50,26 @@ public sealed class RegistroHttpTests
     }
 
     [Fact]
+    public async Task VerificacionConCodigoCorrectoDevuelve200()
+    {
+        using var factory = new RegistroFactory();
+        using var client = CrearCliente(factory);
+        const string correo = "persona@example.edu.co";
+        var comprobante = await SolicitarCodigo(client, correo);
+
+        var respuesta = await client.PostAsJsonAsync(
+            "/api/registro/codigo/verificar",
+            new
+            {
+                correo,
+                comprobante,
+                codigo = factory.CorreoFalso.UltimoCodigo
+            });
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+    }
+
+    [Fact]
     public async Task SolicitarCodigoNoDefineEntidadDePersistenciaDeVerificacion()
     {
         using var factory = new RegistroFactory();
@@ -84,6 +104,72 @@ public sealed class RegistroHttpTests
         Assert.Equal(HttpStatusCode.BadRequest, respuesta.StatusCode);
         var error = await respuesta.Content.ReadAsStringAsync();
         Assert.Contains("otro correo", error, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task VerificacionConCodigoVencidoDevuelve400()
+    {
+        using var factory = new RegistroFactory();
+        using var client = CrearCliente(factory);
+        const string correo = "persona@example.edu.co";
+        var comprobante = await SolicitarCodigo(client, correo);
+        factory.Reloj.Avanzar(TimeSpan.FromMinutes(10));
+
+        var respuesta = await client.PostAsJsonAsync(
+            "/api/registro/codigo/verificar",
+            new
+            {
+                correo,
+                comprobante,
+                codigo = factory.CorreoFalso.UltimoCodigo
+            });
+
+        Assert.Equal(HttpStatusCode.BadRequest, respuesta.StatusCode);
+        Assert.Contains(
+            "venció",
+            await respuesta.Content.ReadAsStringAsync(),
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task SolicitarCodigoSinConfiguracionBrevoDevuelve503()
+    {
+        using var factory = new RegistroFactory(usarBrevoReal: true);
+        using var client = CrearCliente(factory);
+
+        var respuesta = await client.PostAsJsonAsync(
+            "/api/registro/codigo",
+            new { correo = "persona@example.edu.co" });
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, respuesta.StatusCode);
+    }
+
+    [Fact]
+    public async Task SolicitarCodigoSinClaveDeFirmaDevuelve503()
+    {
+        using var factory = new RegistroFactory(incluirClaveFirma: false);
+        using var client = CrearCliente(factory);
+
+        var respuesta = await client.PostAsJsonAsync(
+            "/api/registro/codigo",
+            new { correo = "persona@example.edu.co" });
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, respuesta.StatusCode);
+    }
+
+    [Fact]
+    public async Task FalloDeBrevoDevuelve502()
+    {
+        using var factory = new RegistroFactory(
+            usarBrevoReal: true,
+            respuestaBrevo: HttpStatusCode.BadRequest);
+        using var client = CrearCliente(factory);
+
+        var respuesta = await client.PostAsJsonAsync(
+            "/api/registro/codigo",
+            new { correo = "persona@example.edu.co" });
+
+        Assert.Equal(HttpStatusCode.BadGateway, respuesta.StatusCode);
     }
 
     [Fact]
@@ -130,6 +216,26 @@ public sealed class RegistroHttpTests
     }
 
     [Fact]
+    public async Task RegistroConCodigoVencidoNoCreaLaCuenta()
+    {
+        using var factory = new RegistroFactory();
+        using var client = CrearCliente(factory);
+        const string correo = "persona@example.edu.co";
+        var comprobante = await SolicitarCodigo(client, correo);
+        var codigo = factory.CorreoFalso.UltimoCodigo;
+        factory.Reloj.Avanzar(TimeSpan.FromMinutes(10));
+
+        var respuesta = await client.PostAsJsonAsync(
+            "/api/registro",
+            CrearUsuario(correo, new { comprobante, codigo }));
+
+        Assert.Equal(HttpStatusCode.BadRequest, respuesta.StatusCode);
+        using var scope = factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        Assert.False(await context.Usuarios.AnyAsync(usuario => usuario.Correo == correo));
+    }
+
+    [Fact]
     public async Task RegistroCompletoUsaCodigoLeidoDelCorreoFalsoYDevuelve201()
     {
         using var factory = new RegistroFactory();
@@ -168,6 +274,25 @@ public sealed class RegistroHttpTests
         var respuestaLimitada = await client.PostAsJsonAsync(
             "/api/registro/codigo",
             new { correo = "ultima@example.edu.co" });
+
+        Assert.Equal(HttpStatusCode.TooManyRequests, respuestaLimitada.StatusCode);
+    }
+
+    [Fact]
+    public async Task LimitaRegistroA5SolicitudesPorIpEnUnaHora()
+    {
+        using var factory = new RegistroFactory();
+        using var client = CrearCliente(factory);
+
+        for (var intento = 0; intento < 5; intento++)
+        {
+            var respuesta = await client.PostAsJsonAsync("/api/registro", CrearUsuario());
+            Assert.Equal(HttpStatusCode.BadRequest, respuesta.StatusCode);
+        }
+
+        var respuestaLimitada = await client.PostAsJsonAsync(
+            "/api/registro",
+            CrearUsuario());
 
         Assert.Equal(HttpStatusCode.TooManyRequests, respuestaLimitada.StatusCode);
     }
@@ -217,9 +342,24 @@ public sealed class RegistroHttpTests
     {
         public const string ApiKey = "api-interna-pruebas";
         private readonly string _databaseName = $"registro-tests-{Guid.NewGuid():N}";
+        private readonly bool _usarBrevoReal;
+        private readonly bool _incluirClaveFirma;
+        private readonly HttpStatusCode? _respuestaBrevo;
+        private readonly RelojFalso _reloj = new(DateTimeOffset.UtcNow);
+
+        public RegistroFactory(
+            bool usarBrevoReal = false,
+            HttpStatusCode? respuestaBrevo = null,
+            bool incluirClaveFirma = true)
+        {
+            _usarBrevoReal = usarBrevoReal;
+            _respuestaBrevo = respuestaBrevo;
+            _incluirClaveFirma = incluirClaveFirma;
+        }
 
         public FakeEnviadorCorreo CorreoFalso =>
             Services.GetRequiredService<FakeEnviadorCorreo>();
+        public RelojFalso Reloj => _reloj;
 
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
@@ -230,7 +370,12 @@ public sealed class RegistroHttpTests
                 {
                     ["ConnectionStrings:Supabase"] =
                         "Host=localhost;Database=pruebas;Username=pruebas;Password=pruebas",
-                    ["INTERNAL_API_KEY"] = ApiKey
+                    ["INTERNAL_API_KEY"] = ApiKey,
+                    ["Jwt:Clave"] = _incluirClaveFirma ? "clave-jwt-pruebas" : null,
+                    ["Correo:BrevoApiKey"] = _respuestaBrevo.HasValue ? "brevo-test" : "",
+                    ["Correo:Remitente"] = _respuestaBrevo.HasValue
+                        ? "remitente@example.com"
+                        : ""
                 });
             });
             builder.ConfigureTestServices(services =>
@@ -239,13 +384,42 @@ public sealed class RegistroHttpTests
                 services.RemoveAll<IDbContextOptionsConfiguration<AppDbContext>>();
                 services.RemoveAll<AppDbContext>();
                 services.RemoveAll<IEnviadorCorreo>();
+                services.RemoveAll<TimeProvider>();
                 services.AddDbContext<AppDbContext>(options =>
                     options.UseInMemoryDatabase(_databaseName));
-                services.AddSingleton<FakeEnviadorCorreo>();
-                services.AddSingleton<IEnviadorCorreo>(
-                    provider => provider.GetRequiredService<FakeEnviadorCorreo>());
+                services.AddSingleton<TimeProvider>(_reloj);
+                if (_usarBrevoReal)
+                {
+                    services.AddHttpClient<IEnviadorCorreo, BrevoEnviadorCorreo>()
+                        .ConfigurePrimaryHttpMessageHandler(() =>
+                            new RespuestaBrevoHandler(
+                                _respuestaBrevo ?? HttpStatusCode.BadRequest));
+                }
+                else
+                {
+                    services.AddSingleton<FakeEnviadorCorreo>();
+                    services.AddSingleton<IEnviadorCorreo>(
+                        provider => provider.GetRequiredService<FakeEnviadorCorreo>());
+                }
             });
         }
+    }
+
+    private sealed class RelojFalso(DateTimeOffset ahora) : TimeProvider
+    {
+        private DateTimeOffset _ahora = ahora;
+
+        public override DateTimeOffset GetUtcNow() => _ahora;
+
+        public void Avanzar(TimeSpan duracion) => _ahora = _ahora.Add(duracion);
+    }
+
+    private sealed class RespuestaBrevoHandler(HttpStatusCode statusCode) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken) =>
+            Task.FromResult(new HttpResponseMessage(statusCode));
     }
 
     private sealed class FakeEnviadorCorreo : IEnviadorCorreo

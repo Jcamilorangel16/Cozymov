@@ -2,8 +2,8 @@ import {
   validarRegistroUsuario,
   validarCodigoVerificacion,
   validarComprobanteVerificacion,
-} from "../../../src/features/register/validations/usuarios";
-import { getBackendApiConfig } from "../../../src/lib/backendApi";
+} from "../../../src/features/register/validations/usuarios.ts";
+import { getBackendApiConfig } from "../../../src/lib/backendApi.ts";
 
 export const runtime = "nodejs";
 
@@ -84,8 +84,23 @@ export async function POST(request: Request) {
 
     if (!respuesta.ok) {
       const detalle = await respuesta.text();
+      let mensaje = detalle;
+      try {
+        const cuerpo: unknown = JSON.parse(detalle);
+        if (
+          typeof cuerpo === "object" &&
+          cuerpo !== null &&
+          "error" in cuerpo &&
+          typeof cuerpo.error === "string"
+        ) {
+          mensaje = cuerpo.error;
+        }
+      } catch {
+        // El backend puede devolver errores de validación como texto plano.
+      }
+
       return Response.json(
-        { error: detalle || `La API rechazó el registro (${respuesta.status}).` },
+        { error: mensaje || `La API rechazó el registro (${respuesta.status}).` },
         { status: respuesta.status },
       );
     }

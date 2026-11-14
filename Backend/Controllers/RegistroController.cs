@@ -11,7 +11,7 @@ namespace Backend.Controllers;
 
 [Route("api/registro")]
 [ApiController]
-[EnableRateLimiting("verificacion-correo")]
+[EnableRateLimiting("codigo-correo")]
 public class RegistroController(
     AppDbContext context,
     IEnviadorCorreo enviadorCorreo,
@@ -48,7 +48,19 @@ public class RegistroController(
         }
 
         var codigo = RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6");
-        var comprobante = verificadorCorreo.CrearComprobante(correo, codigo);
+        ComprobanteCorreo comprobante;
+        try
+        {
+            comprobante = verificadorCorreo.CrearComprobante(correo, codigo);
+        }
+        catch (VerificacionCorreoNoConfiguradaException errorConfiguracion)
+        {
+            logger.LogError(errorConfiguracion, "La firma de verificación del correo no está configurada.");
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new
+            {
+                error = "La verificación del correo no está configurada."
+            });
+        }
 
         try
         {
@@ -87,10 +99,22 @@ public class RegistroController(
             return BadRequest(new { error = "El correo institucional no es válido." });
         }
 
-        var resultado = verificadorCorreo.Verificar(
-            correo,
-            solicitud.Comprobante,
-            solicitud.Codigo);
+        ResultadoVerificacionCorreo resultado;
+        try
+        {
+            resultado = verificadorCorreo.Verificar(
+                correo,
+                solicitud.Comprobante,
+                solicitud.Codigo);
+        }
+        catch (VerificacionCorreoNoConfiguradaException errorConfiguracion)
+        {
+            logger.LogError(errorConfiguracion, "La firma de verificación del correo no está configurada.");
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new
+            {
+                error = "La verificación del correo no está configurada."
+            });
+        }
         if (!resultado.EsValido)
         {
             return BadRequest(new { error = resultado.Error });

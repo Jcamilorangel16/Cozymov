@@ -8,34 +8,26 @@ namespace Backend.Services;
 public sealed class VerificadorCorreoHmac : IVerificadorCorreo
 {
     private static readonly TimeSpan DuracionComprobante = TimeSpan.FromMinutes(10);
-    private readonly byte[] _claveFirma;
+    private readonly byte[]? _claveFirma;
     private readonly TimeProvider _timeProvider;
 
     public VerificadorCorreoHmac(IConfiguration configuration, TimeProvider timeProvider)
     {
-        var secreto = configuration["Jwt:Key"];
-        if (string.IsNullOrWhiteSpace(secreto))
-        {
-            secreto = configuration["INTERNAL_API_KEY"];
-        }
-
-        if (string.IsNullOrWhiteSpace(secreto))
-        {
-            throw new InvalidOperationException(
-                "Se requiere Jwt:Key o INTERNAL_API_KEY para firmar la verificación del correo.");
-        }
-
-        _claveFirma = SHA256.HashData(
-            Encoding.UTF8.GetBytes($"verificacion-correo|{secreto}"));
+        var secreto = configuration["Jwt:Clave"];
+        _claveFirma = string.IsNullOrWhiteSpace(secreto)
+            ? null
+            : SHA256.HashData(
+                Encoding.UTF8.GetBytes($"gymbrot-verificacion-correo|{secreto}"));
         _timeProvider = timeProvider;
     }
 
     public ComprobanteCorreo CrearComprobante(string correo, string codigo)
     {
+        var claveFirma = ObtenerClaveFirma();
         var correoNormalizado = NormalizarCorreo(correo);
         var vence = _timeProvider.GetUtcNow().Add(DuracionComprobante);
         var venceUnix = vence.ToUnixTimeSeconds();
-        var firma = Firmar(correoNormalizado, codigo, venceUnix);
+        var firma = Firmar(claveFirma, correoNormalizado, codigo, venceUnix);
         var contenido = JsonSerializer.SerializeToUtf8Bytes(
             new DatosComprobante(correoNormalizado, venceUnix, WebEncoders.Base64UrlEncode(firma)));
 
@@ -47,6 +39,7 @@ public sealed class VerificadorCorreoHmac : IVerificadorCorreo
         string comprobante,
         string codigo)
     {
+        var claveFirma = ObtenerClaveFirma();
         var codigoNormalizado = codigo.Trim();
         if (!System.Text.RegularExpressions.Regex.IsMatch(codigoNormalizado, @"^\d{6}$"))
         {
@@ -94,7 +87,11 @@ public sealed class VerificadorCorreoHmac : IVerificadorCorreo
         }
 
         var correoComprobante = NormalizarCorreo(datos.Correo);
-        var firmaEsperada = Firmar(correoComprobante, codigoNormalizado, datos.Vence);
+        var firmaEsperada = Firmar(
+            claveFirma,
+            correoComprobante,
+            codigoNormalizado,
+            datos.Vence);
         if (!CryptographicOperations.FixedTimeEquals(firmaEsperada, firmaRecibida))
         {
             return ResultadoVerificacionCorreo.Invalido(
@@ -125,11 +122,14 @@ public sealed class VerificadorCorreoHmac : IVerificadorCorreo
         return ResultadoVerificacionCorreo.Valido();
     }
 
-    private byte[] Firmar(string correo, string codigo, long vence)
+    private byte[] ObtenerClaveFirma() =>
+        _claveFirma ?? throw new VerificacionCorreoNoConfiguradaException();
+
+    private static byte[] Firmar(byte[] claveFirma, string correo, string codigo, long vence)
     {
         var mensaje = Encoding.UTF8.GetBytes(
             $"{correo}|{codigo}|{vence.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
-        return HMACSHA256.HashData(_claveFirma, mensaje);
+        return HMACSHA256.HashData(claveFirma, mensaje);
     }
 
     private static string NormalizarCorreo(string correo) =>

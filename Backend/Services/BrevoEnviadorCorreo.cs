@@ -19,7 +19,7 @@ public sealed class BrevoEnviadorCorreo(
                     background: #f1f5f9; padding: 16px 0; border-radius: 8px; margin: 24px 0;">
             {0}
           </p>
-          <p>El código vence en <strong>10 minutos</strong> y solo se puede usar una vez.</p>
+          <p>El código vence en <strong>10 minutos</strong>.</p>
           <p style="color: #64748b; font-size: 13px;">
             Si no solicitaste este código, ignora este mensaje. Nadie de Cozymov te pedirá el código por teléfono.
           </p>

@@ -103,12 +103,12 @@ public class UsuariosController : ControllerBase
     // El comprobante se valida de nuevo en el servidor justo antes de crear la cuenta.
     [HttpPost]
     [HttpPost("/api/registro")]
-    [EnableRateLimiting("verificacion-correo")]
+    [EnableRateLimiting("registro")]
     public async Task<ActionResult<UsuariosDTO>> PostUsuarios(
         UsuariosCreateDTO usuarios,
         CancellationToken cancellationToken)
     {
-        var correo = (usuarios.Correo ?? string.Empty).Trim().ToLowerInvariant();
+        var correo = NormalizarCorreo(usuarios.Correo);
 
         if (string.IsNullOrWhiteSpace(correo))
         {
@@ -125,15 +125,6 @@ public class UsuariosController : ControllerBase
             return BadRequest("Debes confirmar tu correo antes de crear la cuenta.");
         }
 
-        var resultadoVerificacion = _verificadorCorreo.Verificar(
-            correo,
-            usuarios.Verificacion.Comprobante,
-            usuarios.Verificacion.Codigo);
-        if (!resultadoVerificacion.EsValido)
-        {
-            return BadRequest(resultadoVerificacion.Error);
-        }
-
         if (await _context.Usuarios.AnyAsync(
                 usuario => usuario.Correo.ToLower() == correo,
                 cancellationToken))
@@ -147,6 +138,25 @@ public class UsuariosController : ControllerBase
                 cancellationToken))
         {
             return Conflict("Esa cédula ya está registrada.");
+        }
+
+        ResultadoVerificacionCorreo resultadoVerificacion;
+        try
+        {
+            resultadoVerificacion = _verificadorCorreo.Verificar(
+                correo,
+                usuarios.Verificacion.Comprobante,
+                usuarios.Verificacion.Codigo);
+        }
+        catch (VerificacionCorreoNoConfiguradaException)
+        {
+            return StatusCode(
+                StatusCodes.Status503ServiceUnavailable,
+                "La verificación del correo no está configurada.");
+        }
+        if (!resultadoVerificacion.EsValido)
+        {
+            return BadRequest(resultadoVerificacion.Error);
         }
 
         var usuario = new Usuarios
@@ -262,4 +272,8 @@ public class UsuariosController : ControllerBase
     {
         return _context.Usuarios.Any(e => e.IdPersonas == id);
     }
+
+    private static string NormalizarCorreo(string? correo) =>
+        string.Concat((correo ?? string.Empty).Where(caracter => !char.IsWhiteSpace(caracter)))
+            .ToLowerInvariant();
 }
