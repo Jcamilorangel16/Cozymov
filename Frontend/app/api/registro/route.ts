@@ -1,6 +1,7 @@
 import {
   validarRegistroUsuario,
-  validarTokenVerificacion,
+  validarCodigoVerificacion,
+  validarComprobanteVerificacion,
 } from "../../../src/features/register/validations/usuarios";
 import { getBackendApiConfig } from "../../../src/lib/backendApi";
 
@@ -20,12 +21,24 @@ export async function POST(request: Request) {
     return Response.json({ error: validacion.error }, { status: 400 });
   }
 
-  const token = body && typeof body === "object"
-    ? (body as Record<string, unknown>).tokenVerificacion
+  const verificacion = body && typeof body === "object"
+    ? (body as Record<string, unknown>).verificacion
     : undefined;
-  const validacionToken = validarTokenVerificacion(token);
-  if (!validacionToken.valido) {
-    return Response.json({ error: validacionToken.error }, { status: 400 });
+  if (!verificacion || typeof verificacion !== "object" || Array.isArray(verificacion)) {
+    return Response.json(
+      { error: "Debes confirmar tu correo antes de crear la cuenta." },
+      { status: 400 },
+    );
+  }
+
+  const camposVerificacion = verificacion as Record<string, unknown>;
+  const comprobante = validarComprobanteVerificacion(camposVerificacion.comprobante);
+  const codigo = validarCodigoVerificacion(camposVerificacion.codigo);
+  if (!comprobante.valido) {
+    return Response.json({ error: comprobante.error }, { status: 400 });
+  }
+  if (!codigo.valido) {
+    return Response.json({ error: codigo.error }, { status: 400 });
   }
 
   const config = getBackendApiConfig();
@@ -39,12 +52,17 @@ export async function POST(request: Request) {
   const usuario = validacion.datos;
 
   try {
-    const respuesta = await fetch(`${config.baseUrl}/api/Usuarios`, {
+    const headers: Record<string, string> = {
+      ...config.headers,
+      "Content-Type": "application/json",
+    };
+    const forwardedIp =
+      request.headers.get("x-real-ip") ?? request.headers.get("x-forwarded-for");
+    if (forwardedIp) headers["X-Forwarded-For"] = forwardedIp;
+
+    const respuesta = await fetch(`${config.baseUrl}/api/registro`, {
       method: "POST",
-      headers: {
-        ...config.headers,
-        "Content-Type": "application/json",
-      },
+      headers,
       body: JSON.stringify({
         Cedula: usuario.idUsuario,
         PrimerNombre: usuario.primerNombre,
@@ -56,7 +74,10 @@ export async function POST(request: Request) {
         Contrasena: usuario.contrasena,
         rol: "usuario",
         ocupacion: usuario.ocupacion,
-        TokenVerificacion: validacionToken.datos,
+        Verificacion: {
+          Comprobante: comprobante.datos,
+          Codigo: codigo.datos,
+        },
       }),
       cache: "no-store",
     });

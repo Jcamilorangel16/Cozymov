@@ -1,4 +1,4 @@
-// Gestiona los campos, la verificación del correo y el envío del registro.
+// Gestiona los datos, el paso de verificación y el envío del registro.
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -10,24 +10,14 @@ import {
   validarFormularioRegistro,
 } from "../validations/usuarios";
 
-/**
- * Muestra un mensaje de error mediante la alerta estándar del formulario.
- * @param {string} mensaje Texto que se presenta al usuario.
- * @returns {void}
- */
 function mostrarError(mensaje) {
   void Swal.fire({ icon: "error", text: mensaje });
 }
 
-/**
- * Gestiona los datos y el envío del formulario de registro.
- * @returns Campos, referencias y controladores de interacción del formulario.
- */
 export function useRegisterForm() {
   const router = useRouter();
   const refs = useRef({});
   const temporizadorRegistro = useRef(null);
-  // Información personal ingresada en el formulario.
   const [datosUsuario, setDatosUsuario] = useState({
     idUsuario: "",
     primerNombre: "",
@@ -38,42 +28,25 @@ export function useRegisterForm() {
     correo: "",
     contrasena: "",
   });
-  // Ocupación seleccionada y valor libre para la opción "otro".
   const [tipoOcupacion, setTipoOcupacion] = useState("");
   const [ocupacionOtro, setOcupacionOtro] = useState("");
-  // Confirmación de contraseña y estado de envío.
   const [confirmarContrasena, setConfirmarContrasena] = useState("");
+  const [pasoCorreo, setPasoCorreo] = useState(false);
   const [guardando, setGuardando] = useState(false);
-
-  // Estado de la confirmación del correo institucional.
-  const [correoVerificado, setCorreoVerificado] = useState(false);
-  const [correoVerificadoValor, setCorreoVerificadoValor] = useState("");
-  const [tokenVerificacion, setTokenVerificacion] = useState("");
+  const [comprobante, setComprobante] = useState("");
   const [codigoSolicitadoPara, setCodigoSolicitadoPara] = useState("");
-  const [modalVerificacionAbierto, setModalVerificacionAbierto] = useState(false);
   const [codigoVerificacion, setCodigoVerificacion] = useState("");
   const [enviandoCodigo, setEnviandoCodigo] = useState(false);
   const [verificandoCodigo, setVerificandoCodigo] = useState(false);
   const [errorVerificacion, setErrorVerificacion] = useState("");
   const [mensajeVerificacion, setMensajeVerificacion] = useState("");
-  const [segundosReenvio, setSegundosReenvio] = useState(0);
 
-  /**
-   * Crea un callback ref administrado por este hook.
-   * @param {string} campo Nombre del campo asociado.
-   * @returns {(elemento: HTMLElement|null) => void} Callback ref para el control.
-   */
   function asignarRef(campo) {
     return (elemento) => {
       refs.current[campo] = elemento;
     };
   }
 
-  /**
-   * Enfoca el control asociado al nombre recibido.
-   * @param {string} campo Nombre del campo que recibirá el foco.
-   * @returns {void}
-   */
   function enfocarCampo(campo) {
     refs.current[campo]?.focus();
   }
@@ -83,58 +56,28 @@ export function useRegisterForm() {
     [],
   );
 
-  // Descuenta los segundos que faltan para poder pedir otro código.
-  const cuentaRegresivaActiva = segundosReenvio > 0;
-  useEffect(() => {
-    if (!cuentaRegresivaActiva) return undefined;
-
-    const intervalo = window.setInterval(() => {
-      setSegundosReenvio((segundos) => (segundos > 1 ? segundos - 1 : 0));
-    }, 1000);
-
-    return () => window.clearInterval(intervalo);
-  }, [cuentaRegresivaActiva]);
-
-  /**
-   * Descarta la confirmación guardada cuando el correo cambia.
-   * @returns {void}
-   */
   function reiniciarVerificacion() {
-    setCorreoVerificado(false);
-    setCorreoVerificadoValor("");
-    setTokenVerificacion("");
+    setComprobante("");
     setCodigoSolicitadoPara("");
     setCodigoVerificacion("");
     setErrorVerificacion("");
     setMensajeVerificacion("");
-    setSegundosReenvio(0);
   }
 
-  /**
-   * Actualiza el campo nombrado por el control del formulario.
-   * @param {React.ChangeEvent<HTMLInputElement|HTMLSelectElement>} evento Evento de cambio.
-   * @returns {void}
-   */
   function manejarCambio(evento) {
     const { name, value } = evento.target;
-
-    if (name === "correo") {
-      const correoNormalizado = value.trim().toLowerCase();
-      const correoConfirmado = correoVerificadoValor || codigoSolicitadoPara;
-      if (correoConfirmado && correoNormalizado !== correoConfirmado) {
-        reiniciarVerificacion();
-      }
+    if (
+      name === "correo" &&
+      codigoSolicitadoPara &&
+      value.trim().toLowerCase() !== codigoSolicitadoPara
+    ) {
+      reiniciarVerificacion();
+      setPasoCorreo(false);
     }
 
     setDatosUsuario((prev) => ({ ...prev, [name]: value }));
   }
 
-  /**
-   * Mueve el foco entre los campos según las teclas de navegación.
-   * @param {React.KeyboardEvent<HTMLInputElement|HTMLSelectElement>} evento Evento de teclado.
-   * @param {string} campoActual Nombre del campo enfocado.
-   * @returns {void}
-   */
   function manejarTeclado(evento, campoActual) {
     if (!["Enter", "ArrowDown", "ArrowUp"].includes(evento.key)) return;
     evento.preventDefault();
@@ -163,88 +106,94 @@ export function useRegisterForm() {
     }
   }
 
-  /**
-   * Pide al backend que envíe un código de 6 dígitos al correo institucional.
-   * @returns {Promise<void>}
-   */
+  function obtenerDatosValidados() {
+    return validarFormularioRegistro(
+      {
+        ...datosUsuario,
+        ocupacion: tipoOcupacion === "otro" ? ocupacionOtro.trim() : tipoOcupacion,
+      },
+      confirmarContrasena,
+    );
+  }
+
   async function solicitarCodigo() {
     if (enviandoCodigo) return;
 
     const validacion = validarCorreoInstitucional(datosUsuario.correo);
     if (!validacion.valido) {
       setErrorVerificacion(validacion.error);
-      setModalVerificacionAbierto(true);
       return;
     }
 
-    const correo = validacion.datos;
     setEnviandoCodigo(true);
     setErrorVerificacion("");
-    setMensajeVerificacion(`Enviando un código de 6 dígitos a ${correo}...`);
-    setModalVerificacionAbierto(true);
+    setMensajeVerificacion("Enviando el código...");
 
     try {
-      const respuesta = await fetch("/api/registro/solicitar-codigo", {
+      const respuesta = await fetch("/api/registro/codigo", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ correo }),
+        body: JSON.stringify({ correo: validacion.datos }),
       });
       const resultado = await respuesta.json().catch(() => ({}));
 
       if (!respuesta.ok) {
-        setMensajeVerificacion(`No se pudo enviar el código a ${correo}.`);
         setErrorVerificacion(
           resultado.error || "No se pudo enviar el código de verificación.",
         );
-        if (typeof resultado.reintentarEnSegundos === "number") {
-          setSegundosReenvio(Math.max(0, resultado.reintentarEnSegundos));
-        }
+        setMensajeVerificacion("");
         return;
       }
 
-      // Cada código nuevo invalida cualquier confirmación anterior.
-      setCorreoVerificado(false);
-      setCorreoVerificadoValor("");
-      setTokenVerificacion("");
+      if (typeof resultado.comprobante !== "string" || !resultado.comprobante) {
+        setErrorVerificacion("El servidor no devolvió un comprobante válido.");
+        setMensajeVerificacion("");
+        return;
+      }
+
+      setComprobante(resultado.comprobante);
+      setCodigoSolicitadoPara(validacion.datos);
       setCodigoVerificacion("");
-      setCodigoSolicitadoPara(correo);
-      setMensajeVerificacion(
-        resultado.mensaje || `Enviamos un código de 6 dígitos a ${correo}.`,
-      );
-      setSegundosReenvio(
-        typeof resultado.reenviarEnSegundos === "number"
-          ? resultado.reenviarEnSegundos
-          : 60,
-      );
+      setMensajeVerificacion("El código vence en 10 minutos.");
+      setPasoCorreo(true);
     } catch {
-      setMensajeVerificacion(`No se pudo enviar el código a ${correo}.`);
       setErrorVerificacion(
         "No se pudo conectar con el servidor. Inténtalo de nuevo.",
       );
+      setMensajeVerificacion("");
     } finally {
       setEnviandoCodigo(false);
     }
   }
 
-  /**
-   * Abre la ventana de verificación y solicita un código si aún no se envió.
-   * @returns {void}
-   */
-  function abrirModalVerificacion() {
-    setModalVerificacionAbierto(true);
+  async function manejarSiguiente() {
+    if (guardando || enviandoCodigo) return;
 
-    const correoNormalizado = datosUsuario.correo.trim().toLowerCase();
-    if (!correoNormalizado || codigoSolicitadoPara === correoNormalizado) return;
+    const validacion = obtenerDatosValidados();
+    if (!validacion.valido) {
+      mostrarError(validacion.error);
+      return;
+    }
 
-    void solicitarCodigo();
+    const correo = validacion.datos.correo;
+    if (comprobante && codigoSolicitadoPara === correo) {
+      setPasoCorreo(true);
+      setErrorVerificacion("");
+      return;
+    }
+
+    await solicitarCodigo();
   }
 
-  /**
-   * Envía el código ingresado y guarda el token de confirmación.
-   * @returns {Promise<void>}
-   */
   async function verificarCodigo() {
-    if (verificandoCodigo) return;
+    if (verificandoCodigo || guardando) return;
+
+    const validacionDatos = obtenerDatosValidados();
+    if (!validacionDatos.valido) {
+      mostrarError(validacionDatos.error);
+      setPasoCorreo(false);
+      return;
+    }
 
     const validacionCorreo = validarCorreoInstitucional(datosUsuario.correo);
     if (!validacionCorreo.valido) {
@@ -258,128 +207,62 @@ export function useRegisterForm() {
       return;
     }
 
+    if (
+      !comprobante ||
+      codigoSolicitadoPara !== validacionCorreo.datos
+    ) {
+      setErrorVerificacion("Solicita un código para este correo antes de continuar.");
+      return;
+    }
+
     setVerificandoCodigo(true);
+    setGuardando(true);
     setErrorVerificacion("");
 
     try {
-      const respuesta = await fetch("/api/registro/verificar-codigo", {
+      const respuestaVerificacion = await fetch("/api/registro/codigo/verificar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           correo: validacionCorreo.datos,
+          comprobante,
           codigo: validacionCodigo.datos,
         }),
       });
-      const resultado = await respuesta.json().catch(() => ({}));
+      const resultadoVerificacion = await respuestaVerificacion.json().catch(() => ({}));
 
-      if (!respuesta.ok) {
+      if (!respuestaVerificacion.ok) {
         setErrorVerificacion(
-          resultado.error || "El código no es válido. Inténtalo de nuevo.",
+          resultadoVerificacion.error || "El código no es válido. Inténtalo de nuevo.",
         );
         return;
       }
-
-      if (typeof resultado.token !== "string" || !resultado.token) {
-        setErrorVerificacion(
-          "El servidor no devolvió una confirmación válida. Inténtalo de nuevo.",
-        );
-        return;
-      }
-
-      setTokenVerificacion(resultado.token);
-      setCorreoVerificado(true);
-      setCorreoVerificadoValor(validacionCorreo.datos);
-      setMensajeVerificacion("");
-      setErrorVerificacion("");
-      setCodigoVerificacion("");
-      setModalVerificacionAbierto(false);
 
       void Swal.fire({
-        icon: "success",
-        title: "Correo confirmado",
-        text: "Tu correo institucional quedó verificado.",
-        confirmButtonText: "Continuar",
+        title: "Creando tu cuenta",
+        text: "Estamos guardando tu información.",
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: () => Swal.showLoading(),
       });
-    } catch {
-      setErrorVerificacion(
-        "No se pudo conectar con el servidor. Inténtalo de nuevo.",
-      );
-    } finally {
-      setVerificandoCodigo(false);
-    }
-  }
-
-  /**
-   * Reenvía un código nuevo al mismo correo.
-   * @returns {void}
-   */
-  function reenviarCodigo() {
-    if (segundosReenvio > 0 || enviandoCodigo) return;
-    void solicitarCodigo();
-  }
-
-  /**
-   * Cierra la ventana de verificación sin borrar la confirmación ya lograda.
-   * @returns {void}
-   */
-  function cerrarModalVerificacion() {
-    setModalVerificacionAbierto(false);
-    setErrorVerificacion("");
-    setCodigoVerificacion("");
-  }
-
-  /**
-   * Valida y envía los datos de registro, mostrando el resultado al usuario.
-   * @returns {Promise<void>}
-   */
-  async function manejarSiguiente() {
-    if (guardando) return;
-
-    const validacion = validarFormularioRegistro(
-      {
-        ...datosUsuario,
-        ocupacion: tipoOcupacion === "otro" ? ocupacionOtro.trim() : tipoOcupacion,
-      },
-      confirmarContrasena,
-    );
-    if (!validacion.valido) {
-      mostrarError(validacion.error);
-      return;
-    }
-
-    const correoNormalizado = validacion.datos.correo;
-    const correoConfirmado =
-      correoVerificado &&
-      correoVerificadoValor === correoNormalizado &&
-      Boolean(tokenVerificacion);
-
-    if (!correoConfirmado) {
-      abrirModalVerificacion();
-      return;
-    }
-
-    setGuardando(true);
-    void Swal.fire({
-      title: "Registrando usuario",
-      text: "Estamos guardando tu información. Esto tomará unos segundos.",
-      allowOutsideClick: false,
-      allowEscapeKey: false,
-      didOpen: () => Swal.showLoading(),
-    });
-    const inicioRegistro = Date.now();
-    try {
-      const respuesta = await fetch("/api/registro", {
+      const inicioRegistro = Date.now();
+      const respuestaRegistro = await fetch("/api/registro", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...validacion.datos, tokenVerificacion }),
+        body: JSON.stringify({
+          ...validacionDatos.datos,
+          verificacion: {
+            comprobante,
+            codigo: validacionCodigo.datos,
+          },
+        }),
       });
-      const resultado = await respuesta.json().catch(() => ({}));
+      const resultadoRegistro = await respuestaRegistro.json().catch(() => ({}));
 
-      if (!respuesta.ok) {
-        mostrarError(resultado.error || "No se pudo crear la cuenta.");
-        if (respuesta.status === 400 || respuesta.status === 409) {
-          reiniciarVerificacion();
-        }
+      if (!respuestaRegistro.ok) {
+        setErrorVerificacion(
+          resultadoRegistro.error || "No se pudo crear la cuenta.",
+        );
         return;
       }
 
@@ -400,8 +283,11 @@ export function useRegisterForm() {
         if (isConfirmed) router.push("/");
       });
     } catch {
-      mostrarError("No se pudo conectar con el servidor. Inténtalo de nuevo.");
+      setErrorVerificacion(
+        "No se pudo conectar con el servidor. Inténtalo de nuevo.",
+      );
     } finally {
+      setVerificandoCodigo(false);
       setGuardando(false);
     }
   }
@@ -416,23 +302,19 @@ export function useRegisterForm() {
     setOcupacionOtro,
     confirmarContrasena,
     setConfirmarContrasena,
+    pasoCorreo,
+    volverADatos: () => setPasoCorreo(false),
     guardando,
     manejarCambio,
     manejarTeclado,
     manejarSiguiente,
-    correoVerificado,
-    correoVerificadoValor,
-    modalVerificacionAbierto,
     codigoVerificacion,
     setCodigoVerificacion,
     enviandoCodigo,
     verificandoCodigo,
     errorVerificacion,
     mensajeVerificacion,
-    segundosReenvio,
     solicitarCodigo,
     verificarCodigo,
-    reenviarCodigo,
-    cerrarModalVerificacion,
   };
 }

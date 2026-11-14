@@ -19,43 +19,45 @@ Los comandos de desarrollo, lint y compilación se ejecutan desde `Frontend/`.
 
 ## Verificación del correo institucional
 
-El registro exige confirmar el correo antes de crear la cuenta:
+El registro exige confirmar el correo antes de crear la cuenta. El código de 6
+dígitos vence a los 10 minutos y no se guarda en la base de datos. El backend
+devuelve un comprobante HMAC firmado; lo valida tanto al confirmar el código
+como al crear la cuenta. Se limitan a cinco envíos/verificaciones por IP cada
+15 minutos.
 
-1. El usuario escribe su correo `.edu.co` y pulsa **Confirmar correo**.
-2. El backend genera un código de 6 dígitos (válido 10 minutos) y lo envía por
-   Gmail SMTP. No se guarda nada en la tabla `Usuarios` todavía: solo queda un
-   registro temporal en `registro_pendiente`.
-3. El usuario ingresa el código en la ventana emergente. Si es correcto, el
-   backend devuelve un token de un solo uso (válido 30 minutos).
-4. Al pulsar **Siguiente**, el registro se envía con ese token. El backend
-   comprueba el token, crea el usuario con `EmailVerificado = true` y elimina el
-   registro pendiente dentro de una transacción.
-5. El login rechaza con `403` a cualquier usuario con `EmailVerificado = false`.
+En desarrollo, si Brevo no está configurado, el código se escribe en el log del
+backend. En los demás ambientes la API responde `503`; por eso las variables
+deben estar configuradas en el servidor **antes de publicar**, o nadie podrá
+registrarse.
 
 Las cuentas que ya existían se marcan como verificadas al aplicar la migración
 `VerificacionCorreo`, por lo que no quedan bloqueadas.
 
-### Configurar Gmail SMTP
+### Configurar la API de Brevo
 
-Gmail no acepta la contraseña normal de la cuenta: hay que crear una
-**contraseña de aplicación** (requiere activar la verificación en dos pasos en
-la cuenta de Google). Después se configuran los secretos del backend:
+1. Crea una cuenta en Brevo.
+2. Verifica una dirección remitente (o autentica el dominio remitente).
+3. Genera una API key desde la configuración SMTP & API de Brevo.
+4. Configura la API key y el remitente verificado para el backend.
+
+En local, usa User Secrets:
 
 ```powershell
-dotnet user-secrets set "Smtp:Host" "smtp.gmail.com" --project Backend/Backend.csproj
-dotnet user-secrets set "Smtp:Port" "587" --project Backend/Backend.csproj
-dotnet user-secrets set "Smtp:User" "tucuenta@gmail.com" --project Backend/Backend.csproj
-dotnet user-secrets set "Smtp:Password" "contraseña-de-aplicación" --project Backend/Backend.csproj
-dotnet user-secrets set "Smtp:From" "tucuenta@gmail.com" --project Backend/Backend.csproj
-dotnet user-secrets set "Smtp:FromName" "Cozymov" --project Backend/Backend.csproj
+dotnet user-secrets set "Correo:BrevoApiKey" "tu-clave-api-de-brevo" --project Backend/Backend.csproj
+dotnet user-secrets set "Correo:Remitente" "correo-verificado@tudominio.com" --project Backend/Backend.csproj
 ```
 
-También se pueden usar variables de entorno (`Smtp__Host`, `Smtp__Port`,
-`Smtp__User`, `Smtp__Password`, `Smtp__From`, `Smtp__FromName`). El frontend
-necesita `VITE_API_URL` e `INTERNAL_API_KEY` en `Frontend/.env.local`.
+En el servidor, configura estas variables de entorno antes del despliegue:
 
-Nota: el plan gratuito de Gmail permite unos 500 destinatarios al día y está
-pensado para pruebas; para producción conviene un proveedor SMTP transaccional.
+```text
+Correo__BrevoApiKey=tu-clave-api-de-brevo
+Correo__Remitente=correo-verificado@tudominio.com
+```
+
+Los correos podrían llegar a spam si el dominio del remitente no está
+autenticado en Brevo. El nombre del remitente es `Cozymov` por defecto y puede
+cambiarse con `Correo__NombreRemitente`. El frontend también necesita
+`VITE_API_URL` e `INTERNAL_API_KEY` en `Frontend/.env.local`.
 
 ### Aplicar la migración
 

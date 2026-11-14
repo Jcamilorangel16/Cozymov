@@ -68,39 +68,43 @@
   background-color: #fbfaf8;
   color: #0b1922;
 }
-#confirmar-correo {
-  border-color: #4ec1ed;
-  color: #0b1922;
+.paso-correo {
+  width: min(480px, 100%);
+  margin: 0 auto;
+  padding: 1rem 0.5rem;
 }
 
-#confirmar-correo.btn-outline-primary:hover {
+.icono-correo {
+  display: flex;
+  justify-content: center;
+  margin: 0 auto 1rem;
+}
+
+.icono-correo svg {
+  width: 58px;
+  height: 58px;
+  fill: none;
+  stroke: #0b6f94;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.5;
+}
+
+.correo-destino {
+  display: block;
+  overflow-wrap: anywhere;
+  text-align: center;
+  color: #0b6f94;
+}
+
+.paso-correo .form-control {
+  border: 2px solid #4ec1ed;
+}
+
+.paso-correo .btn-primary {
   background-color: #4ec1ed;
   border-color: #4ec1ed;
   color: #0b1922;
-}
-
-#confirmar-correo.btn-success {
-  background-color: #20a97a;
-  border-color: #20a97a;
-  color: #ffffff;
-  opacity: 1;
-}
-
-.verificacion-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 1050;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-  background-color: rgba(11, 25, 34, 0.55);
-}
-
-.verificacion-modal {
-  width: min(420px, 100%);
-  background-color: #fbfaf8;
-  border: 2px solid #4ec1ed;
 }
 
 .codigo-verificacion {
@@ -110,6 +114,12 @@
   color: #0b1922;
 }
 
-.verificacion-modal .btn-link {
+.reenviar-correo {
+  display: block;
+  width: 100%;
+  margin-top: 0.75rem;
+  padding-inline: 0;
+  white-space: normal;
+  text-decoration: none;
   color: #0b6f94;
 }

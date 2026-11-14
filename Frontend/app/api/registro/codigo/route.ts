@@ -40,12 +40,17 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const respuesta = await fetch(`${config.baseUrl}/api/registro/solicitar-codigo`, {
+    const headers: Record<string, string> = {
+      ...config.headers,
+      "Content-Type": "application/json",
+    };
+    const forwardedIp =
+      request.headers.get("x-real-ip") ?? request.headers.get("x-forwarded-for");
+    if (forwardedIp) headers["X-Forwarded-For"] = forwardedIp;
+
+    const respuesta = await fetch(`${config.baseUrl}/api/registro/codigo`, {
       method: "POST",
-      headers: {
-        ...config.headers,
-        "Content-Type": "application/json",
-      },
+      headers,
       body: JSON.stringify({ correo: validacion.datos }),
       cache: "no-store",
     });

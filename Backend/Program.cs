@@ -2,9 +2,10 @@ using Backend.Data;
 using Backend.Models;
 using Backend.Services;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Identity;
 using Backend.Middleware;
+using System.Net;
+using System.Threading.RateLimiting;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -24,8 +25,42 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddCors();
 builder.Services.AddScoped<IPasswordHasher<Usuarios>,PasswordHasher<Usuarios>>();
-builder.Services.AddScoped<IPasswordHasher<RegistroPendiente>,PasswordHasher<RegistroPendiente>>();
-builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<IVerificadorCorreo, VerificadorCorreoHmac>();
+builder.Services.AddHttpClient<IEnviadorCorreo, BrevoEnviadorCorreo>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(15);
+});
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        await context.HttpContext.Response.WriteAsJsonAsync(
+            new { error = "Has realizado demasiados intentos. Inténtalo de nuevo en 15 minutos." },
+            cancellationToken);
+    };
+    options.AddPolicy("verificacion-correo", context =>
+    {
+        var forwardedIp = context.Request.Headers["X-Forwarded-For"]
+            .ToString()
+            .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+            .LastOrDefault();
+        var ip = IPAddress.TryParse(forwardedIp, out var address)
+            ? address.MapToIPv6().ToString()
+            : context.Connection.RemoteIpAddress?.MapToIPv6().ToString() ??
+              "desconocida";
+
+        return RateLimitPartition.GetFixedWindowLimiter(ip, _ =>
+            new FixedWindowRateLimiterOptions
+            {
+                AutoReplenishment = true,
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(15),
+                QueueLimit = 0
+            });
+    });
+});
 
 
 
@@ -41,7 +76,9 @@ if (app.Environment.IsDevelopment())
 }
 
 // Configure the HTTP request pipeline.
+app.UseRouting();
 app.UseMiddleware<InternalApiMiddleware>();
+app.UseRateLimiter();
 
 if (app.Environment.IsDevelopment())
 {
@@ -69,3 +106,5 @@ app.MapControllers();
 
 
 app.Run();
+
+public partial class Program { }

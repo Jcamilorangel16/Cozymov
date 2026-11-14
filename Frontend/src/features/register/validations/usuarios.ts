@@ -173,7 +173,7 @@ export function validarCorreoInstitucional(
 
 /**
  * Valida el código de 6 dígitos enviado al correo institucional.
- * @param valor Código ingresado en la ventana de verificación.
+ * @param valor Código ingresado en el paso de verificación.
  * @returns Código recortado o error para mostrar.
  */
 export function validarCodigoVerificacion(
@@ -192,11 +192,11 @@ export function validarCodigoVerificacion(
 }
 
 /**
- * Comprueba el token que devuelve el backend tras confirmar el correo.
- * @param valor Token recibido desde el formulario.
- * @returns Token recortado o error de validación.
+ * Comprueba el comprobante firmado que devuelve el backend.
+ * @param valor Comprobante recibido desde el formulario.
+ * @returns Comprobante recortado o error de validación.
  */
-export function validarTokenVerificacion(
+export function validarComprobanteVerificacion(
   valor: unknown,
 ): ResultadoValidacion<string> {
   if (!esTextoNoVacio(valor)) {
@@ -206,19 +206,15 @@ export function validarTokenVerificacion(
     };
   }
 
-  const token = valor.trim();
-  if (
-    token.length < 20 ||
-    token.length > 200 ||
-    /[^\w.-]/.test(token)
-  ) {
+  const comprobante = valor.trim();
+  if (comprobante.length > 4096 || !/^[\w.-]+$/.test(comprobante)) {
     return {
       valido: false,
       error: "La confirmación del correo no es válida. Vuelve a confirmar tu correo.",
     };
   }
 
-  return { valido: true, datos: token };
+  return { valido: true, datos: comprobante };
 }
 
 /**
