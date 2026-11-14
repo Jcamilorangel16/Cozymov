@@ -42,7 +42,6 @@ export default function PanelInicio({ onNavigate }) {
       showCancelButton: true,
       confirmButtonText: "Sí",
       cancelButtonText: "No",
-      reverseButtons: true,
     });
 
     if (confirmacion.isConfirmed) {
