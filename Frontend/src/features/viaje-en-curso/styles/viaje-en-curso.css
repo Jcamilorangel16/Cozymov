@@ -76,3 +76,33 @@
   letter-spacing: 1px;
    color: #4c5c71;
 }
+
+/* ── Google Maps: contenedor y resumen ──────────────────────────── */
+.ruta-google-mapa-contenedor {
+  margin-bottom: 0;
+}
+
+.ruta-info-resumen {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ruta-info-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #f0f9ff;
+  border: 1px solid #9fd2e0;
+  border-radius: 999px;
+  padding: 4px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #3a66a8;
+}
+
+@media (max-width: 576px) {
+  .mapa-ruta {
+    height: 320px;
+  }
+}
