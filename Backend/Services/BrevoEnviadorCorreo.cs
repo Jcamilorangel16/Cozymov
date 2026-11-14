@@ -56,7 +56,7 @@ public sealed class BrevoEnviadorCorreo(
             {
                 sender = new { name = nombreRemitente, email = remitente },
                 to = new[] { new { email = correo } },
-                subject = "Cozymov: confirma tu correo electrónico",
+                subject = "Cozymov: confirma tu correo electronico",
                 htmlContent = string.Format(PlantillaHtml, codigo),
                 textContent = $"Tu código de verificación de Cozymov es {codigo}. Vence en 10 minutos.",
             }),
