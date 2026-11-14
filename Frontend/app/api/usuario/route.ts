@@ -19,7 +19,7 @@ function obtenerCampo(registro: Registro, ...nombres: string[]): unknown {
 }
 
 function obtenerBaseApi(): string | null {
-	const apiUrl = process.env.API_URL ?? process.env.VITE_API_URL;
+	const apiUrl = process.env.VITE_API_URL ?? process.env.API_URL;
 	return apiUrl ? apiUrl.replace(/\/+$/, "") : null;
 }
 
@@ -46,16 +46,24 @@ export async function GET() {
 		return NextResponse.json({ error: "Debes iniciar sesión." }, { status: 401 });
 	}
 
+	if (sesion.nombre) {
+		return NextResponse.json({
+			nombre: sesion.nombre,
+			fotoUrl: null,
+			ocupacion: "",
+			cedula: "",
+		});
+	}
+
 	const baseApi = obtenerBaseApi();
 	if (!baseApi) {
 		return NextResponse.json(
-			{ error: "Falta configurar API_URL." },
+			{ error: "Falta configurar VITE_API_URL o API_URL." },
 			{ status: 500 },
 		);
 	}
 
 	try {
-		
 		const respuesta = await fetch(`${baseApi}/api/Usuarios/${sesion.id}`, {
 			cache: "no-store",
 		});
@@ -72,12 +80,25 @@ export async function GET() {
 			);
 		}
 
-		// Mapeamos los campos del DTO que retorna tu controlador de .NET
-		const primerNombre = String(obtenerCampo(usuarioApi, "primerNombre", "PrimerNombre") ?? "Pedro");
-		const primerApellido = String(obtenerCampo(usuarioApi, "primerApellido", "PrimerApellido") ?? "");
-		
+		const nombre = [
+			obtenerCampo(usuarioApi, "primerNombre", "PrimerNombre"),
+			obtenerCampo(usuarioApi, "segundoNombre", "SegundoNombre"),
+			obtenerCampo(usuarioApi, "primerApellido", "PrimerApellido"),
+			obtenerCampo(usuarioApi, "segundoApellido", "SegundoApellido"),
+		]
+			.filter((parte): parte is string => typeof parte === "string" && parte.trim() !== "")
+			.map((parte) => parte.trim())
+			.join(" ");
+
+		if (!nombre) {
+			return NextResponse.json(
+				{ error: "La API no devolvió el nombre del usuario." },
+				{ status: 502 },
+			);
+		}
+
 		return NextResponse.json({
-			nombre: `${primerNombre} ${primerApellido}`.trim(),
+			nombre,
 			fotoUrl: obtenerCampo(usuarioApi, "fotoUrl", "FotoUrl") ?? null,
 			ocupacion: obtenerCampo(usuarioApi, "ocupacion", "Ocupacion") ?? "",
 			cedula: obtenerCampo(usuarioApi, "cedula", "Cedula") ?? "",

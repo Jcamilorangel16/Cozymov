@@ -7,51 +7,54 @@ const PerfilContext = createContext(null);
 
 export function PerfilProvider({ children }) {
   const [perfil, setPerfil] = useState({
-    nombre: "Cargando...",
+    nombre: "",
     fotoUrl: null,
     ocupacion: "",
     cedula: "",
   });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
+    const controlador = new AbortController();
+
     async function cargarPerfil() {
       try {
-        const res = await fetch("/api/usuario");
-        if (res.ok) {
-          const data = await res.json();
-          setPerfil({
-            nombre: data.nombre || "Usuario",
-            fotoUrl: data.fotoUrl || null,
-            ocupacion: data.ocupacion || "",
-            cedula: data.cedula || "",
-          });
-        } else {
-          setPerfil({
-            nombre: "Invitado",
-            fotoUrl: null,
-            ocupacion: "",
-            cedula: "",
-          });
-        }
-      } catch (error) {
-        console.error("Error al cargar el perfil del usuario:", error);
-        setPerfil({
-          nombre: "Invitado",
-          fotoUrl: null,
-          ocupacion: "",
-          cedula: "",
+        const respuesta = await fetch("/api/usuario", {
+          cache: "no-store",
+          signal: controlador.signal,
         });
+        const data = await respuesta.json();
+        if (!respuesta.ok) {
+          throw new Error(data.error || "No se pudo cargar tu perfil.");
+        }
+
+        if (typeof data.nombre !== "string" || !data.nombre.trim()) {
+          throw new Error("La respuesta no contiene el nombre de tu perfil.");
+        }
+
+        setPerfil({
+          nombre: data.nombre.trim(),
+          fotoUrl: data.fotoUrl || null,
+          ocupacion: data.ocupacion || "",
+          cedula: data.cedula || "",
+        });
+      } catch (error) {
+        if (error.name !== "AbortError") {
+          console.error("Error al cargar el perfil del usuario:", error);
+          setError(error.message || "No se pudo cargar tu perfil.");
+        }
       } finally {
-        setLoading(false);
+        if (!controlador.signal.aborted) setLoading(false);
       }
     }
 
-    cargarPerfil();
+    void cargarPerfil();
+    return () => controlador.abort();
   }, []);
 
   return (
-    <PerfilContext.Provider value={{ perfil, setPerfil, loading }}>
+    <PerfilContext.Provider value={{ perfil, setPerfil, loading, error }}>
       {children}
     </PerfilContext.Provider>
   );

@@ -22,13 +22,16 @@ export default function PanelInicio({ onNavigate }) {
     reintentar,
   } = usePanelInicio();
   const [origenFiltro, setOrigenFiltro] = useState("");
+  const [origenBuscado, setOrigenBuscado] = useState(null);
 
   const viajesFiltrados = useMemo(() => {
-    const origen = origenFiltro.trim().toLocaleLowerCase("es");
+    const origen = (origenBuscado || "").toLocaleLowerCase("es");
+    if (!origen) return [];
+
     return viajes.filter((viaje) => (
-      !origen || String(viaje.origen || "").toLocaleLowerCase("es").includes(origen)
+      String(viaje.origen || "").toLocaleLowerCase("es").includes(origen)
     ));
-  }, [viajes, origenFiltro]);
+  }, [viajes, origenBuscado]);
   const mostrarBotonConductor =
     !cargando &&
     estadoVehiculo !== "cargando" &&
@@ -47,6 +50,12 @@ export default function PanelInicio({ onNavigate }) {
     if (confirmacion.isConfirmed) {
       onNavigate("ofrecer");
     }
+  }
+
+  function buscarViajes(evento) {
+    evento.preventDefault();
+    const origen = origenFiltro.trim();
+    if (origen) setOrigenBuscado(origen);
   }
 
   if (!idUsuario) {
@@ -73,20 +82,30 @@ export default function PanelInicio({ onNavigate }) {
 
       <div className="mx-auto" style={{ maxWidth: 640 }}>
         <section className="mb-4">
-          <div className="input-group">
-            <span className="input-group-text" aria-hidden="true">🔍</span>
+          <form className="input-group" onSubmit={buscarViajes}>
+            <button
+              type="submit"
+              className="input-group-text"
+              aria-label="Buscar viajes"
+              disabled={!origenFiltro.trim()}
+            >
+              🔍
+            </button>
             <input
               type="text"
               className="form-control"
               placeholder="¿A dónde quieres ir?"
-              aria-label="Filtrar por origen"
+              aria-label="Buscar viajes por origen"
               value={origenFiltro}
-              onChange={(evento) => setOrigenFiltro(evento.target.value)}
+              onChange={(evento) => {
+                setOrigenFiltro(evento.target.value);
+                setOrigenBuscado(null);
+              }}
             />
-          </div>
+          </form>
         </section>
 
-        {cargando ? (
+        {origenBuscado !== null && (cargando ? (
           <p role="status">Cargando viajes disponibles...</p>
         ) : error ? (
           <div className="alert alert-danger" role="alert">
@@ -129,8 +148,8 @@ export default function PanelInicio({ onNavigate }) {
               </article>
             ))}
           </div>
-        )}
-        {!cargando && !error && viajes.length > 5 && (
+        ))}
+        {origenBuscado !== null && !cargando && !error && viajesFiltrados.length > 5 && (
           <button
             type="button"
             className="btn btn-outline-primary mt-3"
