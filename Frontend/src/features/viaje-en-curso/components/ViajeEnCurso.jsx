@@ -1,20 +1,9 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 import { formatearFecha, formatearPrecio } from "../../buscar-viajes/utils/viajes";
 import "../styles/viaje-en-curso.css";
-
-// Carga dinámica sin SSR: Google Maps necesita window/document.
-const RutaGoogleMapa = dynamic(() => import("./RutaGoogleMapa"), {
-  ssr: false,
-  loading: () => (
-    <div className="mapa-ruta mapa-cargando" role="status">
-      <p className="text-center texto-secundario m-0">Cargando mapa…</p>
-    </div>
-  ),
-});
 
 /**
  * Presenta la reserva activa del usuario.
@@ -139,13 +128,6 @@ export default function ViajeEnCurso({ onNavigate, onMensajeConductor }) {
           <h3 className="mb-0 letra-contenido">Tu viaje en curso</h3>
           <span className="estado-viaje">Reserva confirmada</span>
         </div>
-
-        {/* ── Mapa Google Maps ── */}
-        <RutaGoogleMapa
-          origen={viaje.origen}
-          destino={viaje.destino}
-          posicionActual={viaje.posicion_conductor ?? null}
-        />
 
         <section className="panel-lateral viaje-resumen-ruta mt-3">
           <small className="texto-secundario">Tu ruta</small>

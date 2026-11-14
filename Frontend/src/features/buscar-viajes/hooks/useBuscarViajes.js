@@ -3,17 +3,17 @@
 
 import { useEffect, useState } from "react";
 import Swal from "sweetalert2";
-import { consultarViajes, ordenarViajesPorSimilitud } from "../utils/viajes";
+import { consultarViajes } from "../utils/viajes";
 import { useSessionUserId } from "../../../hooks/useSessionUserId";
 
 /**
  * Gestiona la consulta de viajes y la elegibilidad para aceptar uno.
  * @returns Estado de búsqueda, campos de filtro y acción para buscar.
  */
-export function useBuscarViajes() {
+export function useBuscarViajes(busquedaRuta = null) {
   // Criterios que el usuario edita antes de iniciar una búsqueda.
-  const [origen, setOrigen] = useState("");
-  const [destino, setDestino] = useState("");
+  const [origen, setOrigen] = useState(busquedaRuta?.origen || "");
+  const [destino, setDestino] = useState(busquedaRuta?.destino || "");
   const [fecha, setFecha] = useState("");
   // Resultados y estado visible de la búsqueda.
   const [viajes, setViajes] = useState([]);
@@ -30,7 +30,12 @@ export function useBuscarViajes() {
 
   useEffect(() => {
     const controlador = new AbortController();
-    consultarViajes({}, controlador.signal)
+    consultarViajes(
+      busquedaRuta
+        ? { origen: busquedaRuta.origen, destino: busquedaRuta.destino }
+        : {},
+      controlador.signal,
+    )
       .then((viajesCargados) => {
         setViajes(viajesCargados);
         setBusquedaRealizada(true);
@@ -82,10 +87,10 @@ export function useBuscarViajes() {
     }
 
     return () => controlador.abort();
-  }, [idUsuario]);
+  }, [idUsuario, busquedaRuta]);
 
   /**
-   * Busca los viajes disponibles y los ordena según los filtros del usuario.
+   * Consulta los viajes disponibles aplicando los filtros admitidos por la API.
    * @param {React.FormEvent<HTMLFormElement>} evento Envío del formulario.
    * @returns {Promise<void>}
    */
@@ -95,13 +100,12 @@ export function useBuscarViajes() {
     setError("");
 
     try {
-      const todosLosViajes = await consultarViajes({});
       const filtros = {
         origen: origen.trim(),
         destino: destino.trim(),
         fecha,
       };
-      setViajes(ordenarViajesPorSimilitud(todosLosViajes, filtros));
+      setViajes(await consultarViajes(filtros));
       setBusquedaRealizada(true);
     } catch (errorConsulta) {
       setError(errorConsulta.message || "No se pudieron consultar los viajes.");

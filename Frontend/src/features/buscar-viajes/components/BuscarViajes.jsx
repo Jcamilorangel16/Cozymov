@@ -10,7 +10,7 @@ import { formatearFecha, formatearPrecio } from "../utils/viajes";
  * @param {{onEnviarMensaje?: (contacto: {id: string, nombre: string}) => void, onNavigate?: (id: string) => void}} props Acciones para el chat y la navegación.
  * @returns Interfaz de búsqueda de viajes.
  */
-export default function BuscarViajes({ onEnviarMensaje, onNavigate }) {
+export default function BuscarViajes({ onEnviarMensaje, onNavigate, busquedaRuta }) {
   const {
     origen,
     setOrigen,
@@ -31,13 +31,19 @@ export default function BuscarViajes({ onEnviarMensaje, onNavigate }) {
     handleBuscar,
     handleEliminarViaje,
     handleAceptarViaje,
-  } = useBuscarViajes();
+  } = useBuscarViajes(busquedaRuta);
 
   return (
     <div className="container py-4">
       <div className="card shadow-lg border-0 rounded-4">
         <div className="card-body p-4">
           <h2 className="text-center mb-4"> Buscar Viajes</h2>
+          {busquedaRuta?.intencion === "solicitar" && (
+            <p className="alert alert-info" role="status">
+              Elige un viaje disponible y pulsa «Aceptar viaje» para confirmar la reserva.
+              No hay solicitudes abiertas por ruta.
+            </p>
+          )}
 
           <form onSubmit={handleBuscar}>
             <div className="row g-3">

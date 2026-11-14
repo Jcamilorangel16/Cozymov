@@ -12,6 +12,7 @@ export function useMenuPrincipal() {
   const [vistaActiva, setVistaActiva] = useState("inicio");
   const [contactoInicial, setContactoInicial] = useState(null);
   const [viajeSeleccionado, setViajeSeleccionado] = useState(null);
+  const [busquedaRuta, setBusquedaRuta] = useState(null);
   const [mensajeBusqueda, setMensajeBusqueda] = useState("");
   const [pasajeroSeleccionado, setPasajeroSeleccionado] = useState(null);
   const [mensajePasajero, setMensajePasajero] = useState("");
@@ -32,12 +33,21 @@ export function useMenuPrincipal() {
     }
     if (id === "buscar") {
       setViajeSeleccionado(null);
+      setBusquedaRuta(null);
       setMensajeBusqueda("");
     }
     if (id === "ofrecer") {
       setPasajeroSeleccionado(null);
       setMensajePasajero("");
     }
+  }
+
+  function buscarRuta(ruta, intencion) {
+    setBusquedaRuta({ ...ruta, intencion });
+    setVistaActiva("buscar");
+    setContactoInicial(null);
+    setViajeSeleccionado(null);
+    setMensajeBusqueda("");
   }
 
   function abrirChatConUsuario(contacto) {
@@ -51,6 +61,8 @@ export function useMenuPrincipal() {
     abrirChatConUsuario,
     viajeSeleccionado,
     setViajeSeleccionado,
+    busquedaRuta,
+    buscarRuta,
     mensajeBusqueda,
     setMensajeBusqueda,
     pasajeroSeleccionado,

@@ -2,15 +2,26 @@
 
 // Muestra viajes disponibles y actividad real de la cuenta.
 import { useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { formatearFecha, formatearPrecio } from "../../buscar-viajes/utils/viajes";
 import { usePanelInicio } from "../hooks/usePanelInicio";
+import "../../viaje-en-curso/styles/viaje-en-curso.css";
+
+const MapaRuta = dynamic(() => import("../../viaje-en-curso/components/MapaRuta"), {
+  ssr: false,
+  loading: () => (
+    <div className="mapa-ruta mapa-cargando" role="status">
+      <p className="text-center texto-secundario m-0">Cargando mapa…</p>
+    </div>
+  ),
+});
 
 /**
  * Renderiza el resumen inicial del menú principal.
- * @param {{onNavigate: (id: string) => void}} props Acción para abrir otra sección.
+ * @param {{onNavigate: (id: string) => void, onBuscarRuta: (ruta: {origen: string, destino: string}, intencion: string) => void}} props Navegación y búsqueda de ruta.
  * @returns Panel de inicio.
  */
-export default function PanelInicio({ onNavigate }) {
+export default function PanelInicio({ onNavigate, onBuscarRuta }) {
   const {
     idUsuario,
     viajes,
@@ -22,6 +33,7 @@ export default function PanelInicio({ onNavigate }) {
   } = usePanelInicio();
   const [origenFiltro, setOrigenFiltro] = useState("");
   const [fechaFiltro, setFechaFiltro] = useState("");
+  const [rutaSeleccionada, setRutaSeleccionada] = useState(null);
 
   const viajesFiltrados = useMemo(() => {
     const origen = origenFiltro.trim().toLocaleLowerCase("es");
@@ -45,6 +57,37 @@ export default function PanelInicio({ onNavigate }) {
 
   return (
     <div className="vista">
+      <section className="mb-4" aria-labelledby="inicio-mapa-titulo">
+        <h3 id="inicio-mapa-titulo" className="mb-3 letra-contenido">
+          Elige tu ruta
+        </h3>
+        <MapaRuta onRutaSeleccionada={setRutaSeleccionada} />
+        <div className="panel-lateral mt-3">
+          <h4 className="h5 letra-contenido fw-bold">¿Qué quieres hacer?</h4>
+          <p className="texto-secundario mb-3">
+            Selecciona y confirma un origen y un destino para continuar.
+          </p>
+          <div className="d-flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="btn btn-success"
+              disabled={!rutaSeleccionada}
+              onClick={() => onBuscarRuta(rutaSeleccionada, "solicitar")}
+            >
+              Solicitar un viaje
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={!rutaSeleccionada}
+              onClick={() => onBuscarRuta(rutaSeleccionada, "buscar")}
+            >
+              Buscar viajes publicados
+            </button>
+          </div>
+        </div>
+      </section>
+
       <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
         <h3 className="mb-0 letra-contenido">Tu Panel de Control</h3>
 
