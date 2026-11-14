@@ -40,9 +40,10 @@ public class UsuariosController : ControllerBase
 
     // GET: api/Usuarios/5
     [HttpGet("{idpersonas}")]
-    public async Task<ActionResult<UsuariosDTO>> GetUsuarios(int Id)
+    public async Task<ActionResult<UsuariosDTO>> GetUsuarios(
+        [FromRoute(Name = "idpersonas")] int idPersonas)
     {
-        var usuarios = await _context.Usuarios.Where(u => u.IdPersonas == Id).Select(u => new UsuariosDTO
+        var usuarios = await _context.Usuarios.Where(u => u.IdPersonas == idPersonas).Select(u => new UsuariosDTO
         {
             IdPersonas = u.IdPersonas,
             Cedula = u.Cedula,
