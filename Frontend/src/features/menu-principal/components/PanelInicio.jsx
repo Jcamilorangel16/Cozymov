@@ -2,6 +2,7 @@
 
 // Muestra viajes disponibles y actividad real de la cuenta.
 import { useMemo, useState } from "react";
+import Swal from "sweetalert2";
 import { formatearPrecio } from "../../buscar-viajes/utils/viajes";
 import { usePanelInicio } from "../hooks/usePanelInicio";
 
@@ -14,6 +15,8 @@ export default function PanelInicio({ onNavigate }) {
   const {
     idUsuario,
     viajes,
+    viajePublicado,
+    estadoVehiculo,
     cargando,
     error,
     reintentar,
@@ -26,6 +29,26 @@ export default function PanelInicio({ onNavigate }) {
       !origen || String(viaje.origen || "").toLocaleLowerCase("es").includes(origen)
     ));
   }, [viajes, origenFiltro]);
+  const mostrarBotonConductor =
+    !cargando &&
+    estadoVehiculo !== "cargando" &&
+    !(estadoVehiculo === "registrado" && viajePublicado);
+
+  async function confirmarSerConductor() {
+    const confirmacion = await Swal.fire({
+      title: "¿Estás seguro de que quieres ser conductor?",
+      text: "Para continuar, registra tu vehículo y publica una ruta.",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Sí",
+      cancelButtonText: "No",
+      reverseButtons: true,
+    });
+
+    if (confirmacion.isConfirmed) {
+      onNavigate("ofrecer");
+    }
+  }
 
   if (!idUsuario) {
     return (
@@ -40,13 +63,15 @@ export default function PanelInicio({ onNavigate }) {
       <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
         <h3 className="mb-0 letra-contenido">Tu Panel de Control</h3>
 
-        <button
-          type="button"
-          className="btn btn-primary"
-          onClick={() => onNavigate("ofrecer")}
-        >
-          + Ofrecer viaje
-        </button>
+        {mostrarBotonConductor && (
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={confirmarSerConductor}
+          >
+            Quiero ser conductor
+          </button>
+        )}
       </div>
 
       <div className="mx-auto" style={{ maxWidth: 640 }}>
