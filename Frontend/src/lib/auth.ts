@@ -9,6 +9,7 @@ export const DURACION_SESION_SEGUNDOS = 60 * 60 * 2;
 export type DatosSesion = {
   id: string;
   correo: string;
+  nombre?: string;
 };
 
 /**
@@ -32,7 +33,10 @@ function obtenerSecretoSesion() {
  * @returns Token JWT firmado con duración limitada.
  */
 export async function firmarSesion(datos: DatosSesion) {
-  return new SignJWT({ correo: datos.correo })
+  return new SignJWT({
+    correo: datos.correo,
+    ...(datos.nombre ? { nombre: datos.nombre } : {}),
+  })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(datos.id)
     .setIssuedAt()
@@ -56,7 +60,12 @@ export async function verificarSesion(token: string): Promise<DatosSesion | null
       return null;
     }
 
-    return validacion.datos;
+    return {
+      ...validacion.datos,
+      ...(typeof payload.nombre === "string" && payload.nombre.trim()
+        ? { nombre: payload.nombre.trim() }
+        : {}),
+    };
   } catch {
     return null;
   }

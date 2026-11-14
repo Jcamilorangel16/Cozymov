@@ -46,6 +46,15 @@ export async function GET() {
 		return NextResponse.json({ error: "Debes iniciar sesión." }, { status: 401 });
 	}
 
+	if (sesion.nombre) {
+		return NextResponse.json({
+			nombre: sesion.nombre,
+			fotoUrl: null,
+			ocupacion: "",
+			cedula: "",
+		});
+	}
+
 	const baseApi = obtenerBaseApi();
 	if (!baseApi) {
 		return NextResponse.json(
