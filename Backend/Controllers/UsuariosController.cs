@@ -3,7 +3,9 @@ using Microsoft.EntityFrameworkCore;
 using Backend.Models;
 using Backend.Data;
 using Backend.DTOs;
+using Backend.Services;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 
 [Route("api/[controller]")]
 [ApiController]
@@ -12,11 +14,16 @@ public class UsuariosController : ControllerBase
 {
     private readonly AppDbContext _context;
     private readonly IPasswordHasher<Usuarios> _passwordHasher;
+    private readonly IVerificadorCorreo _verificadorCorreo;
 
-    public UsuariosController(AppDbContext context, IPasswordHasher<Usuarios> passwordHasher)
+    public UsuariosController(
+        AppDbContext context,
+        IPasswordHasher<Usuarios> passwordHasher,
+        IVerificadorCorreo verificadorCorreo)
     {
         _context = context;
         _passwordHasher = passwordHasher;
+        _verificadorCorreo = verificadorCorreo;
     }
 
     // GET: api/Usuarios
@@ -40,10 +47,16 @@ public class UsuariosController : ControllerBase
 
     // GET: api/Usuarios/5
     [HttpGet("{idpersonas}")]
+<<<<<<< HEAD
+    public async Task<ActionResult<UsuariosDTO>> GetUsuarios(int idpersonas)
+    {
+        var usuarios = await _context.Usuarios.Where(u => u.IdPersonas == idpersonas).Select(u => new UsuariosDTO
+=======
     public async Task<ActionResult<UsuariosDTO>> GetUsuarios(
         [FromRoute(Name = "idpersonas")] int idPersonas)
     {
         var usuarios = await _context.Usuarios.Where(u => u.IdPersonas == idPersonas).Select(u => new UsuariosDTO
+>>>>>>> 5b08800c4f7ffb73326957432489b2bedbc1cd46
         {
             IdPersonas = u.IdPersonas,
             Cedula = u.Cedula,
@@ -69,10 +82,10 @@ public class UsuariosController : ControllerBase
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     [HttpPut("{idpersonas}")]
     public async Task<IActionResult> PutUsuarios(
-         int ID,
+         int idpersonas,
          UsuariosUpdateDTO datos)
     {
-        var usuario = await _context.Usuarios.FindAsync(ID);
+        var usuario = await _context.Usuarios.FindAsync(idpersonas);
 
         if (usuario == null)
         {
@@ -85,7 +98,16 @@ public class UsuariosController : ControllerBase
         usuario.PrimerApellido = datos.PrimerApellido;
         usuario.SegundoApellido = datos.SegundoApellido;
         usuario.Edad = datos.Edad;
-        usuario.Correo = datos.Correo;
+        // Cambiar el correo exigiría verificarlo de nuevo; mientras no exista ese
+        // flujo, esta ruta no puede asignar una dirección sin confirmar.
+        if (!string.Equals(
+                NormalizarCorreo(datos.Correo),
+                NormalizarCorreo(usuario.Correo),
+                StringComparison.Ordinal))
+        {
+            return BadRequest("El correo no se puede cambiar sin verificarlo.");
+        }
+
         usuario.ocupacion = datos.ocupacion;
 
        await _context.SaveChangesAsync();
@@ -93,11 +115,66 @@ public class UsuariosController : ControllerBase
        return NoContent();
     }
 
-    // POST: api/Usuarios
-    // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+    // POST: api/Usuarios and api/registro
+    // El comprobante se valida de nuevo en el servidor justo antes de crear la cuenta.
     [HttpPost]
-    public async Task<ActionResult<UsuariosDTO>> PostUsuarios(UsuariosCreateDTO usuarios)
+    [HttpPost("/api/registro")]
+    [EnableRateLimiting("registro")]
+    public async Task<ActionResult<UsuariosDTO>> PostUsuarios(
+        UsuariosCreateDTO usuarios,
+        CancellationToken cancellationToken)
     {
+        var correo = NormalizarCorreo(usuarios.Correo);
+
+        if (string.IsNullOrWhiteSpace(correo))
+        {
+            return BadRequest("El correo es obligatorio.");
+        }
+
+        if (string.IsNullOrWhiteSpace(usuarios.Contrasena))
+        {
+            return BadRequest("La contraseña es obligatoria.");
+        }
+
+        if (usuarios.Verificacion is null)
+        {
+            return BadRequest("Debes confirmar tu correo antes de crear la cuenta.");
+        }
+
+        if (await _context.Usuarios.AnyAsync(
+                usuario => usuario.Correo.ToLower() == correo,
+                cancellationToken))
+        {
+            return Conflict("Ese correo ya está registrado.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(usuarios.Cedula) &&
+            await _context.Usuarios.AnyAsync(
+                usuario => usuario.Cedula == usuarios.Cedula,
+                cancellationToken))
+        {
+            return Conflict("Esa cédula ya está registrada.");
+        }
+
+        ResultadoVerificacionCorreo resultadoVerificacion;
+        try
+        {
+            resultadoVerificacion = _verificadorCorreo.Verificar(
+                correo,
+                usuarios.Verificacion.Comprobante,
+                usuarios.Verificacion.Codigo);
+        }
+        catch (VerificacionCorreoNoConfiguradaException)
+        {
+            return StatusCode(
+                StatusCodes.Status503ServiceUnavailable,
+                "La verificación del correo no está configurada.");
+        }
+        if (!resultadoVerificacion.EsValido)
+        {
+            return BadRequest(resultadoVerificacion.Error);
+        }
+
         var usuario = new Usuarios
         {
             Cedula = usuarios.Cedula,
@@ -106,14 +183,24 @@ public class UsuariosController : ControllerBase
             PrimerApellido = usuarios.PrimerApellido,
             SegundoApellido = usuarios.SegundoApellido,
             Edad = usuarios.Edad,
-            Correo = usuarios.Correo,
+            Correo = correo,
             rol = usuarios.rol,
-            ocupacion = usuarios.ocupacion
+            ocupacion = usuarios.ocupacion,
+            EmailVerificado = true
         };
         usuario.Contrasena = _passwordHasher.HashPassword(usuario, usuarios.Contrasena);
 
         _context.Usuarios.Add(usuario);
-        await _context.SaveChangesAsync();
+
+        try
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            return Conflict(
+                "No se pudo crear la cuenta. Verifica que el correo y la cédula no estén registrados.");
+        }
 
         var respuesta = new UsuariosDTO
         {
@@ -124,6 +211,7 @@ public class UsuariosController : ControllerBase
             PrimerApellido = usuario.PrimerApellido,
             SegundoApellido = usuario.SegundoApellido,
             Edad = usuario.Edad,
+            Correo = usuario.Correo,
             rol = usuario.rol,
             ocupacion = usuario.ocupacion,
             fechaderegistro = usuario.fechaderegistro
@@ -139,8 +227,9 @@ public class UsuariosController : ControllerBase
     [HttpPost("Login")]
     public async Task<ActionResult<UsuariosDTO>> Login(UsuariosLoginDTO datos)
     {
+        var correo = (datos.Correo ?? string.Empty).Trim().ToLowerInvariant();
         var usuario = await _context.Usuarios
-           .FirstOrDefaultAsync(u => u.Correo == datos.Correo);
+           .FirstOrDefaultAsync(u => u.Correo.ToLower() == correo);
         if (usuario == null)
         {
             return Unauthorized("Credenciales inválidas");
@@ -150,6 +239,14 @@ public class UsuariosController : ControllerBase
         if (resultado == PasswordVerificationResult.Failed)
         {
             return Unauthorized("Credenciales inválidas");
+        }
+
+        // Sin correo confirmado no se permite iniciar sesión.
+        if (!usuario.EmailVerificado)
+        {
+            return StatusCode(
+                StatusCodes.Status403Forbidden,
+                "Debes confirmar tu correo electrónico antes de iniciar sesión.");
         }
 
         var respuesta = new UsuariosDTO
@@ -172,10 +269,10 @@ public class UsuariosController : ControllerBase
     }
 
     // DELETE: api/Usuarios/5
-    [HttpDelete("{Id}")]
-    public async Task<IActionResult> DeleteUsuarios(int IdPersonas)
+    [HttpDelete("{idpersonas}")]
+    public async Task<IActionResult> DeleteUsuarios(int idpersonas)
     {
-        var usuarios = await _context.Usuarios.FindAsync(IdPersonas);
+        var usuarios = await _context.Usuarios.FindAsync(idpersonas);
         if (usuarios == null)
         {
             return NotFound();
@@ -191,4 +288,8 @@ public class UsuariosController : ControllerBase
     {
         return _context.Usuarios.Any(e => e.IdPersonas == id);
     }
+
+    private static string NormalizarCorreo(string? correo) =>
+        string.Concat((correo ?? string.Empty).Where(caracter => !char.IsWhiteSpace(caracter)))
+            .ToLowerInvariant();
 }

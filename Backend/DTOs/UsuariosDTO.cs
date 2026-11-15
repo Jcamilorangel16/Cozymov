@@ -42,6 +42,8 @@
         public string Contrasena { get; set; }
         public string rol { get; set; }
         public string ocupacion { get; set; }
+
+        public VerificacionCorreoRegistroDTO? Verificacion { get; set; }
     }
 }
 

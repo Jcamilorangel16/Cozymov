@@ -1,10 +1,24 @@
 using Backend.Data;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
-using Microsoft.AspNetCore.Identity;
 using Backend.Models;
+using Backend.Services;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
 using Backend.Middleware;
+using System.Net;
+using System.Threading.RateLimiting;
 
+static string ObtenerClaveIp(HttpContext context)
+{
+    var forwardedIp = context.Request.Headers["X-Forwarded-For"]
+        .ToString()
+        .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+        .LastOrDefault();
+    var ip = IPAddress.TryParse(forwardedIp, out var address)
+        ? address.MapToIPv6().ToString()
+        : context.Connection.RemoteIpAddress?.MapToIPv6().ToString() ?? "desconocida";
+
+    return ip;
+}
 
 var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("Supabase")
@@ -23,6 +37,49 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddCors();
 builder.Services.AddScoped<IPasswordHasher<Usuarios>,PasswordHasher<Usuarios>>();
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<IVerificadorCorreo, VerificadorCorreoHmac>();
+builder.Services.AddHttpClient<IEnviadorCorreo, BrevoEnviadorCorreo>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(15);
+});
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        await context.HttpContext.Response.WriteAsJsonAsync(
+            new { error = "Has realizado demasiados intentos. Inténtalo de nuevo más tarde." },
+            cancellationToken);
+    };
+    options.AddPolicy("codigo-correo", context =>
+        RateLimitPartition.GetFixedWindowLimiter(ObtenerClaveIp(context), _ =>
+            new FixedWindowRateLimiterOptions
+            {
+                AutoReplenishment = true,
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(15),
+                QueueLimit = 0
+            }));
+    options.AddPolicy("verificar-codigo", context =>
+        RateLimitPartition.GetFixedWindowLimiter(ObtenerClaveIp(context), _ =>
+            new FixedWindowRateLimiterOptions
+            {
+                AutoReplenishment = true,
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(15),
+                QueueLimit = 0
+            }));
+    options.AddPolicy("registro", context =>
+        RateLimitPartition.GetFixedWindowLimiter(ObtenerClaveIp(context), _ =>
+            new FixedWindowRateLimiterOptions
+            {
+                AutoReplenishment = true,
+                PermitLimit = 5,
+                Window = TimeSpan.FromHours(1),
+                QueueLimit = 0
+            }));
+});
 
 
 
@@ -38,7 +95,9 @@ if (app.Environment.IsDevelopment())
 }
 
 // Configure the HTTP request pipeline.
+app.UseRouting();
 app.UseMiddleware<InternalApiMiddleware>();
+app.UseRateLimiter();
 
 if (app.Environment.IsDevelopment())
 {
@@ -66,3 +125,5 @@ app.MapControllers();
 
 
 app.Run();
+
+public partial class Program { }
