@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import "../styles/calificaciones.css";
 import { useSessionUserId } from "../../../hooks/useSessionUserId";
 
 async function leerRespuesta(respuesta, mensajePredeterminado) {

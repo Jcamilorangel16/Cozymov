@@ -1,0 +1,10 @@
+/* El contenido hereda el color claro del body; las tarjetas tienen fondo claro. */
+.calificaciones-view,
+.solicitudes-view {
+  color: #0b1922;
+}
+
+.calificaciones-view .panel-lateral,
+.solicitudes-view .panel-lateral {
+  color: #0b1922;
+}

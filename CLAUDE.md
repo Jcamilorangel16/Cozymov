@@ -3,8 +3,8 @@
 ## Qué es Cozymov
 
 Cozymov es una aplicación web para coordinar viajes compartidos dentro de una
-comunidad universitaria. Este repositorio contiene el frontend, la API y una
-bóveda de Obsidian con el grafo de la base de datos.
+comunidad universitaria. Este repositorio contiene el frontend y la API. El
+desarrollador puede tener además una bóveda local de Obsidian.
 
 Antes de cambiar código, lee este archivo y las instrucciones más cercanas al
 archivo que vas a modificar:
@@ -16,8 +16,8 @@ archivo que vas a modificar:
 - Persistencia, despliegue y configuración de datos:
   [`Frontend/README_BASE_DATOS.md`](Frontend/README_BASE_DATOS.md).
 - API y modelos de vehículos: [`README_VEHICULOS.md`](README_VEHICULOS.md).
-- Notas, tablas y grafo Obsidian: [`Tablas_ccozy/Bienvenido.md`](Tablas_ccozy/Bienvenido.md)
-  y [`Tablas_ccozy/Grafo relacional.canvas`](Tablas_ccozy/Grafo%20relacional.canvas).
+- Notas locales de Obsidian, si existen:
+  `Tablas_ccozy/Bienvenido.md` y `Tablas_ccozy/Grafo relacional.canvas`.
 
 ## Cómo usar este contexto con Claude
 
@@ -35,7 +35,7 @@ archivo que vas a modificar:
 ```text
 Frontend/   Next.js App Router, interfaz, sesiones y rutas proxy
 Backend/    ASP.NET Core Web API, Entity Framework Core y PostgreSQL
-Tablas_ccozy/ Notas Obsidian y grafo de tablas/relaciones
+Tablas_ccozy/ Bóveda Obsidian local opcional, ignorada por Git
 ```
 
 - El frontend usa Next.js 16, React 19, JavaScript y TypeScript. Las páginas y
@@ -49,8 +49,9 @@ Tablas_ccozy/ Notas Obsidian y grafo de tablas/relaciones
 - En los flujos migrados, el frontend valida la sesión y reenvía solicitudes a
   la API. La recuperación de contraseña es una excepción documentada: revisa
   su implementación actual antes de asumir que usa el backend.
-- `Tablas_ccozy/` es una bóveda de Obsidian existente; conserva sus ajustes
-  `.obsidian/` y actualiza las notas si cambian las relaciones de la base.
+- `Tablas_ccozy/` es una bóveda local opcional de Obsidian y está ignorada por
+  Git. No presupongas que existe después de clonar el repositorio ni uses sus
+  notas como única fuente de información.
 
 ## Funcionalidades implementadas
 
@@ -184,7 +185,7 @@ dotnet ef database update --project Backend/Backend.csproj --startup-project Bac
 - No hagas cambios destructivos en la base de datos ni ejecutes migraciones
   contra una instancia compartida sin autorización y confirmación del ambiente.
 - Mantén modelos, configuraciones EF, DTOs, controladores, migraciones y notas
-  de Obsidian consistentes cuando cambie el esquema.
+  locales de Obsidian (si existen) consistentes cuando cambie el esquema.
 - Prefiere cambios pequeños. Añade o actualiza pruebas enfocadas y ejecuta la
   validación más específica disponible. Reporta bloqueos y fallos preexistentes
   sin ocultarlos.

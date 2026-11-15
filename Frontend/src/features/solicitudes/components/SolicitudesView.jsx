@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import "../styles/solicitudes.css";
 import { formatearFecha, formatearPrecio } from "../../buscar-viajes/utils/viajes";
 
 const formularioInicial = {

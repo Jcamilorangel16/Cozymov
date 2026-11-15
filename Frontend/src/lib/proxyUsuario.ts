@@ -91,7 +91,13 @@ export async function reenviarRespuesta(respuesta: Response): Promise<NextRespon
 	}
 
 	if (!respuesta.ok) {
-		let mensaje = "La solicitud no se pudo completar.";
+		let ruta = "";
+		try {
+			ruta = ` en ${new URL(respuesta.url).pathname}`;
+		} catch {
+			// respuesta.url puede venir vacío.
+		}
+		let mensaje = `La solicitud no se pudo completar (HTTP ${respuesta.status}${ruta}).`;
 		if (typeof datos === "string" && datos) {
 			mensaje = datos;
 		} else if (esRegistro(datos)) {
