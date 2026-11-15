@@ -10,7 +10,28 @@ body {
 .bloque_contenido {
     flex: 1;
     padding: 20px;
-    background-color: #fbfaf8;
+    /* Semitransparente para dejar ver el fondo animado sin perder legibilidad */
+    background-color: rgba(251, 250, 248, 0.88);
+}
+
+/* Fondo animado decorativo del menú: detrás de todas las secciones */
+.menu-fondo {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-color: #0b1922; /* respaldo si el GIF no carga */
+    background-image: url("/car-animation.gif");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+/* Sin animación para quien prefiere movimiento reducido */
+@media (prefers-reduced-motion: reduce) {
+    .menu-fondo {
+        background-image: none;
+    }
 }
 
 .letra-contenido {
@@ -28,6 +49,8 @@ body {
 /* Contenedor propio: cabezal arriba, contenido debajo.
    No depende del body ni del layout padre. */
 .app-shell {
+    position: relative;
+    isolation: isolate; /* mantiene el fondo (z-index -1) dentro del menú */
     display: flex;
     flex-direction: column;
     flex: 1;
