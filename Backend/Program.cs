@@ -61,6 +61,15 @@ builder.Services.AddRateLimiter(options =>
                 Window = TimeSpan.FromMinutes(15),
                 QueueLimit = 0
             }));
+    options.AddPolicy("verificar-codigo", context =>
+        RateLimitPartition.GetFixedWindowLimiter(ObtenerClaveIp(context), _ =>
+            new FixedWindowRateLimiterOptions
+            {
+                AutoReplenishment = true,
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(15),
+                QueueLimit = 0
+            }));
     options.AddPolicy("registro", context =>
         RateLimitPartition.GetFixedWindowLimiter(ObtenerClaveIp(context), _ =>
             new FixedWindowRateLimiterOptions

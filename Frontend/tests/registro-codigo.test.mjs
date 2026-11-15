@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
 import { POST } from "../app/api/registro/codigo/route.ts";
 import { POST as POSTRegistro } from "../app/api/registro/route.ts";
+import { POST as POSTVerificar } from "../app/api/registro/codigo/verificar/route.ts";
 
 const originalFetch = globalThis.fetch;
 const originalApiUrl = process.env.VITE_API_URL;
@@ -106,6 +107,76 @@ test("informa configuración faltante sin llamar al backend", async () => {
   assert.equal(respuesta.status, 500);
   assert.match((await respuesta.json()).error, /configurar/i);
 });
+
+function crearSolicitudVerificar(cuerpo) {
+  return new Request("http://localhost/api/registro/codigo/verificar", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-real-ip": "203.0.113.8" },
+    body: JSON.stringify(cuerpo),
+  });
+}
+
+const cuerpoVerificar = {
+  correo: " Persona@Example.edu.co ",
+  comprobante: "YWJj",
+  codigo: "123456",
+};
+
+test("verificar reenvía correo normalizado, comprobante, código e IP al backend", async () => {
+  configurarApi();
+  let llamada;
+  globalThis.fetch = async (url, init) => {
+    llamada = { url, init };
+    return Response.json({ mensaje: "Correo verificado." });
+  };
+
+  const respuesta = await POSTVerificar(crearSolicitudVerificar(cuerpoVerificar));
+
+  assert.equal(respuesta.status, 200);
+  assert.equal(llamada.url, "https://backend.example/api/registro/codigo/verificar");
+  assert.deepEqual(JSON.parse(llamada.init.body), {
+    correo: "persona@example.edu.co",
+    comprobante: "YWJj",
+    codigo: "123456",
+  });
+  assert.equal(llamada.init.headers["X-Internal-Api-Key"], "api-interna-prueba");
+  assert.equal(llamada.init.headers["X-Forwarded-For"], "203.0.113.8");
+});
+
+for (const [descripcion, cuerpo] of [
+  ["código con letras", { ...cuerpoVerificar, codigo: "12ab56" }],
+  ["código de 5 dígitos", { ...cuerpoVerificar, codigo: "12345" }],
+  ["comprobante vacío", { ...cuerpoVerificar, comprobante: "" }],
+  ["correo inválido", { ...cuerpoVerificar, correo: "no-es-correo" }],
+]) {
+  test(`verificar rechaza con 400 sin llamar al backend: ${descripcion}`, async () => {
+    configurarApi();
+    globalThis.fetch = async () => {
+      assert.fail("No debe llamar al backend con datos inválidos.");
+    };
+
+    const respuesta = await POSTVerificar(crearSolicitudVerificar(cuerpo));
+
+    assert.equal(respuesta.status, 400);
+    assert.equal(typeof (await respuesta.json()).error, "string");
+  });
+}
+
+for (const [status, error] of [
+  [400, "El código venció. Solicita uno nuevo."],
+  [429, "Has realizado demasiados intentos. Inténtalo de nuevo más tarde."],
+  [503, "La verificación del correo no está configurada."],
+]) {
+  test(`verificar propaga el error ${status} del backend`, async () => {
+    configurarApi();
+    globalThis.fetch = async () => Response.json({ error }, { status });
+
+    const respuesta = await POSTVerificar(crearSolicitudVerificar(cuerpoVerificar));
+
+    assert.equal(respuesta.status, status);
+    assert.deepEqual(await respuesta.json(), { error });
+  });
+}
 
 test("devuelve el mensaje de rate limit como texto legible en el registro", async () => {
   configurarApi();

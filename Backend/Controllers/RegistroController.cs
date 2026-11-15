@@ -11,7 +11,6 @@ namespace Backend.Controllers;
 
 [Route("api/registro")]
 [ApiController]
-[EnableRateLimiting("codigo-correo")]
 public class RegistroController(
     AppDbContext context,
     IEnviadorCorreo enviadorCorreo,
@@ -24,6 +23,7 @@ public class RegistroController(
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     [HttpPost("codigo")]
+    [EnableRateLimiting("codigo-correo")]
     public async Task<IActionResult> SolicitarCodigo(
         SolicitarCodigoRegistroDTO solicitud,
         CancellationToken cancellationToken)
@@ -90,7 +90,10 @@ public class RegistroController(
         });
     }
 
+    // Cupo propio: equivocarse al teclear el código no debe impedir reenviarlo,
+    // pero el límite sigue acotando la fuerza bruta sobre 1.000.000 de códigos.
     [HttpPost("codigo/verificar")]
+    [EnableRateLimiting("verificar-codigo")]
     public IActionResult VerificarCodigo(VerificarCodigoRegistroDTO solicitud)
     {
         var correo = NormalizarCorreo(solicitud.Correo);

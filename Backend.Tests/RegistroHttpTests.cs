@@ -279,6 +279,80 @@ public sealed class RegistroHttpTests
     }
 
     [Fact]
+    public async Task VerificarCodigoNoConsumeElCupoDeEnvios()
+    {
+        using var factory = new RegistroFactory();
+        using var client = CrearCliente(factory);
+        string comprobante = "";
+        for (var intento = 0; intento < 5; intento++)
+        {
+            comprobante = await SolicitarCodigo(client, $"persona{intento}@example.edu.co");
+        }
+
+        var respuesta = await client.PostAsJsonAsync(
+            "/api/registro/codigo/verificar",
+            new { correo = "persona4@example.edu.co", comprobante, codigo = "000000" });
+
+        Assert.NotEqual(HttpStatusCode.TooManyRequests, respuesta.StatusCode);
+    }
+
+    [Fact]
+    public async Task LimitaVerificacionA10IntentosPorIpEn15Minutos()
+    {
+        using var factory = new RegistroFactory();
+        using var client = CrearCliente(factory);
+        var solicitud = new
+        {
+            correo = "persona@example.edu.co",
+            comprobante = "no-valido",
+            codigo = "000000"
+        };
+
+        for (var intento = 0; intento < 10; intento++)
+        {
+            var respuesta = await client.PostAsJsonAsync("/api/registro/codigo/verificar", solicitud);
+            Assert.Equal(HttpStatusCode.BadRequest, respuesta.StatusCode);
+        }
+
+        var limitada = await client.PostAsJsonAsync("/api/registro/codigo/verificar", solicitud);
+
+        Assert.Equal(HttpStatusCode.TooManyRequests, limitada.StatusCode);
+    }
+
+    [Fact]
+    public async Task PutNoPermiteCambiarElCorreoSinVerificarlo()
+    {
+        using var factory = new RegistroFactory();
+        using var client = CrearCliente(factory);
+        int id;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var usuario = new Backend.Models.Usuarios
+            {
+                Cedula = "1", PrimerNombre = "A", SegundoNombre = "", PrimerApellido = "B",
+                SegundoApellido = "", Correo = "persona@example.edu.co", Contrasena = "x",
+                rol = "usuario", ocupacion = "estudiante", Edad = 20
+            };
+            context.Usuarios.Add(usuario);
+            await context.SaveChangesAsync();
+            id = usuario.IdPersonas;
+        }
+
+        object Datos(string correo) => new
+        {
+            Cedula = "1", PrimerNombre = "A", SegundoNombre = "", PrimerApellido = "B",
+            SegundoApellido = "", Edad = 21, Correo = correo, ocupacion = "estudiante"
+        };
+
+        var cambio = await client.PutAsJsonAsync($"/api/Usuarios/{id}", Datos("otro@example.edu.co"));
+        var mismo = await client.PutAsJsonAsync($"/api/Usuarios/{id}", Datos(" Persona@Example.edu.co "));
+
+        Assert.Equal(HttpStatusCode.BadRequest, cambio.StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, mismo.StatusCode);
+    }
+
+    [Fact]
     public async Task LimitaRegistroA5SolicitudesPorIpEnUnaHora()
     {
         using var factory = new RegistroFactory();

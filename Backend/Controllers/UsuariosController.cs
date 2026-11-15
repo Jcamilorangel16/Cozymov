@@ -91,7 +91,16 @@ public class UsuariosController : ControllerBase
         usuario.PrimerApellido = datos.PrimerApellido;
         usuario.SegundoApellido = datos.SegundoApellido;
         usuario.Edad = datos.Edad;
-        usuario.Correo = datos.Correo;
+        // Cambiar el correo exigiría verificarlo de nuevo; mientras no exista ese
+        // flujo, esta ruta no puede asignar una dirección sin confirmar.
+        if (!string.Equals(
+                NormalizarCorreo(datos.Correo),
+                NormalizarCorreo(usuario.Correo),
+                StringComparison.Ordinal))
+        {
+            return BadRequest("El correo no se puede cambiar sin verificarlo.");
+        }
+
         usuario.ocupacion = datos.ocupacion;
 
        await _context.SaveChangesAsync();

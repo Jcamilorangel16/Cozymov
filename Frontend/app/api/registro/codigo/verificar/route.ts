@@ -3,8 +3,8 @@ import {
   validarCodigoVerificacion,
   validarComprobanteVerificacion,
   validarCorreoInstitucional,
-} from "../../../../../src/features/register/validations/usuarios";
-import { getBackendApiConfig } from "../../../../../src/lib/backendApi";
+} from "../../../../../src/features/register/validations/usuarios.ts";
+import { getBackendApiConfig } from "../../../../../src/lib/backendApi.ts";
 
 export const runtime = "nodejs";
 
