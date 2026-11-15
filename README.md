@@ -97,7 +97,7 @@ contrario al requisito de no persistir el código.
 Las pruebas automatizadas se ejecutan con:
 
 ```powershell
-dotnet test Backend/Tests/Backend.Tests.csproj
+dotnet test Backend.Tests/Backend.Tests.csproj
 npm --prefix Frontend run test
 npm --prefix Frontend run lint
 ```
