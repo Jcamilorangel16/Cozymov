@@ -209,6 +209,11 @@ namespace Backend.Migrations
                     b.Property<int>("Edad")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("EmailVerificado")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
                     b.Property<string>("PrimerApellido")
                         .IsRequired()
                         .HasColumnType("text");

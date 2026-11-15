@@ -19,6 +19,12 @@ namespace Backend.Models
         public string ocupacion { get; set; }
         public DateTime fechaderegistro { get; set; } = DateTime.UtcNow;
 
+        /// <summary>
+        /// Indica si el usuario confirmó su correo. Las cuentas creadas antes
+        /// de esta verificación se consideran confirmadas para no bloquearlas.
+        /// </summary>
+        public bool EmailVerificado { get; set; } = true;
+
         public ICollection<Vehiculo> Vehiculos { get; set; } = new List<Vehiculo>();
         public ICollection<Viaje> Viajes { get; set; } = new List<Viaje>();
 

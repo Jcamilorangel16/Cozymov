@@ -5,6 +5,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>ea4cbd1c-f167-4318-a173-69286e67f7d3</UserSecretsId>
+    <!-- El proyecto de pruebas vive en Backend/Tests y no debe compilarse ni publicarse con la API. -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);Tests\**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>

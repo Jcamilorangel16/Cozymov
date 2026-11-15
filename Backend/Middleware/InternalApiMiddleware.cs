@@ -8,11 +8,20 @@ public sealed class InternalApiMiddleware(
     IConfiguration configuration,
     ILogger<InternalApiMiddleware> logger)
 {
+    private static readonly string[] PrefijosProtegidos =
+    [
+        "/api/Viajes",
+        "/api/Usuarios",
+        "/api/registro"
+    ];
+
     public async Task InvokeAsync(HttpContext context)
     {
-        if (!context.Request.Path.StartsWithSegments(
-                "/api/Viajes",
-                StringComparison.OrdinalIgnoreCase))
+        if (HttpMethods.IsOptions(context.Request.Method) ||
+            !PrefijosProtegidos.Any(prefijo =>
+                context.Request.Path.StartsWithSegments(
+                    prefijo,
+                    StringComparison.OrdinalIgnoreCase)))
         {
             await next(context);
             return;

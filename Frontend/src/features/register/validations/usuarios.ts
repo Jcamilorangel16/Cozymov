@@ -5,6 +5,12 @@ type ResultadoValidacion<T> =
   | { valido: true; datos: T }
   | { valido: false; error: string };
 
+// En desarrollo se acepta cualquier correo para poder probar el flujo completo.
+// En producción solo se permiten correos institucionales .edu.co.
+const ES_DESARROLLO = process.env.NODE_ENV !== "production";
+const EXPRESION_CORREO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
+const EXPRESION_CORREO_INSTITUCIONAL = /^[^\s@]+@[^\s@]+\.edu\.co$/i;
+
 /**
  * Comprueba que el valor sea un objeto JSON no nulo ni una lista.
  * @param valor Valor que se va a revisar.
@@ -72,7 +78,7 @@ export function validarRegistroUsuario(
   const apellido = primerApellido.trim();
   const segundoApellidoNormalizado =
     typeof segundoApellido === "string" ? segundoApellido.trim() || null : null;
-  const correoNormalizado = correo.trim().toLowerCase();
+  const correoNormalizado = correo.replace(/\s+/g, "").toLowerCase();
   const ocupacionNormalizada = ocupacion.trim();
 
   if (
@@ -102,10 +108,15 @@ export function validarRegistroUsuario(
     };
   }
 
-  if (!/^[^\s@]+@[^\s@]+\.edu\.co$/i.test(correoNormalizado)) {
+  const expresionCorreo = ES_DESARROLLO
+    ? EXPRESION_CORREO
+    : EXPRESION_CORREO_INSTITUCIONAL;
+  if (!expresionCorreo.test(correoNormalizado)) {
     return {
       valido: false,
-      error: "El correo debe ser institucional y terminar en .edu.co.",
+      error: ES_DESARROLLO
+        ? "Ingresa un correo electrónico válido."
+        : "El correo debe ser institucional y terminar en .edu.co.",
     };
   }
 
@@ -130,6 +141,80 @@ export function validarRegistroUsuario(
       ocupacion: ocupacionNormalizada,
     },
   };
+}
+
+/**
+ * Valida y normaliza el correo institucional antes de enviar un código.
+ * @param valor Correo capturado en el formulario.
+ * @returns Correo normalizado o error para mostrar.
+ */
+export function validarCorreoInstitucional(
+  valor: unknown,
+): ResultadoValidacion<string> {
+  if (!esTextoNoVacio(valor)) {
+    return { valido: false, error: "Ingresa tu correo institucional." };
+  }
+
+  const correo = valor.replace(/\s+/g, "").toLowerCase();
+  const expresionCorreo = ES_DESARROLLO
+    ? EXPRESION_CORREO
+    : EXPRESION_CORREO_INSTITUCIONAL;
+  if (correo.length > 150 || !expresionCorreo.test(correo)) {
+    return {
+      valido: false,
+      error: ES_DESARROLLO
+        ? "Ingresa un correo electrónico válido."
+        : "El correo debe ser institucional y terminar en .edu.co.",
+    };
+  }
+
+  return { valido: true, datos: correo };
+}
+
+/**
+ * Valida el código de 6 dígitos enviado al correo institucional.
+ * @param valor Código ingresado en el paso de verificación.
+ * @returns Código recortado o error para mostrar.
+ */
+export function validarCodigoVerificacion(
+  valor: unknown,
+): ResultadoValidacion<string> {
+  if (!esTextoNoVacio(valor)) {
+    return { valido: false, error: "Ingresa el código de 6 dígitos." };
+  }
+
+  const codigo = valor.trim();
+  if (!/^\d{6}$/.test(codigo)) {
+    return { valido: false, error: "El código debe tener exactamente 6 dígitos." };
+  }
+
+  return { valido: true, datos: codigo };
+}
+
+/**
+ * Comprueba el comprobante firmado que devuelve el backend.
+ * @param valor Comprobante recibido desde el formulario.
+ * @returns Comprobante recortado o error de validación.
+ */
+export function validarComprobanteVerificacion(
+  valor: unknown,
+): ResultadoValidacion<string> {
+  if (!esTextoNoVacio(valor)) {
+    return {
+      valido: false,
+      error: "Debes confirmar tu correo antes de crear la cuenta.",
+    };
+  }
+
+  const comprobante = valor.trim();
+  if (comprobante.length > 4096 || !/^[\w.-]+$/.test(comprobante)) {
+    return {
+      valido: false,
+      error: "La confirmación del correo no es válida. Vuelve a confirmar tu correo.",
+    };
+  }
+
+  return { valido: true, datos: comprobante };
 }
 
 /**

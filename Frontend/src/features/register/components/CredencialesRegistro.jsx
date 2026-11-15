@@ -14,6 +14,7 @@ export default function CredencialesRegistro({
   manejarCambio,
   manejarTeclado,
   manejarSiguiente,
+  enviandoCodigo,
 }) {
   return (
     <>
@@ -32,7 +33,11 @@ export default function CredencialesRegistro({
           onChange={manejarCambio}
           onKeyDown={(e) => manejarTeclado(e, "correo")}
           ref={asignarRef("correo")}
+          disabled={enviandoCodigo}
         />
+        <div className="form-text" aria-live="polite">
+          Te enviaremos un código de 6 dígitos para confirmar tu correo.
+        </div>
       </div>
       <div className="col-md-6">
         <label htmlFor="contrasena" className="form-label">Contraseña</label>
@@ -46,6 +51,7 @@ export default function CredencialesRegistro({
           onChange={manejarCambio}
           onKeyDown={(e) => manejarTeclado(e, "contrasena")}
           ref={asignarRef("contrasena")}
+          disabled={enviandoCodigo}
         />
 
         <label htmlFor="confirmar-contrasena" className="form-label mt-3">Confirmar Contraseña</label>
@@ -59,6 +65,7 @@ export default function CredencialesRegistro({
           onChange={(e) => setConfirmarContrasena(e.target.value)}
           onKeyDown={(e) => manejarTeclado(e, "confirmar-contrasena")}
           ref={asignarRef("confirmar-contrasena")}
+          disabled={enviandoCodigo}
         />
 
         <button
@@ -66,9 +73,9 @@ export default function CredencialesRegistro({
           type="button"
           className="btn btn-primary w-100 mt-5"
           onClick={manejarSiguiente}
-          disabled={guardando}
+          disabled={guardando || enviandoCodigo}
         >
-          {guardando ? "Creando cuenta..." : "Siguiente"}
+          {enviandoCodigo ? "Enviando código..." : guardando ? "Procesando..." : "Siguiente"}
         </button>
         <button
           id="volver"

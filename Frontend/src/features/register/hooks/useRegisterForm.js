@@ -1,29 +1,23 @@
-// Gestiona los campos, navegación por teclado y envío del registro.
+// Gestiona los datos, el paso de verificación y el envío del registro.
 "use client";
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
-import { validarFormularioRegistro } from "../validations/usuarios";
+import {
+  validarCodigoVerificacion,
+  validarCorreoInstitucional,
+  validarFormularioRegistro,
+} from "../validations/usuarios";
 
-/**
- * Muestra un mensaje de error mediante la alerta estándar del formulario.
- * @param {string} mensaje Texto que se presenta al usuario.
- * @returns {void}
- */
 function mostrarError(mensaje) {
   void Swal.fire({ icon: "error", text: mensaje });
 }
 
-/**
- * Gestiona los datos y el envío del formulario de registro.
- * @returns Campos, referencias y controladores de interacción del formulario.
- */
 export function useRegisterForm() {
   const router = useRouter();
   const refs = useRef({});
   const temporizadorRegistro = useRef(null);
-  // Información personal ingresada en el formulario.
   const [datosUsuario, setDatosUsuario] = useState({
     idUsuario: "",
     primerNombre: "",
@@ -34,29 +28,25 @@ export function useRegisterForm() {
     correo: "",
     contrasena: "",
   });
-  // Ocupación seleccionada y valor libre para la opción "otro".
   const [tipoOcupacion, setTipoOcupacion] = useState("");
   const [ocupacionOtro, setOcupacionOtro] = useState("");
-  // Confirmación de contraseña y estado de envío.
   const [confirmarContrasena, setConfirmarContrasena] = useState("");
+  const [pasoCorreo, setPasoCorreo] = useState(false);
   const [guardando, setGuardando] = useState(false);
+  const [comprobante, setComprobante] = useState("");
+  const [codigoSolicitadoPara, setCodigoSolicitadoPara] = useState("");
+  const [codigoVerificacion, setCodigoVerificacion] = useState("");
+  const [enviandoCodigo, setEnviandoCodigo] = useState(false);
+  const [verificandoCodigo, setVerificandoCodigo] = useState(false);
+  const [errorVerificacion, setErrorVerificacion] = useState("");
+  const [mensajeVerificacion, setMensajeVerificacion] = useState("");
 
-  /**
-   * Crea un callback ref administrado por este hook.
-   * @param {string} campo Nombre del campo asociado.
-   * @returns {(elemento: HTMLElement|null) => void} Callback ref para el control.
-   */
   function asignarRef(campo) {
     return (elemento) => {
       refs.current[campo] = elemento;
     };
   }
 
-  /**
-   * Enfoca el control asociado al nombre recibido.
-   * @param {string} campo Nombre del campo que recibirá el foco.
-   * @returns {void}
-   */
   function enfocarCampo(campo) {
     refs.current[campo]?.focus();
   }
@@ -66,22 +56,28 @@ export function useRegisterForm() {
     [],
   );
 
-  /**
-   * Actualiza el campo nombrado por el control del formulario.
-   * @param {React.ChangeEvent<HTMLInputElement|HTMLSelectElement>} evento Evento de cambio.
-   * @returns {void}
-   */
+  function reiniciarVerificacion() {
+    setComprobante("");
+    setCodigoSolicitadoPara("");
+    setCodigoVerificacion("");
+    setErrorVerificacion("");
+    setMensajeVerificacion("");
+  }
+
   function manejarCambio(evento) {
     const { name, value } = evento.target;
+    if (
+      name === "correo" &&
+      codigoSolicitadoPara &&
+      value.trim().toLowerCase() !== codigoSolicitadoPara
+    ) {
+      reiniciarVerificacion();
+      setPasoCorreo(false);
+    }
+
     setDatosUsuario((prev) => ({ ...prev, [name]: value }));
   }
 
-  /**
-   * Mueve el foco entre los campos según las teclas de navegación.
-   * @param {React.KeyboardEvent<HTMLInputElement|HTMLSelectElement>} evento Evento de teclado.
-   * @param {string} campoActual Nombre del campo enfocado.
-   * @returns {void}
-   */
   function manejarTeclado(evento, campoActual) {
     if (!["Enter", "ArrowDown", "ArrowUp"].includes(evento.key)) return;
     evento.preventDefault();
@@ -110,44 +106,174 @@ export function useRegisterForm() {
     }
   }
 
-  /**
-   * Valida y envía los datos de registro, mostrando el resultado al usuario.
-   * @returns {Promise<void>}
-   */
-  async function manejarSiguiente() {
-    if (guardando) return;
-
-    const validacion = validarFormularioRegistro(
+  function obtenerDatosValidados() {
+    return validarFormularioRegistro(
       {
         ...datosUsuario,
         ocupacion: tipoOcupacion === "otro" ? ocupacionOtro.trim() : tipoOcupacion,
       },
       confirmarContrasena,
     );
+  }
+
+  async function solicitarCodigo() {
+    if (enviandoCodigo) return;
+
+    const validacion = validarCorreoInstitucional(datosUsuario.correo);
+    if (!validacion.valido) {
+      setErrorVerificacion(validacion.error);
+      return;
+    }
+
+    setEnviandoCodigo(true);
+    setErrorVerificacion("");
+    setMensajeVerificacion("Enviando el código...");
+
+    try {
+      const respuesta = await fetch("/api/registro/codigo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ correo: validacion.datos }),
+      });
+      const resultado = await respuesta.json().catch(() => ({}));
+
+      if (!respuesta.ok) {
+        const mensaje =
+          resultado.error || "No se pudo enviar el código de verificación.";
+        setErrorVerificacion(
+          mensaje,
+        );
+        setMensajeVerificacion("");
+        if (respuesta.status === 409) {
+          setComprobante("");
+          setCodigoSolicitadoPara("");
+          setCodigoVerificacion("");
+        }
+        if (!pasoCorreo) mostrarError(mensaje);
+        return;
+      }
+
+      if (typeof resultado.comprobante !== "string" || !resultado.comprobante) {
+        setErrorVerificacion("El servidor no devolvió un comprobante válido.");
+        setMensajeVerificacion("");
+        return;
+      }
+
+      setComprobante(resultado.comprobante);
+      setCodigoSolicitadoPara(validacion.datos);
+      setCodigoVerificacion("");
+      setMensajeVerificacion("El código vence en 10 minutos.");
+      setPasoCorreo(true);
+    } catch {
+      setErrorVerificacion(
+        "No se pudo conectar con el servidor. Inténtalo de nuevo.",
+      );
+      setMensajeVerificacion("");
+    } finally {
+      setEnviandoCodigo(false);
+    }
+  }
+
+  async function manejarSiguiente() {
+    if (guardando || enviandoCodigo) return;
+
+    const validacion = obtenerDatosValidados();
     if (!validacion.valido) {
       mostrarError(validacion.error);
       return;
     }
 
+    const correo = validacion.datos.correo;
+    if (comprobante && codigoSolicitadoPara === correo) {
+      setPasoCorreo(true);
+      setErrorVerificacion("");
+      return;
+    }
+
+    await solicitarCodigo();
+  }
+
+  async function verificarCodigo() {
+    if (verificandoCodigo || guardando) return;
+
+    const validacionDatos = obtenerDatosValidados();
+    if (!validacionDatos.valido) {
+      mostrarError(validacionDatos.error);
+      setPasoCorreo(false);
+      return;
+    }
+
+    const validacionCorreo = validarCorreoInstitucional(datosUsuario.correo);
+    if (!validacionCorreo.valido) {
+      setErrorVerificacion(validacionCorreo.error);
+      return;
+    }
+
+    const validacionCodigo = validarCodigoVerificacion(codigoVerificacion);
+    if (!validacionCodigo.valido) {
+      setErrorVerificacion(validacionCodigo.error);
+      return;
+    }
+
+    if (
+      !comprobante ||
+      codigoSolicitadoPara !== validacionCorreo.datos
+    ) {
+      setErrorVerificacion("Solicita un código para este correo antes de continuar.");
+      return;
+    }
+
+    setVerificandoCodigo(true);
     setGuardando(true);
-    void Swal.fire({
-      title: "Registrando usuario",
-      text: "Estamos guardando tu información. Esto tomará unos segundos.",
-      allowOutsideClick: false,
-      allowEscapeKey: false,
-      didOpen: () => Swal.showLoading(),
-    });
-    const inicioRegistro = Date.now();
+    setErrorVerificacion("");
+
+    let mostrandoCargaRegistro = false;
+
     try {
-      const respuesta = await fetch("/api/registro", {
+      const respuestaVerificacion = await fetch("/api/registro/codigo/verificar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(validacion.datos),
+        body: JSON.stringify({
+          correo: validacionCorreo.datos,
+          comprobante,
+          codigo: validacionCodigo.datos,
+        }),
       });
-      const resultado = await respuesta.json();
+      const resultadoVerificacion = await respuestaVerificacion.json().catch(() => ({}));
 
-      if (!respuesta.ok) {
-        mostrarError(resultado.error || "No se pudo crear la cuenta.");
+      if (!respuestaVerificacion.ok) {
+        setErrorVerificacion(
+          resultadoVerificacion.error || "El código no es válido. Inténtalo de nuevo.",
+        );
+        return;
+      }
+
+      mostrandoCargaRegistro = true;
+      void Swal.fire({
+        title: "Creando tu cuenta",
+        text: "Estamos guardando tu información.",
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: () => Swal.showLoading(),
+      });
+      const inicioRegistro = Date.now();
+      const respuestaRegistro = await fetch("/api/registro", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...validacionDatos.datos,
+          verificacion: {
+            comprobante,
+            codigo: validacionCodigo.datos,
+          },
+        }),
+      });
+      const resultadoRegistro = await respuestaRegistro.json().catch(() => ({}));
+
+      if (!respuestaRegistro.ok) {
+        setErrorVerificacion(
+          resultadoRegistro.error || "No se pudo crear la cuenta.",
+        );
         return;
       }
 
@@ -157,6 +283,7 @@ export function useRegisterForm() {
           temporizadorRegistro.current = window.setTimeout(resolve, tiempoRestante);
         });
       }
+      mostrandoCargaRegistro = false;
       void Swal.fire({
         icon: "success",
         title: "¡Registro exitoso!",
@@ -168,8 +295,14 @@ export function useRegisterForm() {
         if (isConfirmed) router.push("/");
       });
     } catch {
-      mostrarError("No se pudo conectar con el servidor. Inténtalo de nuevo.");
+      setErrorVerificacion(
+        "No se pudo conectar con el servidor. Inténtalo de nuevo.",
+      );
     } finally {
+      if (mostrandoCargaRegistro) {
+        Swal.close();
+      }
+      setVerificandoCodigo(false);
       setGuardando(false);
     }
   }
@@ -184,9 +317,19 @@ export function useRegisterForm() {
     setOcupacionOtro,
     confirmarContrasena,
     setConfirmarContrasena,
+    pasoCorreo,
+    volverADatos: () => setPasoCorreo(false),
     guardando,
     manejarCambio,
     manejarTeclado,
     manejarSiguiente,
+    codigoVerificacion,
+    setCodigoVerificacion,
+    enviandoCodigo,
+    verificandoCodigo,
+    errorVerificacion,
+    mensajeVerificacion,
+    solicitarCodigo,
+    verificarCodigo,
   };
 }
