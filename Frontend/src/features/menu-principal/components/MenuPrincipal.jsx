@@ -11,6 +11,8 @@ import { useMenuPrincipal } from "../hooks/useMenuPrincipal";
 import ViajeEnCurso from "../../viaje-en-curso/components/ViajeEnCurso";
 import ConfiguracionGeneral from "../../configuracion/components/ConfiguracionGeneral";
 import { PerfilProvider } from "../../configuracion/context/PerfilContext";
+import SolicitudesView from "../../solicitudes/components/SolicitudesView";
+import CalificacionesView from "../../calificaciones/components/CalificacionesView";
 
 
 /**
@@ -73,6 +75,18 @@ export default function MenuPrincipal({ usuarioActualId }) {
             {vistaActiva === "en-curso" && (
               <div className="vista">
                 <ViajeEnCurso onNavigate={irAVista} />
+              </div>
+            )}
+
+            {vistaActiva === "solicitudes" && (
+              <div className="vista">
+                <SolicitudesView />
+              </div>
+            )}
+
+            {vistaActiva === "calificaciones" && (
+              <div className="vista">
+                <CalificacionesView />
               </div>
             )}
 

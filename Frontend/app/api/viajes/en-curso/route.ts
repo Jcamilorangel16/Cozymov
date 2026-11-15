@@ -149,3 +149,29 @@ export async function DELETE() {
 		);
 	}
 }
+
+/** El pasajero finaliza su viaje en curso; la reserva queda lista para calificar. */
+export async function POST() {
+	const resultado = await obtenerUrlReservaActiva();
+	if ("respuesta" in resultado) return resultado.respuesta;
+
+	try {
+		const respuesta = await fetch(`${resultado.url}/finalizar`, {
+			method: "POST",
+			headers: resultado.headers,
+			cache: "no-store",
+		});
+		if (!respuesta.ok) {
+			return errorApi(respuesta, "No se pudo finalizar tu viaje.");
+		}
+
+		const cuerpo = await respuesta.json();
+		return NextResponse.json(cuerpo, { status: respuesta.status });
+	} catch (error) {
+		console.error("No se pudo finalizar la reserva en la API:", error);
+		return NextResponse.json(
+			{ error: "No se pudo conectar con la API de viajes." },
+			{ status: 502 },
+		);
+	}
+}

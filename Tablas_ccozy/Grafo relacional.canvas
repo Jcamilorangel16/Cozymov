@@ -1,0 +1,37 @@
+{
+  "nodes": [
+    { "id": "usuarios", "type": "file", "file": "Usuarios.md", "x": -350, "y": 350, "width": 280, "height": 260 },
+    { "id": "viaje", "type": "file", "file": "Viaje.md", "x": 450, "y": 350, "width": 280, "height": 260 },
+    { "id": "reserva", "type": "file", "file": "Reserva de viaje.md", "x": 50, "y": -50, "width": 300, "height": 250 },
+    { "id": "ruta", "type": "file", "file": "Ruta.md", "x": 1050, "y": 550, "width": 260, "height": 210 },
+    { "id": "vehiculo", "type": "file", "file": "Vehiculo.md", "x": 1050, "y": 100, "width": 290, "height": 250 },
+    { "id": "auto", "type": "file", "file": "Automovil.md", "x": 1550, "y": -50, "width": 260, "height": 200 },
+    { "id": "moto", "type": "file", "file": "Moto.md", "x": 1550, "y": 250, "width": 260, "height": 200 },
+    { "id": "bici", "type": "file", "file": "Bicicleta electrica.md", "x": 1550, "y": 550, "width": 290, "height": 200 },
+    { "id": "mensajes", "type": "file", "file": "Mensajes.md", "x": -850, "y": 100, "width": 280, "height": 230 },
+    { "id": "calificacion", "type": "file", "file": "Calificacion.md", "x": 500, "y": -400, "width": 300, "height": 260 },
+    { "id": "preferencia", "type": "file", "file": "Preferencia.md", "x": -250, "y": 850, "width": 270, "height": 220 },
+    { "id": "solicitud", "type": "file", "file": "Solicitud.md", "x": 650, "y": 850, "width": 300, "height": 250 },
+    { "id": "telefono", "type": "file", "file": "Telefono usuario.md", "x": -850, "y": 600, "width": 290, "height": 210 }
+  ],
+  "edges": [
+    { "id": "usuarios-viaje", "fromNode": "usuarios", "toNode": "viaje", "fromSide": "right", "toSide": "left", "label": "publica · IdUsuario" },
+    { "id": "usuarios-reserva", "fromNode": "usuarios", "toNode": "reserva", "fromSide": "top", "toSide": "left", "label": "pasajero · id_pasajero" },
+    { "id": "viaje-reserva", "fromNode": "viaje", "toNode": "reserva", "fromSide": "top", "toSide": "right", "label": "id_viaje · cascada" },
+    { "id": "ruta-viaje", "fromNode": "ruta", "toNode": "viaje", "fromSide": "left", "toSide": "right", "label": "id_ruta · opcional" },
+    { "id": "vehiculo-viaje", "fromNode": "vehiculo", "toNode": "viaje", "fromSide": "left", "toSide": "right", "label": "id_vehiculo · opcional" },
+    { "id": "usuarios-vehiculo", "fromNode": "usuarios", "toNode": "vehiculo", "fromSide": "right", "toSide": "left", "label": "propietario · IdUsuario" },
+    { "id": "vehiculo-auto", "fromNode": "vehiculo", "toNode": "auto", "fromSide": "right", "toSide": "left", "label": "id_vehiculo · compartida" },
+    { "id": "vehiculo-moto", "fromNode": "vehiculo", "toNode": "moto", "fromSide": "right", "toSide": "left", "label": "id_vehiculo · compartida" },
+    { "id": "vehiculo-bici", "fromNode": "vehiculo", "toNode": "bici", "fromSide": "right", "toSide": "left", "label": "id_vehiculo · compartida" },
+    { "id": "usuarios-mensaje-emisor", "fromNode": "usuarios", "toNode": "mensajes", "fromSide": "left", "toSide": "right", "label": "emisor · IdEmisor" },
+    { "id": "usuarios-mensaje-receptor", "fromNode": "usuarios", "toNode": "mensajes", "fromSide": "left", "toSide": "right", "label": "receptor · IdReceptor" },
+    { "id": "usuarios-calificacion-evaluador", "fromNode": "usuarios", "toNode": "calificacion", "fromSide": "top", "toSide": "left", "label": "evaluador · id_evaluador" },
+    { "id": "usuarios-calificacion-evaluado", "fromNode": "usuarios", "toNode": "calificacion", "fromSide": "right", "toSide": "left", "label": "evaluado · id_evaluado" },
+    { "id": "reserva-calificacion", "fromNode": "reserva", "toNode": "calificacion", "fromSide": "top", "toSide": "bottom", "label": "id_reserva · cascada" },
+    { "id": "usuarios-preferencia", "fromNode": "usuarios", "toNode": "preferencia", "fromSide": "bottom", "toSide": "top", "label": "id_usuario · 1:1 · cascada" },
+    { "id": "usuarios-solicitud", "fromNode": "usuarios", "toNode": "solicitud", "fromSide": "bottom", "toSide": "left", "label": "id_usuario · restrict" },
+    { "id": "ruta-solicitud", "fromNode": "ruta", "toNode": "solicitud", "fromSide": "bottom", "toSide": "right", "label": "id_ruta · restrict" },
+    { "id": "usuarios-telefono", "fromNode": "usuarios", "toNode": "telefono", "fromSide": "left", "toSide": "right", "label": "id_usuario · cascada" }
+  ]
+}
