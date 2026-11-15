@@ -31,5 +31,6 @@ obj/
 .vs/
 bin/
 obj/
+Pr_Cozymov/
 
 Database/*
