@@ -37,14 +37,15 @@ export default function PanelInicio({ onNavigate }) {
     estadoVehiculo !== "cargando" &&
     !(estadoVehiculo === "registrado" && viajePublicado);
 
-  async function confirmarSerConductor() {
+  async function confirmarOfrecerViaje() {
     const confirmacion = await Swal.fire({
-      title: "¿Estás seguro de que quieres ser conductor?",
+      title: "¿Estás seguro de que quieres ofrecer un viaje?",
       text: "Para continuar, registra tu vehículo y publica una ruta.",
       icon: "question",
       showCancelButton: true,
       confirmButtonText: "Sí",
       cancelButtonText: "No",
+      reverseButtons: true,
     });
 
     if (confirmacion.isConfirmed) {
@@ -73,9 +74,9 @@ export default function PanelInicio({ onNavigate }) {
           <button
             type="button"
             className="btn btn-primary"
-            onClick={confirmarSerConductor}
+            onClick={confirmarOfrecerViaje}
           >
-            Quiero ser conductor
+            Ofrecer viaje
           </button>
         )}
       </div>
