@@ -12,7 +12,28 @@ import CampoFormulario from "./CampoFormulario";
  * @returns Sección de perfil.
  */
 export default function TuPerfil() {
-  const { perfil, setPerfil } = usePerfil();
+  const { perfil, setPerfil, loading, error: errorPerfil } = usePerfil();
+
+  if (loading) {
+    return (
+      <>
+        <h5 className="config-titulo">Tu perfil</h5>
+        <p className="config-ayuda">Esto es lo que ven otros usuarios al reservar contigo.</p>
+        <p role="status">Cargando los datos de tu perfil...</p>
+      </>
+    );
+  }
+
+  return (
+    <FormularioPerfil
+      perfil={perfil}
+      setPerfil={setPerfil}
+      errorPerfil={errorPerfil}
+    />
+  );
+}
+
+function FormularioPerfil({ perfil, setPerfil, errorPerfil }) {
 
   // Al volver a esta sección se parte de lo ya guardado en el contexto.
   // TODO: programa y descripción vendrán del backend.
@@ -81,6 +102,7 @@ export default function TuPerfil() {
     <form onSubmit={guardar} noValidate>
       <h5 className="config-titulo">Tu perfil</h5>
       <p className="config-ayuda">Esto es lo que ven otros usuarios al reservar contigo.</p>
+      {errorPerfil && <div className="alert alert-danger" role="alert">{errorPerfil}</div>}
 
       <div className="config-foto">
         <div className="config-avatar" aria-hidden={!foto}>

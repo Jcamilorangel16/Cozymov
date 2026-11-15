@@ -1,16 +1,60 @@
 "use client";
 
-// Estado compartido del perfil (foto y nombre) para toda la app.
-import { createContext, useContext, useState } from "react";
+// Estado compartido del perfil de forma dinámica para toda la aplicación.
+import { createContext, useContext, useState, useEffect } from "react";
 
 const PerfilContext = createContext(null);
 
 export function PerfilProvider({ children }) {
-  // TODO: cargar estos valores desde el backend.
-  const [perfil, setPerfil] = useState({ nombre: "Alejandro", fotoUrl: null });
+  const [perfil, setPerfil] = useState({
+    nombre: "",
+    fotoUrl: null,
+    ocupacion: "",
+    cedula: "",
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const controlador = new AbortController();
+
+    async function cargarPerfil() {
+      try {
+        const respuesta = await fetch("/api/usuario", {
+          cache: "no-store",
+          signal: controlador.signal,
+        });
+        const data = await respuesta.json();
+        if (!respuesta.ok) {
+          throw new Error(data.error || "No se pudo cargar tu perfil.");
+        }
+
+        if (typeof data.nombre !== "string" || !data.nombre.trim()) {
+          throw new Error("La respuesta no contiene el nombre de tu perfil.");
+        }
+
+        setPerfil({
+          nombre: data.nombre.trim(),
+          fotoUrl: data.fotoUrl || null,
+          ocupacion: data.ocupacion || "",
+          cedula: data.cedula || "",
+        });
+      } catch (error) {
+        if (error.name !== "AbortError") {
+          console.error("Error al cargar el perfil del usuario:", error);
+          setError(error.message || "No se pudo cargar tu perfil.");
+        }
+      } finally {
+        if (!controlador.signal.aborted) setLoading(false);
+      }
+    }
+
+    void cargarPerfil();
+    return () => controlador.abort();
+  }, []);
 
   return (
-    <PerfilContext.Provider value={{ perfil, setPerfil }}>
+    <PerfilContext.Provider value={{ perfil, setPerfil, loading, error }}>
       {children}
     </PerfilContext.Provider>
   );

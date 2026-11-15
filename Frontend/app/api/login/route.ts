@@ -132,16 +132,26 @@ export async function POST(request: Request) {
 
   const idPersonas = obtenerCampo(usuarioApi, "idPersonas", "IdPersonas");
   const correo = obtenerCampo(usuarioApi, "correo", "Correo");
+  const nombre = [
+    obtenerCampo(usuarioApi, "primerNombre", "PrimerNombre"),
+    obtenerCampo(usuarioApi, "segundoNombre", "SegundoNombre"),
+    obtenerCampo(usuarioApi, "primerApellido", "PrimerApellido"),
+    obtenerCampo(usuarioApi, "segundoApellido", "SegundoApellido"),
+  ]
+    .filter((parte): parte is string => typeof parte === "string" && parte.trim() !== "")
+    .map((parte) => parte.trim())
+    .join(" ");
 
   if (
     typeof idPersonas !== "number" ||
     !Number.isInteger(idPersonas) ||
     idPersonas <= 0 ||
     typeof correo !== "string" ||
-    !correo
+    !correo ||
+    !nombre
   ) {
     return NextResponse.json(
-      { error: "La API no devolvió los datos esperados del usuario." },
+      { error: "La API no devolvió la identidad y el nombre del usuario." },
       { status: 502 },
     );
   }
@@ -150,12 +160,14 @@ export async function POST(request: Request) {
     const token = await firmarSesion({
       id: String(idPersonas),
       correo,
+      nombre,
     });
 
     const respuesta = NextResponse.json({
       usuario: {
         id: String(idPersonas),
         correo,
+        nombre,
       },
     });
 

@@ -7,10 +7,54 @@ export function usePanelInicio() {
   const idUsuario = useSessionUserId();
   const [viajes, setViajes] = useState([]);
   const [viajePublicado, setViajePublicado] = useState(null);
+  const [estadoVehiculo, setEstadoVehiculo] = useState({
+    idUsuario: null,
+    estado: "cargando",
+  });
   const [viajeReservado, setViajeReservado] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
   const [intento, setIntento] = useState(0);
+
+  useEffect(() => {
+    if (!idUsuario) return;
+
+    const controlador = new AbortController();
+
+    async function cargarVehiculo() {
+      try {
+        const respuesta = await fetch(
+          `/api/vehiculo?id_usuario=${encodeURIComponent(idUsuario)}`,
+          { signal: controlador.signal },
+        );
+        const resultado = await respuesta.json();
+        if (!respuesta.ok) {
+          throw new Error(resultado.error || "No se pudo consultar tu vehículo.");
+        }
+        if (
+          typeof resultado !== "object" ||
+          resultado === null ||
+          Array.isArray(resultado) ||
+          !("vehiculo" in resultado)
+        ) {
+          throw new Error("La respuesta del servidor no contiene el vehículo esperado.");
+        }
+
+        setEstadoVehiculo({
+          idUsuario,
+          estado: resultado.vehiculo ? "registrado" : "sin-vehiculo",
+        });
+      } catch (errorConsulta) {
+        if (errorConsulta.name !== "AbortError") {
+          console.error("No se pudo consultar el vehículo desde el panel:", errorConsulta);
+          setEstadoVehiculo({ idUsuario, estado: "error" });
+        }
+      }
+    }
+
+    void cargarVehiculo();
+    return () => controlador.abort();
+  }, [idUsuario]);
 
   useEffect(() => {
     if (!idUsuario) return;
@@ -76,6 +120,9 @@ export function usePanelInicio() {
     idUsuario,
     viajes,
     viajePublicado,
+    estadoVehiculo: estadoVehiculo.idUsuario === idUsuario
+      ? estadoVehiculo.estado
+      : "cargando",
     viajeReservado,
     cargando,
     error,

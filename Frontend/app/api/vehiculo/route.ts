@@ -23,7 +23,7 @@ function obtenerCampo(registro: Registro, ...nombres: string[]): unknown {
 }
 
 function obtenerBaseApi(): string | null {
-	const apiUrl = process.env.API_URL ?? process.env.VITE_API_URL;
+	const apiUrl = process.env.VITE_API_URL;
 	return apiUrl ? apiUrl.replace(/\/+$/, "") : null;
 }
 
@@ -91,7 +91,7 @@ export async function GET(request: Request) {
 	const baseApi = obtenerBaseApi();
 	if (!baseApi) {
 		return NextResponse.json(
-			{ error: "Falta configurar API_URL." },
+			{ error: "Falta configurar VITE_API_URL." },
 			{ status: 500 },
 		);
 	}
@@ -159,7 +159,7 @@ export async function POST(request: Request) {
 	const baseApi = obtenerBaseApi();
 	if (!baseApi) {
 		return NextResponse.json(
-			{ error: "Falta configurar API_URL." },
+			{ error: "Falta configurar VITE_API_URL." },
 			{ status: 500 },
 		);
 	}
