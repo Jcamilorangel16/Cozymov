@@ -1,6 +1,7 @@
 // Presenta el cabezal de navegación y el acceso a la configuración del perfil.
 import PerfilConfiguracion from "../../perfil-configuracion/components/PerfilConfiguracion";
 import { enlacesMenu } from "../constants/menuPrincipal";
+import Swal from "sweetalert2";
 
 
 /**
@@ -9,6 +10,26 @@ import { enlacesMenu } from "../constants/menuPrincipal";
  * @returns Cabezal de navegación principal.
  */
 export default function SidebarMenu({ vistaActiva, onNavigate }) {
+  async function manejarNavegacion(evento, idVista) {
+    evento.preventDefault();
+
+    if (idVista !== "ofrecer") {
+      onNavigate(idVista);
+      return;
+    }
+
+    const confirmacion = await Swal.fire({
+      title: "¿Estás seguro de que quieres ofrecer un viaje?",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Sí",
+      cancelButtonText: "No",
+      reverseButtons: false,
+    });
+
+    onNavigate(confirmacion.isConfirmed ? "ofrecer" : "inicio");
+  }
+
   return (
     <header className="topbar">
       <div className="brand-logo">
@@ -23,10 +44,7 @@ export default function SidebarMenu({ vistaActiva, onNavigate }) {
                 className={"nav-link" + (vistaActiva === enlace.id ? " active" : "")}
                 href="#"
                 aria-current={vistaActiva === enlace.id ? "page" : undefined}
-                onClick={(evento) => {
-                  evento.preventDefault();
-                  onNavigate(enlace.id);
-                }}
+                onClick={(evento) => manejarNavegacion(evento, enlace.id)}
               >
                 {enlace.label}
               </a>

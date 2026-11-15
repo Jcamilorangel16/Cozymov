@@ -38,6 +38,7 @@ export default function MenuPrincipal({ usuarioActualId }) {
   return (
     <PerfilProvider>
       <div className="app-shell">
+        <div className="menu-fondo" aria-hidden="true" />
         <SidebarMenu vistaActiva={vistaActiva} onNavigate={irAVista} />
 
         <main className="main-content flex-grow-1 p-4">
