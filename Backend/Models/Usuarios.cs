@@ -27,7 +27,11 @@ namespace Backend.Models
 
         public ICollection<Vehiculo> Vehiculos { get; set; } = new List<Vehiculo>();
         public ICollection<Viaje> Viajes { get; set; } = new List<Viaje>();
-
+        public ICollection<TelefonoUsuario> Telefonos { get; set; } = new List<TelefonoUsuario>();
+        public Preferencia? Preferencia { get; set; }
+        public ICollection<Solicitud> Solicitudes { get; set; } = new List<Solicitud>();
+        public ICollection<Calificacion> CalificacionesEmitidas { get; set; } = new List<Calificacion>();
+        public ICollection<Calificacion> CalificacionesRecibidas { get; set; } = new List<Calificacion>();
 
     }
 }

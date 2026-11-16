@@ -12,7 +12,11 @@ public sealed class InternalApiMiddleware(
     [
         "/api/Viajes",
         "/api/Usuarios",
-        "/api/registro"
+        "/api/registro",
+        "/api/telefonos",
+        "/api/preferencias",
+        "/api/solicitudes",
+        "/api/calificaciones"
     ];
 
     public async Task InvokeAsync(HttpContext context)

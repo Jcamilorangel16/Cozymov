@@ -17,6 +17,8 @@ namespace Backend.Models
         public int IdUsuario { get; set; }
         public Usuarios Usuario { get; set; } = null!;
 
+        public Vehiculo? Vehiculo { get; set; }
+
         [Column("id_ruta")]
         public long? IdRuta { get; set; }
         public Ruta? Ruta { get; set; }

@@ -101,5 +101,6 @@ namespace Backend.DTOs
         public decimal Costo { get; set; }
         public string IdConductor { get; set; } = string.Empty;
         public string NombreConductor { get; set; } = string.Empty;
+        public int IdUsuarioConductor { get; set; }
     }
 }
