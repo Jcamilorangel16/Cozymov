@@ -1,0 +1,59 @@
+/* Cursor personalizado: solo existe en dispositivos con mouse. */
+.custom-cursor-dot,
+.custom-cursor-ring {
+  display: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  /* Oculta el cursor nativo, incluido el de links y botones. */
+  html,
+  html * {
+    cursor: none !important;
+  }
+
+  .custom-cursor-dot,
+  .custom-cursor-ring {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 2147483647;
+    border-radius: 50%;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    will-change: transform;
+  }
+
+  .custom-cursor-visible {
+    opacity: 1;
+  }
+
+  .custom-cursor-dot {
+    width: 6px;
+    height: 6px;
+    margin: -3px 0 0 -3px;
+    background: var(--cursor-color, #0b2a8f);
+  }
+
+  .custom-cursor-ring {
+    width: 32px;
+    height: 32px;
+    margin: -16px 0 0 -16px;
+    border: 1px solid color-mix(in srgb, var(--cursor-color, #0b2a8f) 50%, transparent);
+    background: transparent;
+    transition:
+      opacity 0.2s ease,
+      width 0.25s ease,
+      height 0.25s ease,
+      margin 0.25s ease,
+      background-color 0.25s ease;
+  }
+
+  .custom-cursor-ring.custom-cursor-hover {
+    width: 56px;
+    height: 56px;
+    margin: -28px 0 0 -28px;
+    background: color-mix(in srgb, var(--cursor-color, #0b2a8f) 15%, transparent);
+  }
+}
