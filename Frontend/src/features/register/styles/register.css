@@ -123,14 +123,3 @@
   text-decoration: none;
   color: #0b6f94;
 }
-
-.boton-ver-contrasena {
-  min-width: 5.5rem;
-  flex: 0 0 auto;
-}
-
-.boton-ver-contrasena:focus-visible {
-  outline: 3px solid #4fe8e0;
-  outline-offset: 2px;
-  z-index: 5;
-}

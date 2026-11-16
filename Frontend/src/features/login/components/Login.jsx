@@ -3,13 +3,16 @@
 
 import Link from 'next/link';
 import '../styles/Login.css';
+import { useState } from 'react';
 import { useLogin } from '../hooks/useLogin';
+import BotonVerContrasena from '../../../components/BotonVerContrasena';
 
 /**
  * Renderiza el formulario de acceso a la aplicación.
  * @returns Interfaz de inicio de sesión.
  */
 function Login() {
+    const [verContrasena, setVerContrasena] = useState(false);
     const {
         correo,
         setCorreo,
@@ -67,20 +70,28 @@ function Login() {
                             Contraseña
                         </label>
 
-                        <input
-                            type="password"
-                            className="form-control"
-                            id="contrasena"
-                            placeholder="Ingrese su contraseña"
-                            value={contrasena}
-                            onChange={(e) => {
-                                setContrasena(e.target.value);
-                                setErrorLogin('');
-                            }}
-                            aria-invalid={Boolean(errorLogin)}
-                            aria-describedby={errorLogin ? 'error-inicio-sesion' : undefined}
-                            required
-                        />
+                        <div className="input-group">
+                            <input
+                                type={verContrasena ? 'text' : 'password'}
+                                className="form-control"
+                                id="contrasena"
+                                placeholder="Ingrese su contraseña"
+                                value={contrasena}
+                                onChange={(e) => {
+                                    setContrasena(e.target.value);
+                                    setErrorLogin('');
+                                }}
+                                aria-invalid={Boolean(errorLogin)}
+                                aria-describedby={errorLogin ? 'error-inicio-sesion' : undefined}
+                                required
+                            />
+                            <BotonVerContrasena
+                                visible={verContrasena}
+                                onAlternar={() => setVerContrasena((v) => !v)}
+                                controla="contrasena"
+                                disabled={cargando}
+                            />
+                        </div>
 
                         {/* Enlace de recuperación de contraseña */}
                         <div className="text-end mt-1">

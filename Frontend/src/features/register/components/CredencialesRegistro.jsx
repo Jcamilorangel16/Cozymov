@@ -1,26 +1,6 @@
 // Renderiza las credenciales y los controles de envío del registro.
 import { useState } from "react";
-
-/**
- * Botón accesible que alterna la visibilidad de un campo de contraseña.
- * @param {object} props Estado visible, acción y campo que controla.
- * @returns Botón de mostrar u ocultar contraseña.
- */
-function BotonVerContrasena({ visible, onAlternar, controla, disabled }) {
-  return (
-    <button
-      type="button"
-      className="btn btn-outline-secondary boton-ver-contrasena"
-      onClick={onAlternar}
-      aria-controls={controla}
-      aria-pressed={visible}
-      aria-label={visible ? "Ocultar contraseña" : "Mostrar contraseña"}
-      disabled={disabled}
-    >
-      {visible ? "Ocultar" : "Mostrar"}
-    </button>
-  );
-}
+import BotonVerContrasena from "../../../components/BotonVerContrasena";
 
 /**
  * Muestra correo, contraseñas y acciones de registro.
