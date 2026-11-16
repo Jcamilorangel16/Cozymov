@@ -7,11 +7,13 @@ import "../styles/configuracion.css";
 import TuPerfil from "./TuPerfil";
 import TuSeguridad from "./TuSeguridad";
 import TuVehiculo from "./TuVehiculo";
+import ContactoPreferencias from "./ContactoPreferencias";
 
 const vistas = {
   perfil: TuPerfil,
   seguridad: TuSeguridad,
   vehiculo: TuVehiculo,
+  contacto: ContactoPreferencias,
 };
 
 /**

@@ -52,11 +52,10 @@ namespace Backend.Controllers
             var consulta = _context.Viajes
                 .AsNoTracking()
                 .Include(v => v.Usuario)
-                    .ThenInclude(u => u.Vehiculos)
-                        .ThenInclude(vehiculo => vehiculo.Automovil)
-                .Include(v => v.Usuario)
-                    .ThenInclude(u => u.Vehiculos)
-                        .ThenInclude(vehiculo => vehiculo.Moto)
+                .Include(v => v.Vehiculo)
+                    .ThenInclude(vehiculo => vehiculo!.Automovil)
+                .Include(v => v.Vehiculo)
+                    .ThenInclude(vehiculo => vehiculo!.Moto)
                 .Include(v => v.Ruta)
                 .Where(v => v.Estado.ToLower() == "activo" && v.CuposDisponibles > 0);
 
@@ -101,9 +100,7 @@ namespace Backend.Controllers
 
             return viajes.Select(v =>
             {
-                var vehiculo = v.Usuario.Vehiculos.FirstOrDefault(
-                    item => item.IdVehiculo == v.IdVehiculo) ??
-                    v.Usuario.Vehiculos.OrderByDescending(item => item.IdVehiculo).FirstOrDefault();
+                var vehiculo = v.Vehiculo;
                 return new ViajePublicoDTO(
                     v.IdViaje,
                     v.IdConductor,
@@ -219,6 +216,47 @@ namespace Backend.Controllers
             await transaccion.CommitAsync(cancellationToken);
 
             return Ok(new { cancelada = true, id_viaje = reserva.IdViaje });
+        }
+
+        // El pasajero da por terminado su viaje: la reserva pasa a "completada"
+        // (no libera el cupo) y queda disponible para calificar.
+        [HttpPost("reserva-activa/{id_pasajero:int}/finalizar")]
+        public async Task<IActionResult> FinalizarReservaActiva(
+            int id_pasajero,
+            CancellationToken cancellationToken)
+        {
+            var reserva = await _context.ReservasViaje
+                .FirstOrDefaultAsync(
+                    r => r.IdPasajero == id_pasajero && r.Estado == "activa",
+                    cancellationToken);
+
+            if (reserva is null)
+            {
+                return NotFound("No tienes un viaje en curso para finalizar.");
+            }
+
+            reserva.Estado = "completada";
+            await _context.SaveChangesAsync(cancellationToken);
+
+            return Ok(new { finalizada = true, id_reserva = reserva.IdReserva, id_viaje = reserva.IdViaje });
+        }
+
+        [HttpGet("reservas-completadas/{id_pasajero:int}")]
+        public async Task<ActionResult<IEnumerable<ReservaViajeDTO>>> GetReservasCompletadas(
+            int id_pasajero,
+            CancellationToken cancellationToken)
+        {
+            var reservas = await _context.ReservasViaje
+                .AsNoTracking()
+                .Include(r => r.Viaje)
+                    .ThenInclude(v => v.Usuario)
+                .Include(r => r.Viaje)
+                    .ThenInclude(v => v.Ruta)
+                .Where(r => r.IdPasajero == id_pasajero && r.Estado == "completada")
+                .OrderByDescending(r => r.IdReserva)
+                .ToListAsync(cancellationToken);
+
+            return reservas.Select(r => CrearReservaDTO(r, r.Viaje)).ToList();
         }
 
         [HttpPost("{id_viaje:long}/reservar")]
@@ -476,6 +514,7 @@ namespace Backend.Controllers
                 FechaHoraSalida = viaje.FechaHoraSalida,
                 Costo = viaje.Costo,
                 IdConductor = viaje.IdConductor,
+                IdUsuarioConductor = viaje.IdUsuario,
                 NombreConductor = string.Join(" ",
                     new[] { viaje.Usuario.PrimerNombre, viaje.Usuario.PrimerApellido }
                         .Where(nombre => !string.IsNullOrWhiteSpace(nombre)))
