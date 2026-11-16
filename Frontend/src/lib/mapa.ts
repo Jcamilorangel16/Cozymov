@@ -26,7 +26,7 @@ const URL_OSRM = "https://router.project-osrm.org/route/v1/driving";
 
 /**
  * Busca direcciones y barrios de Valledupar con la geocodificación de MapTiler.
- * Requiere la variable NEXT_PUBLIC_MAPTILER_API_KEY.
+ * La clave real se mantiene en el servidor; el navegador solo consulta un proxy interno.
  * @param texto Barrio o dirección escritos por el usuario.
  * @param senal Señal opcional para cancelar la petición.
  * @returns Lugares encontrados (vacío si no hay coincidencias).
@@ -35,44 +35,19 @@ export async function buscarMapTiler(texto: string, senal?: AbortSignal): Promis
   const consulta = texto.trim();
   if (!consulta) return [];
 
-  const clave = process.env.NEXT_PUBLIC_MAPTILER_API_KEY;
-  if (!clave) {
-    throw new Error("Falta configurar NEXT_PUBLIC_MAPTILER_API_KEY para mostrar el mapa.");
+  const respuesta = await fetch(`/api/mapa?tipo=geocodificar&texto=${encodeURIComponent(consulta)}`, { signal: senal });
+  if (!respuesta.ok) {
+    const datos = await respuesta.json().catch(() => ({}));
+    throw new Error(datos.error || "No se pudo buscar la ubicación en el mapa.");
   }
 
-  const parametros = new URLSearchParams({
-    key: clave,
-    language: "es",
-    country: "co",
-    limit: "5",
-    bbox: CAJA_VALLEDUPAR.join(","),
-    proximity: `${CENTRO_VALLEDUPAR[1]},${CENTRO_VALLEDUPAR[0]}`,
-  });
-
-  // Primero con "Valledupar" para priorizar la ciudad; luego solo el texto (la caja ya la acota).
-  for (const variante of [`${consulta}, Valledupar`, consulta]) {
-    const url = `${URL_MAPTILER}/${encodeURIComponent(variante)}.json?${parametros}`;
-    const respuesta = await fetch(url, { signal: senal });
-    if (!respuesta.ok) throw new Error("No se pudo buscar la ubicación en el mapa.");
-
-    const datos = await respuesta.json();
-    const lugares: LugarMapa[] = [];
-    for (const lugar of datos?.features ?? []) {
-      // Descarta resultados genéricos (la ciudad, el departamento...) que ubicarían todo en el mismo punto.
-      const tipos: string[] = lugar?.place_type ?? [];
-      if (tipos.some((tipo) => TIPOS_GENERICOS.has(tipo))) continue;
-      const [longitud, latitud] = lugar?.center ?? lugar?.geometry?.coordinates ?? [];
-      if (Number.isFinite(latitud) && Number.isFinite(longitud)) {
-        lugares.push({ nombre: lugar.place_name_es ?? lugar.place_name ?? consulta, coordenada: [latitud, longitud] });
-      }
-    }
-    if (lugares.length > 0) return lugares;
-  }
-  return [];
+  const datos = await respuesta.json();
+  return (datos.lugares ?? []) as LugarMapa[];
 }
 
 /**
  * Calcula la ruta en carro entre dos puntos con el servidor público de OSRM.
+ * La llamada se reenvía a un endpoint del servidor para no exponer la lógica de mapa en el navegador.
  * @param origen Punto de partida.
  * @param destino Punto de llegada.
  * @param senal Señal opcional para cancelar la petición.
@@ -83,19 +58,19 @@ export async function calcularRutaOsrm(
   destino: Coordenada,
   senal?: AbortSignal,
 ): Promise<RutaOsrm> {
-  const puntos = `${origen[1]},${origen[0]};${destino[1]},${destino[0]}`;
-  const respuesta = await fetch(`${URL_OSRM}/${puntos}?overview=full&geometries=geojson`, { signal: senal });
-  if (!respuesta.ok) throw new Error("No se pudo calcular la ruta.");
+  const params = new URLSearchParams({
+    tipo: "ruta",
+    origen: `${origen[0]},${origen[1]}`,
+    destino: `${destino[0]},${destino[1]}`,
+  });
+  const respuesta = await fetch(`/api/mapa?${params.toString()}`, { signal: senal });
+  if (!respuesta.ok) {
+    const datos = await respuesta.json().catch(() => ({}));
+    throw new Error(datos.error || "No se pudo calcular la ruta.");
+  }
 
   const datos = await respuesta.json();
-  const ruta = datos?.routes?.[0];
-  if (datos?.code !== "Ok" || !ruta) throw new Error("No se encontró una ruta entre el origen y el destino.");
-
-  return {
-    trayecto: ruta.geometry.coordinates.map(([longitud, latitud]: [number, number]): Coordenada => [latitud, longitud]),
-    distanciaMetros: ruta.distance,
-    duracionSegundos: ruta.duration,
-  };
+  return datos.ruta as RutaOsrm;
 }
 
 /** Distancia en metros entre dos coordenadas (fórmula de Haversine). */
