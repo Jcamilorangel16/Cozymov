@@ -3,4 +3,5 @@ export const seccionesConfiguracion = [
   { id: "perfil", label: "Tu perfil", icono: "👤" },
   { id: "seguridad", label: "Seguridad", icono: "🔒" },
   { id: "vehiculo", label: "Tu vehículo", icono: "🚗" },
+  { id: "contacto", label: "Contacto y preferencias", icono: "📱" },
 ];

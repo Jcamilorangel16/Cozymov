@@ -35,4 +35,5 @@ public class Ruta
     public decimal LonDestino { get; set; }
 
     public ICollection<Viaje> Viajes { get; set; } = new List<Viaje>();
+    public ICollection<Solicitud> Solicitudes { get; set; } = new List<Solicitud>();
 }

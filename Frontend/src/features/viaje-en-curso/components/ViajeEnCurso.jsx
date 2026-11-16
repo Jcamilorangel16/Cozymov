@@ -16,6 +16,7 @@ export default function ViajeEnCurso({ onNavigate, onMensajeConductor }) {
   const [error, setError] = useState("");
   const [intento, setIntento] = useState(0);
   const [cancelando, setCancelando] = useState(false);
+  const [finalizando, setFinalizando] = useState(false);
 
   useEffect(() => {
     const controlador = new AbortController();
@@ -121,6 +122,44 @@ export default function ViajeEnCurso({ onNavigate, onMensajeConductor }) {
     }
   }
 
+  async function finalizarViaje() {
+    const confirmacion = await Swal.fire({
+      icon: "question",
+      title: "¿Finalizar el viaje?",
+      text: "Confirma que ya llegaste a tu destino. Podrás calificar a tu conductor.",
+      showCancelButton: true,
+      confirmButtonText: "Sí, finalizar",
+      cancelButtonText: "Todavía no",
+      reverseButtons: true,
+    });
+    if (!confirmacion.isConfirmed) return;
+
+    setFinalizando(true);
+    setError("");
+    try {
+      const respuesta = await fetch("/api/viajes/en-curso", { method: "POST" });
+      const resultado = await respuesta.json();
+      if (!respuesta.ok) {
+        throw new Error(resultado.error || "No se pudo finalizar el viaje.");
+      }
+
+      setViaje(null);
+      const siguiente = await Swal.fire({
+        icon: "success",
+        title: "Viaje finalizado",
+        text: "¿Quieres calificar a tu conductor ahora?",
+        showCancelButton: true,
+        confirmButtonText: "Calificar",
+        cancelButtonText: "Más tarde",
+      });
+      if (siguiente.isConfirmed) onNavigate("calificaciones");
+    } catch (errorFinalizacion) {
+      setError(errorFinalizacion.message || "No se pudo finalizar el viaje.");
+    } finally {
+      setFinalizando(false);
+    }
+  }
+
   return (
     <div className="row g-4">
       <div className="col-lg-8">
@@ -153,9 +192,17 @@ export default function ViajeEnCurso({ onNavigate, onMensajeConductor }) {
           </button>
           <button
             type="button"
+            className="btn btn-success w-100 mt-2"
+            onClick={finalizarViaje}
+            disabled={finalizando || cancelando}
+          >
+            {finalizando ? "Finalizando viaje..." : "Finalizar viaje"}
+          </button>
+          <button
+            type="button"
             className="btn btn-outline-danger w-100 mt-2"
             onClick={salirDelViaje}
-            disabled={cancelando}
+            disabled={cancelando || finalizando}
           >
             {cancelando ? "Cancelando reserva..." : "Salir del viaje"}
           </button>

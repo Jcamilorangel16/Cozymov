@@ -24,4 +24,5 @@ public class Vehiculo
     public Automovil? Automovil { get; set; }
     public Moto? Moto { get; set; }
     public Bicicleta? Bicicleta { get; set; }
+    public ICollection<Viaje> Viajes { get; set; } = new List<Viaje>();
 }

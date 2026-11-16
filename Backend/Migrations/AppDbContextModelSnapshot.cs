@@ -51,6 +51,50 @@ namespace Backend.Migrations
                     b.ToTable("bicicleta_electrica", (string)null);
                 });
 
+            modelBuilder.Entity("Backend.Models.Calificacion", b =>
+                {
+                    b.Property<long>("IdCalificacion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id_calificacion");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("IdCalificacion"));
+
+                    b.Property<string>("Comentario")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("comentario");
+
+                    b.Property<int>("IdEvaluado")
+                        .HasColumnType("integer")
+                        .HasColumnName("id_evaluado");
+
+                    b.Property<int>("IdEvaluador")
+                        .HasColumnType("integer")
+                        .HasColumnName("id_evaluador");
+
+                    b.Property<long>("IdReserva")
+                        .HasColumnType("bigint")
+                        .HasColumnName("id_reserva");
+
+                    b.Property<short>("Puntuacion")
+                        .HasColumnType("smallint")
+                        .HasColumnName("puntuacion");
+
+                    b.HasKey("IdCalificacion");
+
+                    b.HasIndex("IdEvaluado");
+
+                    b.HasIndex("IdEvaluador");
+
+                    b.HasIndex("IdReserva");
+
+                    b.ToTable("calificacion", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_calificacion_puntuacion", "\"puntuacion\" BETWEEN 1 AND 5");
+                        });
+                });
+
             modelBuilder.Entity("Backend.Models.Mensaje", b =>
                 {
                     b.Property<int>("IdMensaje")
@@ -102,6 +146,29 @@ namespace Backend.Migrations
                     b.HasKey("IdVehiculo");
 
                     b.ToTable("moto", (string)null);
+                });
+
+            modelBuilder.Entity("Backend.Models.Preferencia", b =>
+                {
+                    b.Property<int>("IdUsuario")
+                        .HasColumnType("integer")
+                        .HasColumnName("id_usuario");
+
+                    b.Property<bool?>("PreferirCompartir")
+                        .HasColumnType("boolean")
+                        .HasColumnName("preferir_compartir");
+
+                    b.Property<short?>("PrioridadCosto")
+                        .HasColumnType("smallint")
+                        .HasColumnName("prioridad_costo");
+
+                    b.Property<short?>("PrioridadTiempo")
+                        .HasColumnType("smallint")
+                        .HasColumnName("prioridad_tiempo");
+
+                    b.HasKey("IdUsuario");
+
+                    b.ToTable("preferencia", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.ReservaViaje", b =>
@@ -184,6 +251,75 @@ namespace Backend.Migrations
                     b.HasKey("IdRuta");
 
                     b.ToTable("ruta", (string)null);
+                });
+
+            modelBuilder.Entity("Backend.Models.Solicitud", b =>
+                {
+                    b.Property<long>("IdSolicitud")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id_solicitud");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("IdSolicitud"));
+
+                    b.Property<bool>("Compartir")
+                        .HasColumnType("boolean")
+                        .HasColumnName("compartir");
+
+                    b.Property<DateTime>("FechaHora")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("fecha_hora");
+
+                    b.Property<TimeOnly?>("HoraLimite")
+                        .HasColumnType("time without time zone")
+                        .HasColumnName("hora_limite");
+
+                    b.Property<long>("IdRuta")
+                        .HasColumnType("bigint")
+                        .HasColumnName("id_ruta");
+
+                    b.Property<int>("IdUsuario")
+                        .HasColumnType("integer")
+                        .HasColumnName("id_usuario");
+
+                    b.Property<decimal?>("Presupuesto")
+                        .HasColumnType("numeric(10,2)")
+                        .HasColumnName("presupuesto");
+
+                    b.HasKey("IdSolicitud");
+
+                    b.HasIndex("IdRuta");
+
+                    b.HasIndex("IdUsuario");
+
+                    b.ToTable("solicitud", (string)null);
+                });
+
+            modelBuilder.Entity("Backend.Models.TelefonoUsuario", b =>
+                {
+                    b.Property<long>("IdTelefono")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id_telefono");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("IdTelefono"));
+
+                    b.Property<int>("IdUsuario")
+                        .HasColumnType("integer")
+                        .HasColumnName("id_usuario");
+
+                    b.Property<string>("Telefono")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("telefono");
+
+                    b.HasKey("IdTelefono");
+
+                    b.HasIndex("IdUsuario", "Telefono")
+                        .IsUnique();
+
+                    b.ToTable("telefono_usuario", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.Usuarios", b =>
@@ -349,6 +485,8 @@ namespace Backend.Migrations
 
                     b.HasIndex("IdUsuario");
 
+                    b.HasIndex("IdVehiculo");
+
                     b.ToTable("viaje", (string)null);
                 });
 
@@ -372,6 +510,33 @@ namespace Backend.Migrations
                         .IsRequired();
 
                     b.Navigation("Vehiculo");
+                });
+
+            modelBuilder.Entity("Backend.Models.Calificacion", b =>
+                {
+                    b.HasOne("Backend.Models.Usuarios", "Evaluado")
+                        .WithMany("CalificacionesRecibidas")
+                        .HasForeignKey("IdEvaluado")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Backend.Models.Usuarios", "Evaluador")
+                        .WithMany("CalificacionesEmitidas")
+                        .HasForeignKey("IdEvaluador")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Backend.Models.ReservaViaje", "Reserva")
+                        .WithMany("Calificaciones")
+                        .HasForeignKey("IdReserva")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Evaluado");
+
+                    b.Navigation("Evaluador");
+
+                    b.Navigation("Reserva");
                 });
 
             modelBuilder.Entity("Backend.Models.Mensaje", b =>
@@ -404,6 +569,17 @@ namespace Backend.Migrations
                     b.Navigation("Vehiculo");
                 });
 
+            modelBuilder.Entity("Backend.Models.Preferencia", b =>
+                {
+                    b.HasOne("Backend.Models.Usuarios", "Usuario")
+                        .WithOne("Preferencia")
+                        .HasForeignKey("Backend.Models.Preferencia", "IdUsuario")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Usuario");
+                });
+
             modelBuilder.Entity("Backend.Models.ReservaViaje", b =>
                 {
                     b.HasOne("Backend.Models.Usuarios", "Pasajero")
@@ -421,6 +597,36 @@ namespace Backend.Migrations
                     b.Navigation("Pasajero");
 
                     b.Navigation("Viaje");
+                });
+
+            modelBuilder.Entity("Backend.Models.Solicitud", b =>
+                {
+                    b.HasOne("Backend.Models.Ruta", "Ruta")
+                        .WithMany("Solicitudes")
+                        .HasForeignKey("IdRuta")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Backend.Models.Usuarios", "Usuario")
+                        .WithMany("Solicitudes")
+                        .HasForeignKey("IdUsuario")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Ruta");
+
+                    b.Navigation("Usuario");
+                });
+
+            modelBuilder.Entity("Backend.Models.TelefonoUsuario", b =>
+                {
+                    b.HasOne("Backend.Models.Usuarios", "Usuario")
+                        .WithMany("Telefonos")
+                        .HasForeignKey("IdUsuario")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Usuario");
                 });
 
             modelBuilder.Entity("Backend.Models.Vehiculo", b =>
@@ -447,18 +653,42 @@ namespace Backend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Backend.Models.Vehiculo", "Vehiculo")
+                        .WithMany("Viajes")
+                        .HasForeignKey("IdVehiculo")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Ruta");
 
                     b.Navigation("Usuario");
+
+                    b.Navigation("Vehiculo");
+                });
+
+            modelBuilder.Entity("Backend.Models.ReservaViaje", b =>
+                {
+                    b.Navigation("Calificaciones");
                 });
 
             modelBuilder.Entity("Backend.Models.Ruta", b =>
                 {
+                    b.Navigation("Solicitudes");
+
                     b.Navigation("Viajes");
                 });
 
             modelBuilder.Entity("Backend.Models.Usuarios", b =>
                 {
+                    b.Navigation("CalificacionesEmitidas");
+
+                    b.Navigation("CalificacionesRecibidas");
+
+                    b.Navigation("Preferencia");
+
+                    b.Navigation("Solicitudes");
+
+                    b.Navigation("Telefonos");
+
                     b.Navigation("Vehiculos");
 
                     b.Navigation("Viajes");
@@ -471,6 +701,8 @@ namespace Backend.Migrations
                     b.Navigation("Bicicleta");
 
                     b.Navigation("Moto");
+
+                    b.Navigation("Viajes");
                 });
 #pragma warning restore 612, 618
         }

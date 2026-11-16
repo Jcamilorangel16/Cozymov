@@ -24,4 +24,6 @@ public class ReservaViaje
     [Column("estado")]
     [StringLength(20)]
     public string Estado { get; set; } = "activa";
+
+    public ICollection<Calificacion> Calificaciones { get; set; } = new List<Calificacion>();
 }
