@@ -65,3 +65,13 @@ public class UsuariosLoginDTO
     public string Correo { get; set; }
     public string Contrasena { get; set; }
 }
+
+/// <summary>
+/// Identidad de Google ya validada por el servidor de Next.js.
+/// </summary>
+public class UsuariosLoginGoogleDTO
+{
+    public string Sub { get; set; } = string.Empty;
+    public string Correo { get; set; } = string.Empty;
+    public bool EmailVerificado { get; set; }
+}

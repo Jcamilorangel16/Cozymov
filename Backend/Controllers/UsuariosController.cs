@@ -262,6 +262,111 @@ public class UsuariosController : ControllerBase
 
     }
 
+    //POST: api/Usuarios/LoginGoogle
+    // Solo lo invoca el servidor de Next.js (X-Internal-Api-Key) después de
+    // validar el ID token de Google. No crea cuentas: únicamente identifica o
+    // vincula una cuenta Cozymov existente y verificada.
+    [HttpPost("LoginGoogle")]
+    public async Task<ActionResult<UsuariosDTO>> LoginGoogle(
+        UsuariosLoginGoogleDTO datos,
+        CancellationToken cancellationToken)
+    {
+        const string Proveedor = "google";
+        var sub = (datos.Sub ?? string.Empty).Trim();
+        var correo = (datos.Correo ?? string.Empty).Trim().ToLowerInvariant();
+        if (sub.Length is 0 or > 255 || correo.Length is 0 or > 150)
+        {
+            return BadRequest("La identidad de Google no es válida.");
+        }
+
+        if (!datos.EmailVerificado)
+        {
+            return StatusCode(
+                StatusCodes.Status403Forbidden,
+                "Google no confirmó el correo de esta cuenta.");
+        }
+
+        var identidad = await _context.IdentidadesExternas
+            .Include(i => i.Usuario)
+            .FirstOrDefaultAsync(
+                i => i.Proveedor == Proveedor && i.Sub == sub,
+                cancellationToken);
+
+        var usuario = identidad?.Usuario;
+        if (usuario == null)
+        {
+            var entorno = HttpContext.RequestServices.GetRequiredService<IHostEnvironment>();
+            if (!entorno.IsDevelopment() &&
+                !correo.EndsWith(".edu.co", StringComparison.Ordinal))
+            {
+                return StatusCode(
+                    StatusCodes.Status403Forbidden,
+                    "Usa una cuenta de Google con correo institucional que termine en .edu.co.");
+            }
+
+            usuario = await _context.Usuarios
+                .FirstOrDefaultAsync(u => u.Correo.ToLower() == correo, cancellationToken);
+            if (usuario == null)
+            {
+                return NotFound("No existe una cuenta de Cozymov con ese correo. Regístrate primero.");
+            }
+
+            if (!usuario.EmailVerificado)
+            {
+                return StatusCode(
+                    StatusCodes.Status403Forbidden,
+                    "Debes confirmar tu correo electrónico antes de iniciar sesión.");
+            }
+
+            _context.IdentidadesExternas.Add(new IdentidadExterna
+            {
+                IdUsuario = usuario.IdPersonas,
+                Proveedor = Proveedor,
+                Sub = sub,
+            });
+            try
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException)
+            {
+                // Otra solicitud vinculó el mismo sub al mismo tiempo: se reintenta como inicio normal.
+                _context.ChangeTracker.Clear();
+                var existente = await _context.IdentidadesExternas
+                    .Include(i => i.Usuario)
+                    .FirstOrDefaultAsync(
+                        i => i.Proveedor == Proveedor && i.Sub == sub,
+                        cancellationToken);
+                if (existente == null || existente.Usuario.IdPersonas != usuario.IdPersonas)
+                {
+                    return Conflict("Esta cuenta de Google ya está vinculada a otro usuario.");
+                }
+            }
+        }
+
+        if (!usuario.EmailVerificado)
+        {
+            return StatusCode(
+                StatusCodes.Status403Forbidden,
+                "Debes confirmar tu correo electrónico antes de iniciar sesión.");
+        }
+
+        return Ok(new UsuariosDTO
+        {
+            IdPersonas = usuario.IdPersonas,
+            Cedula = usuario.Cedula,
+            PrimerNombre = usuario.PrimerNombre,
+            SegundoNombre = usuario.SegundoNombre,
+            PrimerApellido = usuario.PrimerApellido,
+            SegundoApellido = usuario.SegundoApellido,
+            Edad = usuario.Edad,
+            Correo = usuario.Correo,
+            rol = usuario.rol,
+            ocupacion = usuario.ocupacion,
+            fechaderegistro = usuario.fechaderegistro
+        });
+    }
+
     // DELETE: api/Usuarios/5
     [HttpDelete("{idpersonas}")]
     public async Task<IActionResult> DeleteUsuarios(int idpersonas)

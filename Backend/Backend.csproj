@@ -27,4 +27,9 @@
     <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
   </ItemGroup>
 
+  <!-- Las pruebas no forman parte de la API; necesitan su propio proyecto con xUnit. -->
+  <ItemGroup>
+    <Compile Remove="Tests/**" />
+  </ItemGroup>
+
 </Project>

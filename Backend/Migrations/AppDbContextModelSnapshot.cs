@@ -95,6 +95,45 @@ namespace Backend.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Backend.Models.IdentidadExterna", b =>
+                {
+                    b.Property<long>("IdIdentidad")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id_identidad");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("IdIdentidad"));
+
+                    b.Property<DateTime>("FechaVinculacion")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fecha_vinculacion");
+
+                    b.Property<int>("IdUsuario")
+                        .HasColumnType("integer")
+                        .HasColumnName("id_usuario");
+
+                    b.Property<string>("Proveedor")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("proveedor");
+
+                    b.Property<string>("Sub")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("sub");
+
+                    b.HasKey("IdIdentidad");
+
+                    b.HasIndex("IdUsuario");
+
+                    b.HasIndex("Proveedor", "Sub")
+                        .IsUnique();
+
+                    b.ToTable("identidad_externa", (string)null);
+                });
+
             modelBuilder.Entity("Backend.Models.Mensaje", b =>
                 {
                     b.Property<int>("IdMensaje")
@@ -537,6 +576,17 @@ namespace Backend.Migrations
                     b.Navigation("Evaluador");
 
                     b.Navigation("Reserva");
+                });
+
+            modelBuilder.Entity("Backend.Models.IdentidadExterna", b =>
+                {
+                    b.HasOne("Backend.Models.Usuarios", "Usuario")
+                        .WithMany()
+                        .HasForeignKey("IdUsuario")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Usuario");
                 });
 
             modelBuilder.Entity("Backend.Models.Mensaje", b =>

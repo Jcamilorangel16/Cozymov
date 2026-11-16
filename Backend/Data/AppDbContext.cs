@@ -18,6 +18,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Preferencia> Preferencias => Set<Preferencia>();
     public DbSet<Solicitud> Solicitudes => Set<Solicitud>();
     public DbSet<Calificacion> Calificaciones => Set<Calificacion>();
+    public DbSet<IdentidadExterna> IdentidadesExternas => Set<IdentidadExterna>();
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
