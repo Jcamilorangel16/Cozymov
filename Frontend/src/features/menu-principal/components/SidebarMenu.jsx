@@ -18,6 +18,36 @@ export default function SidebarMenu({ vistaActiva, onNavigate }) {
       return;
     }
 
+    let resultado;
+    try {
+      const respuesta = await fetch("/api/vehiculo", { cache: "no-store" });
+      resultado = await respuesta.json();
+      if (!respuesta.ok) {
+        throw new Error(resultado.error || "No se pudo verificar tu vehículo.");
+      }
+      if (
+        typeof resultado !== "object" ||
+        resultado === null ||
+        Array.isArray(resultado) ||
+        !("vehiculo" in resultado)
+      ) {
+        throw new Error("La respuesta del servidor no contiene el vehículo esperado.");
+      }
+    } catch (error) {
+      console.error("No se pudo verificar el vehículo antes de ofrecer un viaje:", error);
+      await Swal.fire({
+        icon: "error",
+        title: "No se pudo verificar tu vehículo",
+        text: error.message || "Inténtalo de nuevo más tarde.",
+      });
+      return;
+    }
+
+    if (resultado.vehiculo) {
+      onNavigate("ofrecer");
+      return;
+    }
+
     const confirmacion = await Swal.fire({
       title: "¿Estás seguro de que quieres ofrecer un viaje?",
       icon: "question",
