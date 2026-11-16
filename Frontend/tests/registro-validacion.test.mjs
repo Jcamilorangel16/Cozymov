@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { validarRegistroUsuario } from "../src/features/register/validations/usuarios.ts";
+import {
+  validarFormularioRegistro,
+  validarRegistroUsuario,
+} from "../src/features/register/validations/usuarios.ts";
 
 function crearDatos(idUsuario) {
   return {
@@ -21,6 +24,14 @@ test("acepta cédula numérica de hasta 10 dígitos y conserva ceros iniciales",
 
   assert.equal(resultado.valido, true);
   assert.equal(resultado.datos.idUsuario, "0123456789");
+});
+
+test("no avanza al paso de correo si la cédula tiene más de 10 dígitos", () => {
+  const datos = { ...crearDatos("12345678901"), edad: "20" };
+  const resultado = validarFormularioRegistro(datos, datos.contrasena);
+
+  assert.equal(resultado.valido, false);
+  assert.match(resultado.error, /cédula/i);
 });
 
 for (const idUsuario of ["12A45", "12345678901"]) {

@@ -67,7 +67,7 @@ export function useRegisterForm() {
   function manejarCambio(evento) {
     const { name, value } = evento.target;
     const valor = name === "idUsuario"
-      ? value.replace(/\D/g, "").slice(0, 10)
+      ? value.replace(/\D/g, "")
       : value;
     if (
       name === "correo" &&
