@@ -10,7 +10,7 @@ import Swal from "sweetalert2";
  * @returns {Promise<object>} Respuesta JSON del servidor.
  */
 async function llamarApi(cuerpo) {
-  const respuesta = await fetch("/api/recuperar-contraseña", {
+  const respuesta = await fetch("/api/recuperar-contrasena", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(cuerpo),
