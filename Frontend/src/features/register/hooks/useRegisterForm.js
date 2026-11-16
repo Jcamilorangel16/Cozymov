@@ -66,6 +66,9 @@ export function useRegisterForm() {
 
   function manejarCambio(evento) {
     const { name, value } = evento.target;
+    const valor = name === "idUsuario"
+      ? value.replace(/\D/g, "").slice(0, 10)
+      : value;
     if (
       name === "correo" &&
       codigoSolicitadoPara &&
@@ -75,7 +78,7 @@ export function useRegisterForm() {
       setPasoCorreo(false);
     }
 
-    setDatosUsuario((prev) => ({ ...prev, [name]: value }));
+    setDatosUsuario((prev) => ({ ...prev, [name]: valor }));
   }
 
   function manejarTeclado(evento, campoActual) {

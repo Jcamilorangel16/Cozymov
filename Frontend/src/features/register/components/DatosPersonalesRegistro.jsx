@@ -84,7 +84,9 @@ export default function DatosPersonalesRegistro({
           type="text"
           inputMode="numeric"
           className="form-control"
-          maxLength={20}
+          maxLength={10}
+          pattern="[0-9]{1,10}"
+          title="La cédula debe contener solo números y máximo 10 dígitos."
           placeholder="Número de cédula"
           value={datosUsuario.idUsuario}
           onChange={manejarCambio}

@@ -1,4 +1,6 @@
-﻿namespace Backend.DTOs
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Backend.DTOs
 {
     public class UsuariosDTO
     {
@@ -32,6 +34,7 @@
     }
     public class UsuariosCreateDTO
     {
+        [Required, RegularExpression(@"^\d{1,10}$", ErrorMessage = "La cédula debe contener solo números y máximo 10 dígitos.")]
         public string Cedula { get; set; }
         public string PrimerNombre { get; set; }
         public string SegundoNombre { get; set; }
@@ -49,6 +52,7 @@
 
 public class UsuariosUpdateDTO
 {
+    [Required, RegularExpression(@"^\d{1,10}$", ErrorMessage = "La cédula debe contener solo números y máximo 10 dígitos.")]
     public string Cedula { get; set; }
     public string PrimerNombre { get; set; }
     public string SegundoNombre { get; set; }
