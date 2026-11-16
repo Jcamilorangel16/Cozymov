@@ -1,4 +1,6 @@
 // Renderiza las credenciales y los controles de envío del registro.
+import { useState } from "react";
+import BotonVerContrasena from "../../../components/BotonVerContrasena";
 
 /**
  * Muestra correo, contraseñas y acciones de registro.
@@ -16,6 +18,9 @@ export default function CredencialesRegistro({
   manejarSiguiente,
   enviandoCodigo,
 }) {
+  const [verContrasena, setVerContrasena] = useState(false);
+  const [verConfirmacion, setVerConfirmacion] = useState(false);
+
   return (
     <>
       <div className="col-md-6">
@@ -41,32 +46,48 @@ export default function CredencialesRegistro({
       </div>
       <div className="col-md-6">
         <label htmlFor="contrasena" className="form-label">Contraseña</label>
-        <input
-          id="contrasena"
-          name="contrasena"
-          type="password"
-          className="form-control"
-          placeholder=" 🔒 Ingrese su contraseña"
-          value={datosUsuario.contrasena}
-          onChange={manejarCambio}
-          onKeyDown={(e) => manejarTeclado(e, "contrasena")}
-          ref={asignarRef("contrasena")}
-          disabled={enviandoCodigo}
-        />
+        <div className="input-group">
+          <input
+            id="contrasena"
+            name="contrasena"
+            type={verContrasena ? "text" : "password"}
+            className="form-control"
+            placeholder=" 🔒 Ingrese su contraseña"
+            value={datosUsuario.contrasena}
+            onChange={manejarCambio}
+            onKeyDown={(e) => manejarTeclado(e, "contrasena")}
+            ref={asignarRef("contrasena")}
+            disabled={enviandoCodigo}
+          />
+          <BotonVerContrasena
+            visible={verContrasena}
+            onAlternar={() => setVerContrasena((v) => !v)}
+            controla="contrasena"
+            disabled={enviandoCodigo}
+          />
+        </div>
 
         <label htmlFor="confirmar-contrasena" className="form-label mt-3">Confirmar Contraseña</label>
-        <input
-          id="confirmar-contrasena"
-          name="confirmar-contrasena"
-          type="password"
-          className="form-control"
-          placeholder=" 🔒 Confirme su contraseña"
-          value={confirmarContrasena}
-          onChange={(e) => setConfirmarContrasena(e.target.value)}
-          onKeyDown={(e) => manejarTeclado(e, "confirmar-contrasena")}
-          ref={asignarRef("confirmar-contrasena")}
-          disabled={enviandoCodigo}
-        />
+        <div className="input-group">
+          <input
+            id="confirmar-contrasena"
+            name="confirmar-contrasena"
+            type={verConfirmacion ? "text" : "password"}
+            className="form-control"
+            placeholder=" 🔒 Confirme su contraseña"
+            value={confirmarContrasena}
+            onChange={(e) => setConfirmarContrasena(e.target.value)}
+            onKeyDown={(e) => manejarTeclado(e, "confirmar-contrasena")}
+            ref={asignarRef("confirmar-contrasena")}
+            disabled={enviandoCodigo}
+          />
+          <BotonVerContrasena
+            visible={verConfirmacion}
+            onAlternar={() => setVerConfirmacion((v) => !v)}
+            controla="confirmar-contrasena"
+            disabled={enviandoCodigo}
+          />
+        </div>
 
         <button
           id="siguiente"

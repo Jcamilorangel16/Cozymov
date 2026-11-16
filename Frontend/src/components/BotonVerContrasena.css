@@ -1,0 +1,46 @@
+/* El botón queda dentro del campo, a la derecha y sin marco propio. */
+.input-group > .form-control:has(+ .boton-ver-contrasena) {
+  padding-right: 3rem;
+  border-top-right-radius: var(--bs-border-radius) !important;
+  border-bottom-right-radius: var(--bs-border-radius) !important;
+}
+
+.boton-ver-contrasena {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  padding: 0;
+  border: 0 !important;
+  border-radius: 0 var(--bs-border-radius) var(--bs-border-radius) 0 !important;
+  background: transparent !important;
+  color: #6b7280;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.boton-ver-contrasena:hover:not(:disabled) {
+  color: #0b6f94;
+}
+
+.boton-ver-contrasena:active:not(:disabled) {
+  transform: scale(0.92);
+}
+
+.boton-ver-contrasena[aria-pressed="true"] {
+  color: #0b6f94;
+}
+
+.boton-ver-contrasena:focus-visible {
+  outline: 2px solid #4fe8e0;
+  outline-offset: -4px;
+  box-shadow: none;
+}
+
+.boton-ver-contrasena:disabled {
+  opacity: 0.5;
+}

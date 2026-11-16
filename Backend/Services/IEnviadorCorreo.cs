@@ -6,4 +6,9 @@ public interface IEnviadorCorreo
         string correo,
         string codigo,
         CancellationToken cancellationToken = default);
+
+    Task EnviarCodigoRecuperacionAsync(
+        string correo,
+        string codigo,
+        CancellationToken cancellationToken = default);
 }
