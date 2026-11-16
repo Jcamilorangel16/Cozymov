@@ -2,6 +2,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "bootstrap/dist/css/bootstrap.min.css";
+import LoadingScreen from "../src/components/LoadingScreen";
 import "./globals.css";
 
 
@@ -35,7 +36,8 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} min-h-full flex flex-col antialiased`}
       >
-           {children}
+        <LoadingScreen />
+        {children}
       </body>
     </html>
   );
