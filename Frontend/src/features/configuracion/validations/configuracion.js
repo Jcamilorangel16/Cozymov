@@ -32,7 +32,23 @@ export function validarVehiculo({ marca, modelo, color, placa, plazas }) {
   return errores;
 }
 
-const TIPOS_FOTO = ["image/jpeg", "image/png", "image/webp"];
+// Valida los campos del vehículo que realmente se persisten.
+export function validarDatosVehiculo({ tipo, modelo, capacidad, foto, numeroPuertas, modalidad }) {
+  const errores = {};
+  if (!modelo.trim()) errores.modelo = "Indica el modelo.";
+  else if (modelo.trim().length > 50) errores.modelo = "Máximo 50 caracteres.";
+  const n = Number(capacidad);
+  if (!Number.isInteger(n) || n < 1 || n > 32767)
+    errores.capacidad = "Indica un número entero de plazas (mínimo 1).";
+  if (foto.length > 255) errores.foto = "Máximo 255 caracteres.";
+  if (tipo === "Automovil" && ![2, 3, 4, 5].includes(Number(numeroPuertas)))
+    errores.numeroPuertas = "Entre 2 y 5 puertas.";
+  if (tipo === "Moto" && (!modalidad.trim() || modalidad.trim().length > 20))
+    errores.modalidad = "Indica la modalidad (máximo 20 caracteres).";
+  return errores;
+}
+
+const TIPOS_FOTO =["image/jpeg", "image/png", "image/webp"];
 const MAX_FOTO_MB = 2;
 
 // Devuelve un mensaje de error, o "" si la imagen es válida.

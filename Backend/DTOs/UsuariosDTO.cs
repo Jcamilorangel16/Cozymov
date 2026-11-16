@@ -60,6 +60,12 @@ public class UsuariosUpdateDTO
 }
 
 
+public class CambiarContrasenaDTO
+{
+    public string ContrasenaActual { get; set; } = string.Empty;
+    public string NuevaContrasena { get; set; } = string.Empty;
+}
+
 public class UsuariosLoginDTO
 {
     public string Correo { get; set; }

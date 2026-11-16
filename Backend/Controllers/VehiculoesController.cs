@@ -58,24 +58,50 @@ public class VehiculoesController(AppDbContext context) : ControllerBase
     }
 
     [HttpPut("{idVehiculo:long}")]
-    public async Task<IActionResult> PutVehiculo(long idVehiculo, VehiculoCreateDto dto)
+    public async Task<IActionResult> PutVehiculo(long idVehiculo, VehiculoUpdateDto dto)
     {
-        var vehiculo = await context.Vehiculos.FindAsync(idVehiculo);
+        var vehiculo = await context.Vehiculos
+            .Include(v => v.Automovil)
+            .Include(v => v.Moto)
+            .FirstOrDefaultAsync(v => v.IdVehiculo == idVehiculo);
         if (vehiculo is null)
         {
             return NotFound();
         }
 
-        if (!await context.Usuarios.AnyAsync(u => u.IdPersonas == dto.IdUsuario))
+        // El tipo define qué tabla de detalle aplica; cambiarlo dejaría datos incompatibles.
+        if (!string.Equals(vehiculo.Tipo, dto.Tipo, StringComparison.Ordinal))
         {
-            return BadRequest($"El usuario {dto.IdUsuario} no existe.");
+            return BadRequest("No se puede cambiar el tipo de un vehículo existente.");
         }
 
-        vehiculo.Tipo = dto.Tipo;
+        if (string.IsNullOrWhiteSpace(dto.Modelo) || dto.Capacidad < 1)
+        {
+            return BadRequest("El modelo y la capacidad son obligatorios.");
+        }
+
+        if (vehiculo.Automovil is not null && dto.NumeroPuertas is { } puertas)
+        {
+            if (puertas is < 2 or > 5)
+            {
+                return BadRequest("El número de puertas debe estar entre 2 y 5.");
+            }
+            vehiculo.Automovil.NumeroPuertas = puertas;
+        }
+
+        if (vehiculo.Moto is not null && !string.IsNullOrWhiteSpace(dto.Modalidad))
+        {
+            if (dto.Modalidad.Length > 20)
+            {
+                return BadRequest("La modalidad admite máximo 20 caracteres.");
+            }
+            vehiculo.Moto.Modalidad = dto.Modalidad;
+        }
+
+        // IdUsuario no se toca: la propiedad no se puede reasignar.
         vehiculo.Modelo = dto.Modelo;
         vehiculo.Capacidad = dto.Capacidad;
         vehiculo.Foto = dto.Foto;
-        vehiculo.IdUsuario = dto.IdUsuario;
 
         await context.SaveChangesAsync();
         return NoContent();

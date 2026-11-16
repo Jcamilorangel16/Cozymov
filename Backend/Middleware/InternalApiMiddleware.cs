@@ -17,7 +17,8 @@ public sealed class InternalApiMiddleware(
         "/api/telefonos",
         "/api/preferencias",
         "/api/solicitudes",
-        "/api/calificaciones"
+        "/api/calificaciones",
+        "/api/vehiculos"
     ];
 
     public async Task InvokeAsync(HttpContext context)
