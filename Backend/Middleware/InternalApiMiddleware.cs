@@ -13,6 +13,7 @@ public sealed class InternalApiMiddleware(
         "/api/Viajes",
         "/api/Usuarios",
         "/api/registro",
+        "/api/recuperacion",
         "/api/telefonos",
         "/api/preferencias",
         "/api/solicitudes",

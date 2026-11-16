@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "bootstrap/dist/css/bootstrap.min.css";
 import LoadingScreen from "../src/components/LoadingScreen";
 import "./globals.css";
+import CustomCursor from "../src/components/CustomCursor";
 
 
 const geistSans = Geist({
@@ -36,6 +37,8 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} min-h-full flex flex-col antialiased`}
       >
+        <CustomCursor />
+           {children}
         <LoadingScreen />
         {children}
       </body>

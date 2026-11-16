@@ -4,6 +4,24 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Swal from "sweetalert2";
 
+/**
+ * Llama al proxy de recuperación de contraseña.
+ * @param {object} cuerpo Acción y campos para el proxy.
+ * @returns {Promise<object>} Respuesta JSON del servidor.
+ */
+async function llamarApi(cuerpo) {
+  const respuesta = await fetch("/api/recuperar-contrasena", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(cuerpo),
+  });
+  const datos = await respuesta.json().catch(() => null);
+  if (!respuesta.ok) {
+    throw new Error(datos?.error ?? "No se pudo completar la solicitud.");
+  }
+  return datos;
+}
+
 export default function RecuperarContrasenaView() {
   const router = useRouter();
   const [paso, setPaso] = useState(1); // 1: Solicitar correo, 2: Ingresar código y nueva contraseña
@@ -13,53 +31,61 @@ export default function RecuperarContrasenaView() {
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState("");
 
-  // Paso 1: Enviar solicitud de código al correo institucional
+  // Paso 1: Enviar solicitud de código al correo
   const handleSolicitarCodigo = async (e) => {
     e.preventDefault();
     setError("");
 
-    if (!correo.endsWith(".edu.co")) {
-      setError("Debe ingresar un correo institucional válido (.edu.co).");
-      return;
-    }
-
     setCargando(true);
     try {
-      // TODO: Conectar con tu endpoint de API (ej: /api/auth/recuperar)
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
+      await llamarApi({ accion: "solicitar", correo: correo.trim() });
+
       void Swal.fire({
         icon: "success",
-        title: "¡Código enviado!",
-        text: "Revisa tu correo institucional para obtener el código de verificación.",
-        timer: 1500,
+        title: "Solicitud recibida",
+        text: "Si el correo está registrado, recibirás un código de verificación.",
+        timer: 2000,
         showConfirmButton: false,
       });
-      
+
       setPaso(2);
     } catch (err) {
-      console.error("No se pudo enviar el código. Inténtalo de nuevo.", err);
+      setError(
+        err instanceof Error
+          ? err.message
+          : "No se pudo enviar el código. Inténtalo de nuevo.",
+      );
     } finally {
       setCargando(false);
     }
   };
 
-  // Paso 2: Validar código y actualizar contraseña según RF-AUT-003
+  // Paso 2: Validar código y actualizar contraseña
   const handleRestablecer = async (e) => {
     e.preventDefault();
     setError("");
 
-    // Validación de contraseña segura (mínimo 8 caracteres, mayúscula, minúscula, número y símbolo)
-    const regexPassword = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
-    if (!regexPassword.test(nuevaContrasena)) {
-      setError("La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial.");
+    // Misma política que el registro: entre 8 y 72 bytes.
+    if (
+      nuevaContrasena.length < 8 ||
+      new TextEncoder().encode(nuevaContrasena).length > 72
+    ) {
+      setError("La contraseña debe tener entre 8 y 72 bytes.");
+      return;
+    }
+    if (!/^\d{6}$/.test(codigo.trim())) {
+      setError("El código debe tener exactamente 6 dígitos.");
       return;
     }
 
     setCargando(true);
     try {
-      // TODO: Conectar con tu endpoint de API para actualizar la contraseña
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await llamarApi({
+        accion: "restablecer",
+        correo: correo.trim(),
+        codigo: codigo.trim(),
+        nuevaContrasena,
+      });
 
       void Swal.fire({
         icon: "success",
@@ -71,8 +97,9 @@ export default function RecuperarContrasenaView() {
         router.push("/");
       });
     } catch (err) {
-      console.error("Error al restablecer la contraseña.", err);
-      setError("El código es inválido o ha expirado.");
+      setError(
+        err instanceof Error ? err.message : "El código es inválido o ha vencido.",
+      );
     } finally {
       setCargando(false);
     }
@@ -88,7 +115,7 @@ export default function RecuperarContrasenaView() {
         {paso === 1 ? (
           <form onSubmit={handleSolicitarCodigo}>
             <p className="text-muted small mb-3">
-              Ingresa tu correo institucional registrado para recibir un código de verificación de 5 minutos.
+              Ingresa tu correo institucional registrado para recibir un código de verificación válido por 10 minutos.
             </p>
             <div className="mb-3">
               <label className="form-label">Correo institucional</label>
@@ -113,14 +140,17 @@ export default function RecuperarContrasenaView() {
         ) : (
           <form onSubmit={handleRestablecer}>
             <p className="text-muted small mb-3">
-              Hemos enviado un código de verificación a <strong>{correo}</strong>.
+              Si <strong>{correo}</strong> está registrado, enviamos un código de verificación.
             </p>
             <div className="mb-3">
               <label className="form-label">Código de verificación</label>
               <input
                 type="text"
                 className="form-control"
-                placeholder="Ingrese el código"
+                placeholder="Código de 6 dígitos"
+                inputMode="numeric"
+                maxLength={6}
+                autoComplete="one-time-code"
                 value={codigo}
                 onChange={(e) => setCodigo(e.target.value)}
                 required
@@ -131,7 +161,8 @@ export default function RecuperarContrasenaView() {
               <input
                 type="password"
                 className="form-control"
-                placeholder="Mínimo 8 caracteres, símbolos, etc."
+                placeholder="Mínimo 8 caracteres"
+                autoComplete="new-password"
                 value={nuevaContrasena}
                 onChange={(e) => setNuevaContrasena(e.target.value)}
                 required
