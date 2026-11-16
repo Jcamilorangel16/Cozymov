@@ -159,6 +159,7 @@ export default function PanelInicio({ onNavigate }) {
           </button>
         )}
       </div>
+
     </div>
   );
 }

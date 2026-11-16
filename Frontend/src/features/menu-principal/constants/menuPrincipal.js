@@ -6,6 +6,5 @@ export const enlacesMenu = [
   { id: "ofrecer", label: "Ofrecer Viaje" },
   { id: "mensajes", label: "Mensajes" },
   { id: "en-curso", label: "En Curso" },
-  { id: "solicitudes", label: "Solicitudes" },
   { id: "calificaciones", label: "Calificaciones" },
 ];
