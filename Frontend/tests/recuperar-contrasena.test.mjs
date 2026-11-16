@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, test } from "node:test";
-import { POST } from "../app/api/recuperar-contraseña/route.ts";
+import { POST } from "../app/api/recuperar-contrasena/route.ts";
 
 const originalFetch = globalThis.fetch;
 const originalApiUrl = process.env.VITE_API_URL;
@@ -20,7 +20,7 @@ afterEach(() => {
 });
 
 function solicitud(cuerpo) {
-  return new Request("http://localhost/api/recuperar-contraseña", {
+  return new Request("http://localhost/api/recuperar-contrasena", {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-real-ip": "203.0.113.9" },
     body: typeof cuerpo === "string" ? cuerpo : JSON.stringify(cuerpo),

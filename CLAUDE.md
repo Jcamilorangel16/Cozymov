@@ -71,7 +71,7 @@ Tablas_ccozy/ Bóveda Obsidian local opcional, ignorada por Git
   viajes coincidentes por ruta, día, presupuesto y hora límite.
 - Calificaciones: consulta de recibidas y enviadas, promedio, creación para
   una reserva propia completada y eliminación de calificaciones propias.
-- Recuperación de contraseña: el proxy `Frontend/app/api/recuperar-contraseña`
+- Recuperación de contraseña: el proxy `Frontend/app/api/recuperar-contrasena`
   reenvía a `Backend/Controllers/RecuperacionController.cs`
   (`/api/recuperacion/solicitar` y `/restablecer`). Código de 6 dígitos
   enviado por Brevo, guardado como HMAC en `Usuarios` (migración
