@@ -1,133 +1,100 @@
-import bcrypt from "bcryptjs";
-import { getDbPool } from "../../../src/lib/db";
+import type { NextRequest } from "next/server";
+import { getBackendApiConfig } from "../../../src/lib/backendApi.ts";
 
 export const runtime = "nodejs";
 
-export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const { accion, correo, codigo, nuevaContrasena } = body;
+const FORMATO_CORREO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const FORMATO_CODIGO = /^\d{6}$/;
 
-    if (!accion) {
-      return Response.json({ error: "Acción no especificada." }, { status: 400 });
-    }
+function esTexto(valor: unknown): valor is string {
+  return typeof valor === "string";
+}
 
-    // =========================================================================
-    // FASE 1: Solicitar código de recuperación
-    // =========================================================================
-
-    if (accion === "solicitar") {
-      if (typeof correo !== "string" || !correo.trim().endsWith(".edu.co")) {
-        return Response.json(
-          { error: "Debe ingresar un correo institucional válido (.edu.co)." },
-          { status: 400 }
-        );
-      }
-
-      const correoLimpio = correo.trim().toLowerCase();
-
-      // Verificar si el usuario existe en la base de datos
-      const resultado = await getDbPool().query(
-        `SELECT id_usuario AS id, correo FROM usuario WHERE lower(correo) = $1 LIMIT 1`,
-        [correoLimpio]
-      );
-
-      if (resultado.rows.length === 0) {
-        return Response.json(
-          { error: "El correo no se encuentra registrado en el sistema." },
-          { status: 404 }
-        );
-      }
-
-      // Generar código de 6 dígitos y calcular expiración (5 minutos)
-      const codigoGenerado = Math.floor(100000 + Math.random() * 900000).toString();
-      const expiracion = new Date(Date.now() + 5 * 60 * 1000);
-
-      // Guardar el código y su expiración en la tabla de usuario
-      
-      await getDbPool().query(
-        `UPDATE usuario SET codigo_recuperacion = $1, codigo_expiracion = $2 WHERE lower(correo) = $3`,
-        [codigoGenerado, expiracion.toISOString(), correoLimpio]
-      );
-
-      // TODO: Aquí enviarías el correo con el código (ej. usando Nodemailer o Resend)
-
-      return Response.json(
-        { mensaje: "Código de recuperación enviado con éxito." },
-        { status: 200 }
-      );
-    }
-
-    // =========================================================================
-    // FASE 2: Validar código y actualizar contraseña (RF-AUT-003)
-    // =========================================================================
-
-    
-    if (accion === "restablecer") {
-      if (!correo || !codigo || !nuevaContrasena) {
-        return Response.json(
-          { error: "Todos los campos son obligatorios." },
-          { status: 400 }
-        );
-      }
-
-      const correoLimpio = correo.trim().toLowerCase();
-
-      
-      const regexPassword = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
-      if (!regexPassword.test(nuevaContrasena)) {
-        return Response.json(
-          { 
-            error: "La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial." 
-          },
-          { status: 400 }
-        );
-      }
-
-      
-      const resultado = await getDbPool().query(
-        `SELECT id_usuario AS id, codigo_recuperacion, codigo_expiracion FROM usuario WHERE lower(correo) = $1 LIMIT 1`,
-        [correoLimpio]
-      );
-
-      if (resultado.rows.length === 0) {
-        return Response.json({ error: "Usuario no encontrado." }, { status: 404 });
-      }
-
-      const usuario = resultado.rows[0];
-
-      // Validar coincidencia del código
-      if (usuario.codigo_recuperacion !== codigo) {
-        return Response.json({ error: "El código de verificación es incorrecto." }, { status: 400 });
-      }
-
-      // Validar vigencia del código (5 minutos)
-      if (new Date() > new Date(usuario.codigo_expiracion)) {
-        return Response.json({ error: "El código de verificación ha expirado." }, { status: 400 });
-      }
-
-      
-      const hashedPassword = await bcrypt.hash(nuevaContrasena, 10);
-
-      
-      await getDbPool().query(
-        `UPDATE usuario SET contrasena = $1, codigo_recuperacion = NULL, codigo_expiracion = NULL WHERE lower(correo) = $2`,
-        [hashedPassword, correoLimpio]
-      );
-
-      return Response.json(
-        { mensaje: "Contraseña actualizada correctamente." },
-        { status: 200 }
-      );
-    }
-
-    return Response.json({ error: "Acción no válida." }, { status: 400 });
-
-  } catch (error) {
-    console.error("Error en el endpoint de recuperación:", error);
+/**
+ * Proxy de recuperación de contraseña. Valida la forma de la solicitud y la
+ * reenvía al backend, que genera el código, lo envía con Brevo y cambia la
+ * contraseña. Aquí no hay acceso a la base de datos ni a credenciales de correo.
+ * @param request Solicitud con `accion` ("solicitar" | "restablecer") y sus campos.
+ * @returns Respuesta del backend o error de validación.
+ */
+export async function POST(request: NextRequest) {
+  const config = getBackendApiConfig();
+  if (!config) {
     return Response.json(
-      { error: "Error interno del servidor." },
-      { status: 500 }
+      { error: "Falta configurar VITE_API_URL o INTERNAL_API_KEY en el servidor." },
+      { status: 500 },
     );
+  }
+
+  let cuerpo: Record<string, unknown>;
+  try {
+    const json = await request.json();
+    if (!json || typeof json !== "object") throw new Error("cuerpo inválido");
+    cuerpo = json as Record<string, unknown>;
+  } catch {
+    return Response.json({ error: "El cuerpo no es un JSON válido." }, { status: 400 });
+  }
+
+  const { accion } = cuerpo;
+  const correo = esTexto(cuerpo.correo) ? cuerpo.correo.trim().toLowerCase() : "";
+  if (!correo || correo.length > 150 || !FORMATO_CORREO.test(correo)) {
+    return Response.json({ error: "Ingresa un correo válido." }, { status: 400 });
+  }
+
+  let ruta: string;
+  let datos: Record<string, string>;
+  if (accion === "solicitar") {
+    ruta = "/api/recuperacion/solicitar";
+    datos = { correo };
+  } else if (accion === "restablecer") {
+    const codigo = esTexto(cuerpo.codigo) ? cuerpo.codigo.trim() : "";
+    const nuevaContrasena = esTexto(cuerpo.nuevaContrasena) ? cuerpo.nuevaContrasena : "";
+    if (!FORMATO_CODIGO.test(codigo)) {
+      return Response.json(
+        { error: "El código debe tener exactamente 6 dígitos." },
+        { status: 400 },
+      );
+    }
+    if (
+      nuevaContrasena.length < 8 ||
+      new TextEncoder().encode(nuevaContrasena).length > 72
+    ) {
+      return Response.json(
+        { error: "La contraseña debe tener entre 8 y 72 bytes." },
+        { status: 400 },
+      );
+    }
+    ruta = "/api/recuperacion/restablecer";
+    datos = { correo, codigo, nuevaContrasena };
+  } else {
+    return Response.json({ error: "Acción no válida." }, { status: 400 });
+  }
+
+  try {
+    const headers: Record<string, string> = {
+      ...config.headers,
+      "Content-Type": "application/json",
+    };
+    const ip = request.headers.get("x-real-ip") ?? request.headers.get("x-forwarded-for");
+    if (ip) headers["X-Forwarded-For"] = ip;
+
+    const respuesta = await fetch(`${config.baseUrl}${ruta}`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(datos),
+      cache: "no-store",
+    });
+
+    const detalle = await respuesta.json().catch(() => null);
+    if (!respuesta.ok) {
+      return Response.json(
+        detalle ?? { error: `No se pudo completar la solicitud (${respuesta.status}).` },
+        { status: respuesta.status },
+      );
+    }
+    return Response.json(detalle ?? {}, { status: 200 });
+  } catch (error) {
+    console.error("No se pudo contactar la API de recuperación:", error);
+    return Response.json({ error: "No se pudo conectar con la API." }, { status: 502 });
   }
 }

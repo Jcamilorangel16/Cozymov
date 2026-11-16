@@ -14,5 +14,8 @@ public sealed class UsuariosConfiguration : IEntityTypeConfiguration<Usuarios>
         // Las cuentas existentes quedan verificadas al aplicar la migración.
         entity.Property(u => u.EmailVerificado)
             .HasDefaultValue(true);
+
+        entity.Property(u => u.CodigoRecuperacionHash).HasMaxLength(64);
+        entity.Property(u => u.CodigoRecuperacionIntentos).HasDefaultValue(0);
     }
 }

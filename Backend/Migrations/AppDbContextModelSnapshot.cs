@@ -373,6 +373,21 @@ namespace Backend.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<DateTime?>("CodigoRecuperacionEnviado")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CodigoRecuperacionHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<int>("CodigoRecuperacionIntentos")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<DateTime?>("CodigoRecuperacionVence")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Contrasena")
                         .IsRequired()
                         .HasColumnType("text");

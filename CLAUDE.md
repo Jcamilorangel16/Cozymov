@@ -47,8 +47,7 @@ Tablas_ccozy/ Bóveda Obsidian local opcional, ignorada por Git
   `Backend/Data/Configurations/` define las relaciones y restricciones. Las
   migraciones están en `Backend/Migrations/`.
 - En los flujos migrados, el frontend valida la sesión y reenvía solicitudes a
-  la API. La recuperación de contraseña es una excepción documentada: revisa
-  su implementación actual antes de asumir que usa el backend.
+  la API, incluida la recuperación de contraseña.
 - `Tablas_ccozy/` es una bóveda local opcional de Obsidian y está ignorada por
   Git. No presupongas que existe después de clonar el repositorio ni uses sus
   notas como única fuente de información.
@@ -72,8 +71,12 @@ Tablas_ccozy/ Bóveda Obsidian local opcional, ignorada por Git
   viajes coincidentes por ruta, día, presupuesto y hora límite.
 - Calificaciones: consulta de recibidas y enviadas, promedio, creación para
   una reserva propia completada y eliminación de calificaciones propias.
-- Interfaces para recuperar contraseña y rutas relacionadas; consulta su
-  estado en el código antes de extenderlas.
+- Recuperación de contraseña: el proxy `Frontend/app/api/recuperar-contraseña`
+  reenvía a `Backend/Controllers/RecuperacionController.cs`
+  (`/api/recuperacion/solicitar` y `/restablecer`). Código de 6 dígitos
+  enviado por Brevo, guardado como HMAC en `Usuarios` (migración
+  `RecuperacionContrasena`), vigencia de 10 min, un solo uso, 5 intentos,
+  espera de 60 s entre envíos y respuestas que no revelan si el correo existe.
 
 Rutas de API de backend destacadas: `/api/Usuarios`, `/api/registro`,
 `/api/Viajes`, `/api/rutas`, `/api/vehiculos`, `/api/automoviles`,
