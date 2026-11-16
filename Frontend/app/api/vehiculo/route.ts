@@ -4,6 +4,7 @@ import {
 	validarNuevoVehiculo,
 } from "../../../src/features/ofrecer-viajes/validations/vehiculos";
 import { obtenerSesionActual } from "../../../src/lib/auth";
+import { getBackendApiConfig } from "../../../src/lib/backendApi";
 
 export const runtime = "nodejs";
 
@@ -22,10 +23,11 @@ function obtenerCampo(registro: Registro, ...nombres: string[]): unknown {
 	return undefined;
 }
 
-function obtenerBaseApi(): string | null {
-	const apiUrl = process.env.VITE_API_URL;
-	return apiUrl ? apiUrl.replace(/\/+$/, "") : null;
+function obtenerConfigApi() {
+	return getBackendApiConfig();
 }
+
+const ERROR_CONFIG = "Falta configurar VITE_API_URL o INTERNAL_API_KEY.";
 
 async function responderErrorApi(respuesta: Response, mensaje: string) {
 	const detalle = await respuesta.text();
@@ -88,16 +90,17 @@ export async function GET(request: Request) {
 		);
 	}
 
-	const baseApi = obtenerBaseApi();
-	if (!baseApi) {
+	const config = obtenerConfigApi();
+	if (!config) {
 		return NextResponse.json(
-			{ error: "Falta configurar VITE_API_URL." },
+			{ error: ERROR_CONFIG },
 			{ status: 500 },
 		);
 	}
 
 	try {
-		const respuesta = await fetch(`${baseApi}/api/vehiculos`, {
+		const respuesta = await fetch(`${config.baseUrl}/api/vehiculos`, {
+			headers: { ...config.headers },
 			cache: "no-store",
 		});
 		if (!respuesta.ok) {
@@ -156,19 +159,19 @@ export async function POST(request: Request) {
 		return NextResponse.json({ error: validacion.error }, { status: 400 });
 	}
 
-	const baseApi = obtenerBaseApi();
-	if (!baseApi) {
+	const config = obtenerConfigApi();
+	if (!config) {
 		return NextResponse.json(
-			{ error: "Falta configurar VITE_API_URL." },
+			{ error: ERROR_CONFIG },
 			{ status: 500 },
 		);
 	}
 
 	const datos = validacion.datos;
 	try {
-		const respuesta = await fetch(`${baseApi}/api/vehiculos`, {
+		const respuesta = await fetch(`${config.baseUrl}/api/vehiculos`, {
 			method: "POST",
-			headers: { "Content-Type": "application/json" },
+			headers: { ...config.headers, "Content-Type": "application/json" },
 			body: JSON.stringify({
 				Tipo: datos.tipo,
 				Modelo: datos.modelo,
@@ -199,9 +202,9 @@ export async function POST(request: Request) {
 			: datos.tipo === "Moto"
 				? { ruta: "motos", cuerpo: { Modalidad: datos.modalidad } }
 				: { ruta: "bicicletas-electricas", cuerpo: {} };
-		const respuestaSubtipo = await fetch(`${baseApi}/api/${subtipo.ruta}/${id}`, {
+		const respuestaSubtipo = await fetch(`${config.baseUrl}/api/${subtipo.ruta}/${id}`, {
 			method: "POST",
-			headers: { "Content-Type": "application/json" },
+			headers: { ...config.headers, "Content-Type": "application/json" },
 			body: JSON.stringify(subtipo.cuerpo),
 			cache: "no-store",
 		});
@@ -209,8 +212,9 @@ export async function POST(request: Request) {
 		if (!respuestaSubtipo.ok) {
 			const errorSubtipo = await respuestaSubtipo.text();
 			try {
-				const respuestaLimpieza = await fetch(`${baseApi}/api/vehiculos/${id}`, {
+				const respuestaLimpieza = await fetch(`${config.baseUrl}/api/vehiculos/${id}`, {
 					method: "DELETE",
+					headers: { ...config.headers },
 					cache: "no-store",
 				});
 				if (!respuestaLimpieza.ok) {
@@ -244,6 +248,101 @@ export async function POST(request: Request) {
 		);
 	} catch (error) {
 		console.error("No se pudo registrar el vehículo en la API:", error);
+		return NextResponse.json(
+			{ error: "No se pudo conectar con la API de vehículos." },
+			{ status: 502 },
+		);
+	}
+}
+
+export async function PUT(request: Request) {
+	const sesion = await obtenerSesionActual();
+	if (!sesion) {
+		return NextResponse.json({ error: "Debes iniciar sesión." }, { status: 401 });
+	}
+
+	let body: unknown;
+	try {
+		body = await request.json();
+	} catch {
+		return NextResponse.json(
+			{ error: "El cuerpo de solicitud no es válido." },
+			{ status: 400 },
+		);
+	}
+
+	// El usuario sale siempre de la sesión; cualquier id_usuario del cliente se ignora.
+	const validacion = validarNuevoVehiculo(body, sesion.id);
+	if (!validacion.valido) {
+		return NextResponse.json({ error: validacion.error }, { status: 400 });
+	}
+
+	const idVehiculo = esRegistro(body) ? String(body.id_vehiculo ?? "") : "";
+	if (!/^[1-9]\d{0,17}$/.test(idVehiculo)) {
+		return NextResponse.json({ error: "id_vehiculo no es válido." }, { status: 400 });
+	}
+
+	const config = obtenerConfigApi();
+	if (!config) {
+		return NextResponse.json({ error: ERROR_CONFIG }, { status: 500 });
+	}
+
+	const datos = validacion.datos;
+	const urlVehiculo = `${config.baseUrl}/api/vehiculos/${idVehiculo}`;
+	try {
+		const actual = await fetch(urlVehiculo, {
+			headers: { ...config.headers },
+			cache: "no-store",
+		});
+		if (actual.status === 404) {
+			return NextResponse.json({ error: "No se encontró el vehículo." }, { status: 404 });
+		}
+		if (!actual.ok) {
+			return responderErrorApi(actual, "No se pudo verificar el vehículo.");
+		}
+
+		const vehiculoActual: unknown = await actual.json();
+		const propietario = esRegistro(vehiculoActual)
+			? String(obtenerCampo(vehiculoActual, "idUsuario", "IdUsuario", "id_usuario"))
+			: null;
+		if (propietario !== sesion.id) {
+			return NextResponse.json(
+				{ error: "No puedes editar el vehículo de otro usuario." },
+				{ status: 403 },
+			);
+		}
+
+		const respuesta = await fetch(urlVehiculo, {
+			method: "PUT",
+			headers: { ...config.headers, "Content-Type": "application/json" },
+			body: JSON.stringify({
+				Tipo: datos.tipo,
+				Modelo: datos.modelo,
+				Capacidad: datos.capacidad,
+				Foto: datos.foto_vehiculo,
+				...(datos.tipo === "Automovil" && { NumeroPuertas: datos.numero_puertas }),
+				...(datos.tipo === "Moto" && { Modalidad: datos.modalidad }),
+			}),
+			cache: "no-store",
+		});
+		if (!respuesta.ok) {
+			return responderErrorApi(respuesta, "No se pudo actualizar el vehículo.");
+		}
+
+		return NextResponse.json({
+			vehiculo: {
+				id_vehiculo: Number(idVehiculo),
+				id_usuario: sesion.id,
+				tipo: datos.tipo,
+				modelo: datos.modelo,
+				capacidad: datos.capacidad,
+				foto_vehiculo: datos.foto_vehiculo,
+				...(datos.tipo === "Automovil" && { numero_puertas: datos.numero_puertas }),
+				...(datos.tipo === "Moto" && { modalidad: datos.modalidad }),
+			},
+		});
+	} catch (error) {
+		console.error("No se pudo actualizar el vehículo en la API:", error);
 		return NextResponse.json(
 			{ error: "No se pudo conectar con la API de vehículos." },
 			{ status: 502 },
