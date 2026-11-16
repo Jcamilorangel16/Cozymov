@@ -38,7 +38,6 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} min-h-full flex flex-col antialiased`}
       >
         <CustomCursor />
-           {children}
         <LoadingScreen />
         {children}
       </body>
