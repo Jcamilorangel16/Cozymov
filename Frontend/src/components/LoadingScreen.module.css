@@ -1,0 +1,157 @@
+.screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  background: #bfe3ff;
+}
+
+.logo {
+  width: min(90vw, 720px);
+  height: auto;
+  overflow: visible;
+}
+
+.path {
+  fill: none;
+  stroke-dasharray: 1 1;
+  stroke-dashoffset: 1;
+  stroke-linejoin: miter;
+  stroke-miterlimit: 3;
+}
+
+.letterPath {
+  stroke: #0a2540;
+  stroke-width: 15;
+  animation: draw 0.8s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+  animation-delay: calc(var(--index) * 0.14s);
+}
+
+.letterOutline {
+  stroke: #bfe3ff;
+  stroke-width: 3.5;
+  animation: draw 0.8s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+  animation-delay: calc(var(--index) * 0.14s + 0.12s);
+}
+
+.letter0 {
+  --index: 0;
+}
+
+.letter1 {
+  --index: 1;
+}
+
+.letter2 {
+  --index: 2;
+}
+
+.letter3 {
+  --index: 3;
+}
+
+.letter4 {
+  --index: 4;
+}
+
+.letter5 {
+  --index: 5;
+}
+
+.letter6 {
+  --index: 6;
+}
+
+.spoke,
+.spokeOutline {
+  stroke-dasharray: 1 1;
+  animation: draw 0.5s ease-out forwards;
+}
+
+.spoke {
+  stroke: #0a2540;
+  stroke-width: 7;
+  animation-delay: calc(var(--index) * 0.14s + 0.5s);
+}
+
+.spokeOutline {
+  stroke: #bfe3ff;
+  stroke-width: 2;
+  animation-delay: calc(var(--index) * 0.14s + 0.6s);
+}
+
+.hub {
+  opacity: 0;
+  animation: show 0.2s ease-out forwards;
+  animation-delay: calc(var(--index) * 0.14s + 0.9s);
+}
+
+.hubFill,
+.tireHub {
+  fill: #0a2540;
+}
+
+.hubOutline {
+  fill: none;
+  stroke: #bfe3ff;
+  stroke-width: 2.5;
+}
+
+.tireSpokes {
+  stroke: #0a2540;
+  stroke-width: 3;
+  animation: draw 0.5s ease-out forwards;
+  animation-delay: calc(var(--index) * 0.14s + 0.55s);
+}
+
+.tireHub {
+  opacity: 0;
+  animation: show 0.2s ease-out forwards;
+  animation-delay: calc(var(--index) * 0.14s + 0.9s);
+}
+
+.caption {
+  fill: #0a2540;
+  font: 800 14px/1 "Montserrat", "Arial Black", Arial, sans-serif;
+  letter-spacing: 0.18em;
+  opacity: 0;
+  animation: fade 0.6s ease-out 1.5s forwards;
+}
+
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes show {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .letterPath,
+  .letterOutline,
+  .caption,
+  .tireSpokes,
+  .tireHub,
+  .hub,
+  .spoke,
+  .spokeOutline {
+    animation-duration: 0.01s;
+    animation-delay: 0s;
+  }
+}
