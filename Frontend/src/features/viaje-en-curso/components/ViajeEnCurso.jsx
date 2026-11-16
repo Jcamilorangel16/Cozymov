@@ -1,9 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import Swal from "sweetalert2";
 import { formatearFecha, formatearPrecio } from "../../buscar-viajes/utils/viajes";
 import "../styles/viaje-en-curso.css";
+
+// Leaflet necesita `window`, por eso el mapa solo se carga en el navegador.
+const MapaRuta = dynamic(() => import("./MapaRuta"), {
+  ssr: false,
+  loading: () => <div className="mapa-ruta mapa-cargando">Cargando mapa...</div>,
+});
 
 /**
  * Presenta la reserva activa del usuario.
@@ -175,6 +182,13 @@ export default function ViajeEnCurso({ onNavigate, onMensajeConductor }) {
           <p className="texto-secundario mt-3 mb-0">
             Salida: <strong>{fechaSalida}</strong>
           </p>
+          <div className="mt-3">
+            <MapaRuta
+              key={`${viaje.origen}|${viaje.destino}`}
+              origen={viaje.origen}
+              destino={viaje.destino}
+            />
+          </div>
         </section>
       </div>
 
