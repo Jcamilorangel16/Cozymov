@@ -262,6 +262,40 @@ public class UsuariosController : ControllerBase
 
     }
 
+    // POST: api/Usuarios/{idpersonas}/contrasena
+    // Cambia la contraseña verificando la actual. Solo lo invoca el proxy de
+    // Next.js, que toma el id de la sesión.
+    [HttpPost("{idpersonas:int}/contrasena")]
+    public async Task<IActionResult> CambiarContrasena(int idpersonas, CambiarContrasenaDTO datos)
+    {
+        var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.IdPersonas == idpersonas);
+        if (usuario == null)
+        {
+            return NotFound(new { error = "Usuario no encontrado." });
+        }
+
+        var actual = datos.ContrasenaActual ?? string.Empty;
+        var nueva = datos.NuevaContrasena ?? string.Empty;
+
+        // Misma política que el registro: entre 8 y 72 bytes (límite de bcrypt/Identity).
+        if (nueva.Length < 8 || System.Text.Encoding.UTF8.GetByteCount(nueva) > 72)
+        {
+            return BadRequest(new { error = "La contraseña debe tener entre 8 y 72 bytes." });
+        }
+
+        var resultado = string.IsNullOrEmpty(actual)
+            ? PasswordVerificationResult.Failed
+            : _passwordHasher.VerifyHashedPassword(usuario, usuario.Contrasena, actual);
+        if (resultado == PasswordVerificationResult.Failed)
+        {
+            return Unauthorized(new { error = "La contraseña actual es incorrecta." });
+        }
+
+        usuario.Contrasena = _passwordHasher.HashPassword(usuario, nueva);
+        await _context.SaveChangesAsync();
+        return NoContent();
+    }
+
     //POST: api/Usuarios/LoginGoogle
     // Solo lo invoca el servidor de Next.js (X-Internal-Api-Key) después de
     // validar el ID token de Google. No crea cuentas: únicamente identifica o

@@ -53,6 +53,7 @@ export default function MenuPrincipal({ usuarioActualId }) {
                   setViajeSeleccionado={setViajeSeleccionado}
                   mensajeAccion={mensajeBusqueda}
                   setMensajeAccion={setMensajeBusqueda}
+                  onNavigate={irAVista}
                 />
               </div>
             )}
