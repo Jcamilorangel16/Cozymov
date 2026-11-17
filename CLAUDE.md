@@ -206,16 +206,34 @@ tener varios vehículos y `viaje.IdConductor` sigue siendo texto. La regla de
 cupos ≤ capacidad del vehículo (trigger) y la exclusividad automóvil/moto
 siguen pendientes.
 
-### Autorización de las tablas nuevas
+### Autorización de la API
 
-Los prefijos `/api/telefonos`, `/api/preferencias`, `/api/solicitudes` y
-`/api/calificaciones` exigen `X-Internal-Api-Key` (`InternalApiMiddleware`), de
-modo que solo el frontend puede llamarlos. El navegador usa las rutas proxy
-`Frontend/app/api/{telefonos,preferencias,solicitudes,calificaciones}`, que
-toman el usuario de la sesión (`src/lib/proxyUsuario.ts`), nunca del cliente, y
-verifican la propiedad antes de editar o borrar (`?id=`). Los demás
-controladores (`/api/rutas`, `/api/vehiculos`, `/api/Mensajes`…) siguen sin
-esa protección.
+Toda ruta bajo `/api` del backend exige `X-Internal-Api-Key`
+(`InternalApiMiddleware` deniega por defecto), de modo que solo el servidor de
+Next.js puede llamarla; un controlador nuevo queda protegido sin tocar el
+middleware. El navegador usa las rutas proxy de `Frontend/app/api/`, que toman
+el usuario de la sesión (`src/lib/proxyUsuario.ts`), nunca del cliente, y
+verifican la propiedad antes de editar o borrar (`?id=`). La autorización por
+usuario vive en esos proxies: el backend confía en quien presenta la clave.
+Toda llamada al backend debe salir de `getBackendApiConfig()` para incluir la
+clave.
+
+### Medidas de seguridad vigentes
+
+- `Frontend/proxy.ts` rechaza los POST/PUT/DELETE a `/api` cuyo `Origin` no sea
+  el de la propia app (CSRF). `ORIGENES_PERMITIDOS` admite orígenes extra.
+- `Frontend/next.config.ts` envía CSP, `X-Frame-Options`, HSTS y afines. Si se
+  añade un recurso externo (script, fuente, API llamada desde el navegador),
+  hay que permitirlo en la CSP.
+- `SESSION_SECRET` debe tener al menos 32 caracteres (`src/lib/auth.ts`).
+- Inicio de sesión y cambio de contraseña se bloquean 15 min tras 8 fallos por
+  cuenta (`Backend/Services/LimitadorIntentos.cs`, en memoria) y el login tiene
+  además un límite por IP. Los límites por IP usan la cabecera `X-Cliente-Ip`
+  que envía `cabecerasIpCliente()` (`src/lib/backendApi.ts`).
+- Los errores 5xx del backend no se reenvían al navegador
+  (`mensajeErrorSeguro()`).
+- CORS del backend está cerrado salvo `Cors:OrigenesPermitidos`.
+- Las falencias pendientes están en [`INFORME_SEGURIDAD.md`](INFORME_SEGURIDAD.md).
 
 ### Finalización de viajes y calificaciones
 

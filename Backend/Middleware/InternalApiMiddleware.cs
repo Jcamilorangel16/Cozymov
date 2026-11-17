@@ -8,26 +8,18 @@ public sealed class InternalApiMiddleware(
     IConfiguration configuration,
     ILogger<InternalApiMiddleware> logger)
 {
-    private static readonly string[] PrefijosProtegidos =
-    [
-        "/api/Viajes",
-        "/api/Usuarios",
-        "/api/registro",
-        "/api/recuperacion",
-        "/api/telefonos",
-        "/api/preferencias",
-        "/api/solicitudes",
-        "/api/calificaciones",
-        "/api/vehiculos"
-    ];
+    // Denegar por defecto: toda la API exige la clave interna. Antes se
+    // enumeraban los prefijos protegidos y cada controlador nuevo (mensajes,
+    // rutas, automóviles, motos, bicicletas) quedaba público hasta que alguien
+    // recordaba añadirlo a la lista.
+    private const string PrefijoApi = "/api";
 
     public async Task InvokeAsync(HttpContext context)
     {
         if (HttpMethods.IsOptions(context.Request.Method) ||
-            !PrefijosProtegidos.Any(prefijo =>
-                context.Request.Path.StartsWithSegments(
-                    prefijo,
-                    StringComparison.OrdinalIgnoreCase)))
+            !context.Request.Path.StartsWithSegments(
+                PrefijoApi,
+                StringComparison.OrdinalIgnoreCase))
         {
             await next(context);
             return;

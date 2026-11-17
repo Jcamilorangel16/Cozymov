@@ -5,7 +5,7 @@ import {
 	validarFiltrosViajes,
 	validarIdUsuarioViaje,
 } from "../../../src/features/viajes/validations/viajes";
-import { getBackendApiConfig } from "../../../src/lib/backendApi";
+import { getBackendApiConfig, mensajeErrorSeguro } from "../../../src/lib/backendApi";
 
 export const runtime = "nodejs";
 
@@ -43,7 +43,10 @@ async function responderErrorApi(respuesta: Response, mensaje: string) {
 	} catch {
 		// El backend puede responder texto plano.
 	}
-	return NextResponse.json({ error }, { status: respuesta.status });
+	return NextResponse.json(
+		{ error: mensajeErrorSeguro(respuesta.status, error, mensaje) },
+		{ status: respuesta.status },
+	);
 }
 
 function normalizarViaje(viaje: Registro, respaldo: Registro = {}): Registro {

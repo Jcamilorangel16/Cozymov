@@ -2,6 +2,8 @@ using Backend.Controllers;
 using Backend.Data;
 using Backend.DTOs;
 using Backend.Models;
+using Backend.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -36,8 +38,98 @@ public sealed class ConfiguracionControllersTests
         return (context, hasher);
     }
 
-    private static UsuariosController Controlador(AppDbContext context, IPasswordHasher<Usuarios> hasher) =>
-        new(context, hasher, null!);
+    private static UsuariosController Controlador(
+        AppDbContext context,
+        IPasswordHasher<Usuarios> hasher,
+        LimitadorIntentos? limitador = null) =>
+        new(context, hasher, null!, limitador ?? new LimitadorIntentos(TimeProvider.System));
+
+    private static int? Estado<T>(ActionResult<T> respuesta) =>
+        (respuesta.Result as ObjectResult)?.StatusCode;
+
+    [Fact]
+    public async Task LoginBloqueaLaCuentaTrasDemasiadosFallosAunqueLaClaveSeaCorrecta()
+    {
+        var (context, hasher) = await ContextoConUsuario();
+        await using var _ = context;
+        var controlador = Controlador(context, hasher);
+
+        for (var intento = 0; intento < LimitadorIntentos.MaximoIntentos; intento++)
+        {
+            var fallo = await controlador.Login(new UsuariosLoginDTO { Correo = "1@x.co", Contrasena = "Incorrecta1" });
+            Assert.Equal(StatusCodes.Status401Unauthorized, Estado(fallo));
+        }
+
+        var bloqueado = await controlador.Login(new UsuariosLoginDTO { Correo = "1@x.co", Contrasena = "ClaveActual1" });
+        Assert.Equal(StatusCodes.Status429TooManyRequests, Estado(bloqueado));
+
+        // El bloqueo es por cuenta: otro usuario sigue entrando con normalidad.
+        var otro = await controlador.Login(new UsuariosLoginDTO { Correo = "2@x.co", Contrasena = "ClaveActual1" });
+        Assert.Equal(StatusCodes.Status200OK, Estado(otro));
+    }
+
+    [Fact]
+    public async Task LoginCorrectoReiniciaElContadorDeFallos()
+    {
+        var (context, hasher) = await ContextoConUsuario();
+        await using var _ = context;
+        var controlador = Controlador(context, hasher);
+
+        for (var ronda = 0; ronda < 3; ronda++)
+        {
+            for (var intento = 0; intento < LimitadorIntentos.MaximoIntentos - 1; intento++)
+            {
+                await controlador.Login(new UsuariosLoginDTO { Correo = "1@x.co", Contrasena = "Incorrecta1" });
+            }
+
+            var correcto = await controlador.Login(new UsuariosLoginDTO { Correo = "1@x.co", Contrasena = "ClaveActual1" });
+            Assert.Equal(StatusCodes.Status200OK, Estado(correcto));
+        }
+    }
+
+    [Fact]
+    public async Task LoginRespondeIgualParaCorreosInexistentesYTambienLosBloquea()
+    {
+        var (context, hasher) = await ContextoConUsuario();
+        await using var _ = context;
+        var controlador = Controlador(context, hasher);
+
+        for (var intento = 0; intento < LimitadorIntentos.MaximoIntentos; intento++)
+        {
+            var fallo = await controlador.Login(new UsuariosLoginDTO { Correo = "nadie@x.co", Contrasena = "Cualquiera1" });
+            Assert.Equal(StatusCodes.Status401Unauthorized, Estado(fallo));
+        }
+
+        var bloqueado = await controlador.Login(new UsuariosLoginDTO { Correo = "nadie@x.co", Contrasena = "Cualquiera1" });
+        Assert.Equal(StatusCodes.Status429TooManyRequests, Estado(bloqueado));
+    }
+
+    [Fact]
+    public async Task CambiarContrasenaSeBloqueaTrasDemasiadosFallos()
+    {
+        var (context, hasher) = await ContextoConUsuario();
+        await using var _ = context;
+        var controlador = Controlador(context, hasher);
+
+        for (var intento = 0; intento < LimitadorIntentos.MaximoIntentos; intento++)
+        {
+            var fallo = await controlador.CambiarContrasena(1, new CambiarContrasenaDTO
+            {
+                ContrasenaActual = "Incorrecta1", NuevaContrasena = "ClaveNueva2"
+            });
+            Assert.IsType<UnauthorizedObjectResult>(fallo);
+        }
+
+        var bloqueado = await controlador.CambiarContrasena(1, new CambiarContrasenaDTO
+        {
+            ContrasenaActual = "ClaveActual1", NuevaContrasena = "ClaveNueva2"
+        });
+
+        Assert.Equal(StatusCodes.Status429TooManyRequests, (bloqueado as ObjectResult)?.StatusCode);
+        var verificacion = hasher.VerifyHashedPassword(
+            null!, (await context.Usuarios.FindAsync(1))!.Contrasena, "ClaveActual1");
+        Assert.NotEqual(PasswordVerificationResult.Failed, verificacion);
+    }
 
     [Fact]
     public async Task CambiarContrasenaRechazaContrasenaActualIncorrecta()

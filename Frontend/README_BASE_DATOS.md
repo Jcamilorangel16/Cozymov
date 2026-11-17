@@ -12,8 +12,16 @@ En Vercel configura:
 | Variable | Uso |
 | --- | --- |
 | `VITE_API_URL` | URL pública HTTPS del backend ASP.NET Core, sin agregar `/api`. |
-| `SESSION_SECRET` | Secreto privado para firmar las sesiones del frontend. |
-| `INTERNAL_API_KEY` | Clave compartida entre Next.js y el backend para proteger las rutas de viajes. |
+| `SESSION_SECRET` | Secreto privado para firmar las sesiones del frontend. Mínimo 32 caracteres aleatorios; con menos, el inicio de sesión falla. |
+| `INTERNAL_API_KEY` | Clave compartida entre Next.js y el backend. El backend la exige en todas las rutas `/api`. |
+| `ORIGENES_PERMITIDOS` | Opcional. Orígenes adicionales (separados por coma) desde los que se aceptan POST/PUT/DELETE a `/api`. Solo hace falta si un proxy cambia el `Host` y las solicitudes legítimas reciben 403. |
+
+En el backend, `Cors__OrigenesPermitidos` es opcional y está vacío por defecto:
+el navegador no llama a la API directamente, así que no hace falta abrir CORS.
+
+Al desplegar una versión del backend que protege rutas nuevas, publica primero
+el frontend: una versión anterior que no envíe la clave en esas rutas recibiría
+401.
 
 Configúralas para los entornos de Vercel que uses (Production y Preview) y
 vuelve a desplegar después de modificarlas. No uses `localhost` como URL del

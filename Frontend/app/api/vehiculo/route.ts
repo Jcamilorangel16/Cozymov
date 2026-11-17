@@ -4,7 +4,7 @@ import {
 	validarNuevoVehiculo,
 } from "../../../src/features/ofrecer-viajes/validations/vehiculos";
 import { obtenerSesionActual } from "../../../src/lib/auth";
-import { getBackendApiConfig } from "../../../src/lib/backendApi";
+import { getBackendApiConfig, mensajeErrorSeguro } from "../../../src/lib/backendApi";
 
 export const runtime = "nodejs";
 
@@ -43,7 +43,10 @@ async function responderErrorApi(respuesta: Response, mensaje: string) {
 	} catch {
 		// El backend puede responder texto plano.
 	}
-	return NextResponse.json({ error }, { status: respuesta.status });
+	return NextResponse.json(
+		{ error: mensajeErrorSeguro(respuesta.status, error, mensaje) },
+		{ status: respuesta.status },
+	);
 }
 
 function normalizarVehiculo(valor: unknown): Registro | null {
@@ -227,7 +230,13 @@ export async function POST(request: Request) {
 				console.error(`No se pudo limpiar el vehículo incompleto ${idVehiculo}:`, error);
 			}
 			return NextResponse.json(
-				{ error: errorSubtipo || "No se pudo registrar el tipo de vehículo." },
+				{
+					error: mensajeErrorSeguro(
+						respuestaSubtipo.status,
+						errorSubtipo,
+						"No se pudo registrar el tipo de vehículo.",
+					),
+				},
 				{ status: respuestaSubtipo.status },
 			);
 		}

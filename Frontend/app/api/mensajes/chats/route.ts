@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { obtenerSesionActual } from "../../../../src/lib/auth";
+import { getBackendApiConfig, mensajeErrorSeguro } from "../../../../src/lib/backendApi";
 
 export const runtime = "nodejs";
 
@@ -14,17 +15,24 @@ export async function GET() {
 		return NextResponse.json({ error: "Identificador inválido." }, { status: 400 });
 	}
 
-	const base = process.env.VITE_API_URL?.replace(/\/+$/, "");
-	if (!base) {
-		return NextResponse.json({ error: "Falta configurar VITE_API_URL." }, { status: 500 });
+	const config = getBackendApiConfig();
+	if (!config) {
+		return NextResponse.json(
+			{ error: "Falta configurar VITE_API_URL o INTERNAL_API_KEY." },
+			{ status: 500 },
+		);
 	}
+	const base = config.baseUrl;
 
 	try {
-		const respuesta = await fetch(`${base}/api/Mensajes/chats?yo=${yo}`, { cache: "no-store" });
+		const respuesta = await fetch(`${base}/api/Mensajes/chats?yo=${yo}`, {
+			headers: config.headers,
+			cache: "no-store",
+		});
 		if (!respuesta.ok) {
 			const detalle = await respuesta.text();
 			return NextResponse.json(
-				{ error: detalle || "No se pudieron consultar los chats." },
+				{ error: mensajeErrorSeguro(respuesta.status, detalle, "No se pudieron consultar los chats.") },
 				{ status: respuesta.status },
 			);
 		}
