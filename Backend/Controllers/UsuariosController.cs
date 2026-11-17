@@ -15,15 +15,21 @@ public class UsuariosController : ControllerBase
     private readonly AppDbContext _context;
     private readonly IPasswordHasher<Usuarios> _passwordHasher;
     private readonly IVerificadorCorreo _verificadorCorreo;
+    private readonly LimitadorIntentos _limitadorIntentos;
+
+    private const string ErrorDemasiadosIntentos =
+        "Demasiados intentos fallidos. Espera unos minutos antes de volver a intentarlo.";
 
     public UsuariosController(
         AppDbContext context,
         IPasswordHasher<Usuarios> passwordHasher,
-        IVerificadorCorreo verificadorCorreo)
+        IVerificadorCorreo verificadorCorreo,
+        LimitadorIntentos limitadorIntentos)
     {
         _context = context;
         _passwordHasher = passwordHasher;
         _verificadorCorreo = verificadorCorreo;
+        _limitadorIntentos = limitadorIntentos;
     }
 
     // GET: api/Usuarios
@@ -219,21 +225,41 @@ public class UsuariosController : ControllerBase
 
     //POST: api/Usuarios/Login
     [HttpPost("Login")]
+    [EnableRateLimiting("login")]
     public async Task<ActionResult<UsuariosDTO>> Login(UsuariosLoginDTO datos)
     {
         var correo = (datos.Correo ?? string.Empty).Trim().ToLowerInvariant();
+        var contrasena = datos.Contrasena ?? string.Empty;
+
+        // El bloqueo va por correo, exista o no la cuenta: así la respuesta no
+        // revela qué correos están registrados.
+        var claveIntentos = $"login|{correo}";
+        if (_limitadorIntentos.EstaBloqueado(claveIntentos))
+        {
+            return StatusCode(StatusCodes.Status429TooManyRequests, ErrorDemasiadosIntentos);
+        }
+
         var usuario = await _context.Usuarios
            .FirstOrDefaultAsync(u => u.Correo.ToLower() == correo);
         if (usuario == null)
         {
+            // Se calcula un hash igualmente: sin él, un correo inexistente
+            // respondería mucho más rápido y delataría las cuentas reales.
+            _passwordHasher.HashPassword(new Usuarios(), contrasena);
+            _limitadorIntentos.RegistrarFallo(claveIntentos);
             return Unauthorized("Credenciales inválidas");
         }
 
-        var resultado = _passwordHasher.VerifyHashedPassword(usuario, usuario.Contrasena, datos.Contrasena);
+        var resultado = string.IsNullOrEmpty(contrasena)
+            ? PasswordVerificationResult.Failed
+            : _passwordHasher.VerifyHashedPassword(usuario, usuario.Contrasena, contrasena);
         if (resultado == PasswordVerificationResult.Failed)
         {
+            _limitadorIntentos.RegistrarFallo(claveIntentos);
             return Unauthorized("Credenciales inválidas");
         }
+
+        _limitadorIntentos.Reiniciar(claveIntentos);
 
         // Sin correo confirmado no se permite iniciar sesión.
         if (!usuario.EmailVerificado)
@@ -283,14 +309,25 @@ public class UsuariosController : ControllerBase
             return BadRequest(new { error = "La contraseña debe tener entre 8 y 72 bytes." });
         }
 
+        // Una sesión robada no debe poder adivinar la contraseña actual a base de intentos.
+        var claveIntentos = $"contrasena|{idpersonas}";
+        if (_limitadorIntentos.EstaBloqueado(claveIntentos))
+        {
+            return StatusCode(
+                StatusCodes.Status429TooManyRequests,
+                new { error = ErrorDemasiadosIntentos });
+        }
+
         var resultado = string.IsNullOrEmpty(actual)
             ? PasswordVerificationResult.Failed
             : _passwordHasher.VerifyHashedPassword(usuario, usuario.Contrasena, actual);
         if (resultado == PasswordVerificationResult.Failed)
         {
+            _limitadorIntentos.RegistrarFallo(claveIntentos);
             return Unauthorized(new { error = "La contraseña actual es incorrecta." });
         }
 
+        _limitadorIntentos.Reiniciar(claveIntentos);
         usuario.Contrasena = _passwordHasher.HashPassword(usuario, nueva);
         await _context.SaveChangesAsync();
         return NoContent();

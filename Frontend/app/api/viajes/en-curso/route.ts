@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { obtenerSesionActual } from "../../../../src/lib/auth";
-import { getBackendApiConfig } from "../../../../src/lib/backendApi";
+import { getBackendApiConfig, mensajeErrorSeguro } from "../../../../src/lib/backendApi";
 
 type Registro = Record<string, unknown>;
 
@@ -26,6 +26,12 @@ function normalizarViaje(valor: Registro): Registro {
 
 async function errorApi(respuesta: Response, mensaje: string) {
 	const detalle = await respuesta.text();
+	if (respuesta.status >= 500) {
+		return NextResponse.json(
+			{ error: mensajeErrorSeguro(respuesta.status, detalle, mensaje) },
+			{ status: respuesta.status },
+		);
+	}
 	if (!detalle) {
 		return NextResponse.json({ error: mensaje }, { status: respuesta.status });
 	}

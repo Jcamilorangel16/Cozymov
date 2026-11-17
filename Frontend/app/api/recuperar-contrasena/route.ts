@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-import { getBackendApiConfig } from "../../../src/lib/backendApi.ts";
+import { cabecerasIpCliente, getBackendApiConfig } from "../../../src/lib/backendApi.ts";
 
 export const runtime = "nodejs";
 
@@ -73,10 +73,9 @@ export async function POST(request: NextRequest) {
   try {
     const headers: Record<string, string> = {
       ...config.headers,
+      ...cabecerasIpCliente(request),
       "Content-Type": "application/json",
     };
-    const ip = request.headers.get("x-real-ip") ?? request.headers.get("x-forwarded-for");
-    if (ip) headers["X-Forwarded-For"] = ip;
 
     const respuesta = await fetch(`${config.baseUrl}${ruta}`, {
       method: "POST",

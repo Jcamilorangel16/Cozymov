@@ -7,8 +7,20 @@ using Backend.Middleware;
 using System.Net;
 using System.Threading.RateLimiting;
 
+// Clave de partición para los límites por IP.
+// Los endpoints limitados exigen X-Internal-Api-Key, así que solo el servidor
+// de Next.js llega hasta aquí y es él quien informa la IP del navegador en
+// X-Cliente-Ip. X-Forwarded-For se conserva como respaldo: los balanceadores
+// que hay entre Next.js y esta API le añaden su propia IP, por lo que su
+// último valor puede ser el del frontend y no el del usuario.
 static string ObtenerClaveIp(HttpContext context)
 {
+    var ipCliente = context.Request.Headers["X-Cliente-Ip"].ToString().Trim();
+    if (IPAddress.TryParse(ipCliente, out var informada))
+    {
+        return informada.MapToIPv6().ToString();
+    }
+
     var forwardedIp = context.Request.Headers["X-Forwarded-For"]
         .ToString()
         .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
@@ -21,6 +33,15 @@ static string ObtenerClaveIp(HttpContext context)
 }
 
 var builder = WebApplication.CreateBuilder(args);
+
+// No se anuncia el servidor y se acota el cuerpo: la API solo recibe JSON
+// pequeño (el campo más largo es un texto de 500 caracteres).
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.AddServerHeader = false;
+    options.Limits.MaxRequestBodySize = 1024 * 1024;
+});
+
 var connectionString = builder.Configuration.GetConnectionString("Supabase")
     ?? throw new InvalidOperationException(
         "No se encontró ConnectionStrings:Supabase. Configure la conexión en User Secrets.");
@@ -35,10 +56,23 @@ builder.Services.AddOpenApi();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddCors();
+// El navegador nunca llama a esta API: lo hace el servidor de Next.js, al que
+// CORS no aplica. Por eso no se permite ningún origen salvo los que se declaren
+// en Cors:OrigenesPermitidos (separados por coma).
+var origenesPermitidos = (builder.Configuration["Cors:OrigenesPermitidos"] ?? string.Empty)
+    .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+builder.Services.AddCors(options =>
+    options.AddDefaultPolicy(politica =>
+    {
+        if (origenesPermitidos.Length > 0)
+        {
+            politica.WithOrigins(origenesPermitidos).AllowAnyMethod().AllowAnyHeader();
+        }
+    }));
 builder.Services.AddScoped<IPasswordHasher<Usuarios>,PasswordHasher<Usuarios>>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<IVerificadorCorreo, VerificadorCorreoHmac>();
+builder.Services.AddSingleton<LimitadorIntentos>();
 builder.Services.AddHttpClient<IEnviadorCorreo, BrevoEnviadorCorreo>(client =>
 {
     client.Timeout = TimeSpan.FromSeconds(15);
@@ -70,6 +104,18 @@ builder.Services.AddRateLimiter(options =>
                 Window = TimeSpan.FromMinutes(15),
                 QueueLimit = 0
             }));
+    // Frena el rociado de contraseñas desde una misma IP. El cupo es amplio
+    // porque una red universitaria comparte IP entre muchos usuarios; la fuerza
+    // bruta sobre una cuenta concreta la corta LimitadorIntentos.
+    options.AddPolicy("login", context =>
+        RateLimitPartition.GetFixedWindowLimiter(ObtenerClaveIp(context), _ =>
+            new FixedWindowRateLimiterOptions
+            {
+                AutoReplenishment = true,
+                PermitLimit = 60,
+                Window = TimeSpan.FromMinutes(5),
+                QueueLimit = 0
+            }));
     options.AddPolicy("registro", context =>
         RateLimitPartition.GetFixedWindowLimiter(ObtenerClaveIp(context), _ =>
             new FixedWindowRateLimiterOptions
@@ -95,6 +141,22 @@ if (app.Environment.IsDevelopment())
 }
 
 // Configure the HTTP request pipeline.
+// Cabeceras defensivas en todas las respuestas, incluidos los rechazos.
+app.Use(async (context, next) =>
+{
+    var cabeceras = context.Response.Headers;
+    cabeceras["X-Content-Type-Options"] = "nosniff";
+    cabeceras["X-Frame-Options"] = "DENY";
+    cabeceras["Referrer-Policy"] = "no-referrer";
+    if (context.Request.Path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase))
+    {
+        // Las respuestas llevan datos personales: ningún intermediario debe guardarlas.
+        cabeceras["Cache-Control"] = "no-store";
+    }
+
+    await next(context);
+});
+
 app.UseRouting();
 app.UseMiddleware<InternalApiMiddleware>();
 app.UseRateLimiter();
@@ -109,12 +171,8 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-//Permisos para consumir la API desde cualquier origen
-app.UseCors(builder =>
-    builder
-        .AllowAnyOrigin()
-        .AllowAnyMethod()
-        .AllowAnyHeader());
+// Solo los orígenes de Cors:OrigenesPermitidos (ninguno por defecto).
+app.UseCors();
 
 
 app.UseHttpsRedirection();

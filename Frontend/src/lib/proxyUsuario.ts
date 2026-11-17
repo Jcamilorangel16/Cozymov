@@ -2,7 +2,7 @@
 // sesión. El identificador de usuario nunca se toma del cliente.
 import { NextResponse } from "next/server";
 import { obtenerSesionActual } from "./auth";
-import { getBackendApiConfig } from "./backendApi";
+import { getBackendApiConfig, mensajeErrorSeguro } from "./backendApi";
 
 export type ContextoUsuario = {
 	idUsuario: number;
@@ -106,7 +106,10 @@ export async function reenviarRespuesta(respuesta: Response): Promise<NextRespon
 				mensaje = detalle;
 			}
 		}
-		return respuestaError(mensaje, respuesta.status);
+		return respuestaError(
+			mensajeErrorSeguro(respuesta.status, mensaje, mensaje),
+			respuesta.status,
+		);
 	}
 
 	return NextResponse.json(datos, { status: respuesta.status });

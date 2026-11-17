@@ -7,7 +7,7 @@ import {
   firmarSesion,
   NOMBRE_COOKIE_SESION,
 } from "../../../src/lib/auth";
-import { getBackendApiConfig } from "../../../src/lib/backendApi";
+import { cabecerasIpCliente, getBackendApiConfig } from "../../../src/lib/backendApi";
 
 export const runtime = "nodejs";
 
@@ -68,6 +68,7 @@ export async function POST(request: Request) {
         method: "POST",
         headers: {
           ...config.headers,
+          ...cabecerasIpCliente(request),
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -98,6 +99,17 @@ export async function POST(request: Request) {
             "Debes confirmar tu correo electrónico antes de iniciar sesión.",
         },
         { status: 403 },
+      );
+    }
+
+    // El backend bloquea temporalmente la cuenta o la IP tras muchos fallos.
+    if (respuestaApi.status === 429) {
+      return NextResponse.json(
+        {
+          error:
+            "Demasiados intentos fallidos. Espera unos minutos antes de volver a intentarlo.",
+        },
+        { status: 429 },
       );
     }
 

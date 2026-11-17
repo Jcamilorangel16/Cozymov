@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { obtenerSesionActual } from "../../../src/lib/auth";
+import { getBackendApiConfig, mensajeErrorSeguro } from "../../../src/lib/backendApi";
 
 export const runtime = "nodejs";
 
@@ -18,11 +19,6 @@ function obtenerCampo(registro: Registro, ...nombres: string[]): unknown {
 	return undefined;
 }
 
-function obtenerBaseApi(): string | null {
-	const apiUrl = process.env.VITE_API_URL ?? process.env.API_URL;
-	return apiUrl ? apiUrl.replace(/\/+$/, "") : null;
-}
-
 async function responderErrorApi(respuesta: Response, mensaje: string) {
 	const detalle = await respuesta.text();
 	let error = detalle || mensaje;
@@ -37,7 +33,10 @@ async function responderErrorApi(respuesta: Response, mensaje: string) {
 	} catch {
 		// El backend puede responder texto plano.
 	}
-	return NextResponse.json({ error }, { status: respuesta.status });
+	return NextResponse.json(
+		{ error: mensajeErrorSeguro(respuesta.status, error, mensaje) },
+		{ status: respuesta.status },
+	);
 }
 
 export async function GET() {
@@ -55,16 +54,17 @@ export async function GET() {
 		});
 	}
 
-	const baseApi = obtenerBaseApi();
-	if (!baseApi) {
+	const config = getBackendApiConfig();
+	if (!config) {
 		return NextResponse.json(
-			{ error: "Falta configurar VITE_API_URL o API_URL." },
+			{ error: "Falta configurar VITE_API_URL o INTERNAL_API_KEY." },
 			{ status: 500 },
 		);
 	}
 
 	try {
-		const respuesta = await fetch(`${baseApi}/api/Usuarios/${sesion.id}`, {
+		const respuesta = await fetch(`${config.baseUrl}/api/Usuarios/${encodeURIComponent(sesion.id)}`, {
+			headers: config.headers,
 			cache: "no-store",
 		});
 

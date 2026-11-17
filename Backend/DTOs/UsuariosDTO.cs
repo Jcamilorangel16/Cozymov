@@ -36,14 +36,23 @@ namespace Backend.DTOs
     {
         [Required, RegularExpression(@"^\d{1,10}$", ErrorMessage = "La cédula debe contener solo números y máximo 10 dígitos.")]
         public string Cedula { get; set; }
+        [StringLength(50)]
         public string PrimerNombre { get; set; }
+        [StringLength(50)]
         public string SegundoNombre { get; set; }
+        [StringLength(50)]
         public string PrimerApellido { get; set; }
+        [StringLength(50)]
         public string SegundoApellido { get; set; }
+        [Range(16, 120)]
         public int Edad { get; set; }
+        [StringLength(150)]
         public string Correo { get; set; }
+        [StringLength(200)]
         public string Contrasena { get; set; }
+        [StringLength(20)]
         public string rol { get; set; }
+        [StringLength(50)]
         public string ocupacion { get; set; }
 
         public VerificacionCorreoRegistroDTO? Verificacion { get; set; }
@@ -54,25 +63,36 @@ public class UsuariosUpdateDTO
 {
     [Required, RegularExpression(@"^\d{1,10}$", ErrorMessage = "La cédula debe contener solo números y máximo 10 dígitos.")]
     public string Cedula { get; set; }
+    [StringLength(50)]
     public string PrimerNombre { get; set; }
+    [StringLength(50)]
     public string SegundoNombre { get; set; }
+    [StringLength(50)]
     public string PrimerApellido { get; set; }
+    [StringLength(50)]
     public string SegundoApellido { get; set; }
+    [Range(1, 120)]
     public int Edad { get; set; }
+    [StringLength(150)]
     public string Correo { get; set; }
+    [StringLength(50)]
     public string ocupacion { get; set; }
 }
 
 
 public class CambiarContrasenaDTO
 {
+    [StringLength(200)]
     public string ContrasenaActual { get; set; } = string.Empty;
+    [StringLength(200)]
     public string NuevaContrasena { get; set; } = string.Empty;
 }
 
 public class UsuariosLoginDTO
 {
+    [StringLength(150)]
     public string Correo { get; set; }
+    [StringLength(200)]
     public string Contrasena { get; set; }
 }
 

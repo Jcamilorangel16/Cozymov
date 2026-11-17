@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { validarCorreoInstitucional } from "../../../../src/features/register/validations/usuarios.ts";
-import { getBackendApiConfig } from "../../../../src/lib/backendApi.ts";
+import { cabecerasIpCliente, getBackendApiConfig } from "../../../../src/lib/backendApi.ts";
 
 export const runtime = "nodejs";
 
@@ -42,11 +42,9 @@ export async function POST(request: NextRequest) {
   try {
     const headers: Record<string, string> = {
       ...config.headers,
+      ...cabecerasIpCliente(request),
       "Content-Type": "application/json",
     };
-    const forwardedIp =
-      request.headers.get("x-real-ip") ?? request.headers.get("x-forwarded-for");
-    if (forwardedIp) headers["X-Forwarded-For"] = forwardedIp;
 
     const respuesta = await fetch(`${config.baseUrl}/api/registro/codigo`, {
       method: "POST",

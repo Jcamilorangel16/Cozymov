@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { obtenerSesionActual } from "../../../src/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -19,8 +20,29 @@ const URL_MAPTILER = "https://api.maptiler.com/geocoding";
 const URL_OSRM = "https://router.project-osrm.org/route/v1/driving";
 const CENTRO_VALLEDUPAR = [10.4631, -73.2532] as const;
 const CAJA_VALLEDUPAR = [-73.33, 10.38, -73.17, 10.54] as const;
+const MAXIMO_TEXTO = 120;
+const ESPERA_MS = 8000;
 
 export async function GET(request: Request) {
+  // Sin sesión, cualquiera en internet podría gastar la cuota de MapTiler y
+  // usar este servidor como intermediario hacia servicios externos.
+  const sesion = await obtenerSesionActual();
+  if (!sesion) {
+    return NextResponse.json({ error: "Debes iniciar sesión." }, { status: 401 });
+  }
+
+  try {
+    return await consultarMapa(request);
+  } catch (error) {
+    console.error("No se pudo consultar el servicio de mapas:", error);
+    return NextResponse.json(
+      { error: "El servicio de mapas no respondió. Inténtalo de nuevo." },
+      { status: 502 },
+    );
+  }
+}
+
+async function consultarMapa(request: Request) {
   const { searchParams } = new URL(request.url);
   const tipo = searchParams.get("tipo");
 
@@ -28,6 +50,9 @@ export async function GET(request: Request) {
     const texto = (searchParams.get("texto") ?? "").trim();
     if (!texto) {
       return NextResponse.json({ error: "Falta el texto a geocodificar." }, { status: 400 });
+    }
+    if (texto.length > MAXIMO_TEXTO) {
+      return NextResponse.json({ error: "El texto a buscar es demasiado largo." }, { status: 400 });
     }
 
     const clave = process.env.MAPTILER_API_KEY;
@@ -49,7 +74,7 @@ export async function GET(request: Request) {
 
     for (const variante of [`${texto}, Valledupar`, texto]) {
       const url = `${URL_MAPTILER}/${encodeURIComponent(variante)}.json?${parametros}`;
-      const respuesta = await fetch(url);
+      const respuesta = await fetch(url, { signal: AbortSignal.timeout(ESPERA_MS) });
       if (!respuesta.ok) {
         return NextResponse.json({ error: "No se pudo buscar la ubicación en el mapa." }, { status: 502 });
       }
@@ -86,7 +111,9 @@ export async function GET(request: Request) {
     }
 
     const puntos = `${origen[1]},${origen[0]};${destino[1]},${destino[0]}`;
-    const respuesta = await fetch(`${URL_OSRM}/${puntos}?overview=full&geometries=geojson`);
+    const respuesta = await fetch(`${URL_OSRM}/${puntos}?overview=full&geometries=geojson`, {
+      signal: AbortSignal.timeout(ESPERA_MS),
+    });
     if (!respuesta.ok) {
       return NextResponse.json({ error: "No se pudo calcular la ruta." }, { status: 502 });
     }
@@ -110,8 +137,13 @@ export async function GET(request: Request) {
 }
 
 function parseCoordenada(valor: string): [number, number] | null {
-  const partes = valor.split(",").map((parte) => Number.parseFloat(parte.trim()));
-  if (partes.length !== 2 || partes.some((numero) => !Number.isFinite(numero))) return null;
-  const [latitud, longitud] = partes;
+  // Solo dos números decimales: nada de lo que llegue aquí debe poder alterar
+  // la URL que se arma para el servicio de rutas.
+  const textos = valor.split(",").map((parte) => parte.trim());
+  if (textos.length !== 2 || textos.some((texto) => !/^-?\d{1,3}(\.\d{1,20})?$/.test(texto))) {
+    return null;
+  }
+  const [latitud, longitud] = textos.map(Number);
+  if (Math.abs(latitud) > 90 || Math.abs(longitud) > 180) return null;
   return [latitud, longitud];
 }

@@ -1,2 +1,12 @@
 bin/
 obj/
+.vs/
+Tests/
+*.user
+
+# La configuración local puede contener cadenas de conexión y claves: nunca
+# debe copiarse a la imagen. En el servidor se usan variables de entorno.
+appsettings.json
+appsettings.*.json
+secrets.json
+.env*

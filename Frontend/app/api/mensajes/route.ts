@@ -4,6 +4,7 @@ import {
 	validarParticipantesMensaje,
 } from "../../../src/features/mensajes/validations/mensajes";
 import { obtenerSesionActual } from "../../../src/lib/auth";
+import { getBackendApiConfig, mensajeErrorSeguro } from "../../../src/lib/backendApi";
 
 export const runtime = "nodejs";
 
@@ -58,15 +59,15 @@ function mapearMensaje(valor: unknown): Registro | null {
 	};
 }
 
-function obtenerUrlApi(): string | null {
-	const apiUrl = process.env.VITE_API_URL;
-	return apiUrl ? `${apiUrl.replace(/\/+$/, "")}/api/Mensajes` : null;
+function obtenerApi() {
+	const config = getBackendApiConfig();
+	return config ? { url: `${config.baseUrl}/api/Mensajes`, headers: config.headers } : null;
 }
 
 async function responderErrorApi(respuesta: Response, mensaje: string) {
 	const detalle = await respuesta.text();
 	return NextResponse.json(
-		{ error: detalle || mensaje },
+		{ error: mensajeErrorSeguro(respuesta.status, detalle, mensaje) },
 		{ status: respuesta.status },
 	);
 }
@@ -110,18 +111,18 @@ export async function GET(request: Request) {
 		);
 	}
 
-	const apiUrl = obtenerUrlApi();
-	if (!apiUrl) {
+	const api = obtenerApi();
+	if (!api) {
 		return NextResponse.json(
-			{ error: "Falta configurar VITE_API_URL." },
+			{ error: "Falta configurar VITE_API_URL o INTERNAL_API_KEY." },
 			{ status: 500 },
 		);
 	}
 
 	try {
 		const respuesta = await fetch(
-			`${apiUrl}/conversacion?yo=${yo}&otro=${otro}`,
-			{ cache: "no-store" },
+			`${api.url}/conversacion?yo=${yo}&otro=${otro}`,
+			{ headers: api.headers, cache: "no-store" },
 		);
 		if (!respuesta.ok) {
 			return responderErrorApi(respuesta, "No se pudieron consultar los mensajes.");
@@ -200,18 +201,18 @@ export async function POST(request: Request) {
 		);
 	}
 
-	const apiUrl = obtenerUrlApi();
-	if (!apiUrl) {
+	const api = obtenerApi();
+	if (!api) {
 		return NextResponse.json(
-			{ error: "Falta configurar VITE_API_URL." },
+			{ error: "Falta configurar VITE_API_URL o INTERNAL_API_KEY." },
 			{ status: 500 },
 		);
 	}
 
 	try {
-		const respuesta = await fetch(apiUrl, {
+		const respuesta = await fetch(api.url, {
 			method: "POST",
-			headers: { "Content-Type": "application/json" },
+			headers: { ...api.headers, "Content-Type": "application/json" },
 			body: JSON.stringify({
 				IdEmisor: idEmisor,
 				IdReceptor: idReceptor,

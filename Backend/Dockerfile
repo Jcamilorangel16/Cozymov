@@ -12,4 +12,7 @@ COPY --from=build /app/publish .
 
 ENV ASPNETCORE_URLS=http://+:10000
 
+# La imagen trae un usuario sin privilegios; sin esta línea el proceso corre como root.
+USER $APP_UID
+
 ENTRYPOINT ["dotnet", "Backend.dll"]

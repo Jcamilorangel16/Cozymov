@@ -6,6 +6,9 @@ import { cookies } from "next/headers";
 export const NOMBRE_COOKIE_SESION = "sesion";
 export const DURACION_SESION_SEGUNDOS = 60 * 60 * 2;
 
+const LONGITUD_MINIMA_SECRETO = 32;
+const ALGORITMO_SESION = "HS256";
+
 export type DatosSesion = {
   id: string;
   correo: string;
@@ -23,6 +26,13 @@ function obtenerSecretoSesion() {
   if (!secreto) {
     throw new Error("SESSION_SECRET no está configurada.");
   }
+  // HS256 es tan fuerte como su secreto: con uno corto, quien capture una
+  // cookie puede adivinarlo sin conexión y fabricar sesiones de cualquier usuario.
+  if (secreto.length < LONGITUD_MINIMA_SECRETO) {
+    throw new Error(
+      `SESSION_SECRET debe tener al menos ${LONGITUD_MINIMA_SECRETO} caracteres aleatorios.`,
+    );
+  }
 
   return new TextEncoder().encode(secreto);
 }
@@ -37,7 +47,7 @@ export async function firmarSesion(datos: DatosSesion) {
     correo: datos.correo,
     ...(datos.nombre ? { nombre: datos.nombre } : {}),
   })
-    .setProtectedHeader({ alg: "HS256" })
+    .setProtectedHeader({ alg: ALGORITMO_SESION })
     .setSubject(datos.id)
     .setIssuedAt()
     .setExpirationTime(`${DURACION_SESION_SEGUNDOS}s`)
@@ -51,7 +61,10 @@ export async function firmarSesion(datos: DatosSesion) {
  */
 export async function verificarSesion(token: string): Promise<DatosSesion | null> {
   try {
-    const { payload } = await jwtVerify(token, obtenerSecretoSesion());
+    // Solo se acepta el algoritmo con el que se firma.
+    const { payload } = await jwtVerify(token, obtenerSecretoSesion(), {
+      algorithms: [ALGORITMO_SESION],
+    });
     const id = payload.sub;
     const correo = payload.correo;
 

@@ -1,4 +1,6 @@
-﻿namespace Backend.DTOs
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Backend.DTOs
 {
     
     public class MensajeDTO
@@ -31,10 +33,13 @@
     // Lo que recibe el POST
     public class MensajeCreateDTO
     {
+        [Range(1, int.MaxValue)]
         public int IdReceptor { get; set; }
+        [Required, StringLength(500)]
         public string Contenido { get; set; } = null!;
 
         // TEMPORAL: quitar cuando exista login
+        [Range(1, int.MaxValue)]
         public int IdEmisor { get; set; }
     }
 }
