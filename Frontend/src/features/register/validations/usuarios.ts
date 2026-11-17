@@ -81,8 +81,14 @@ export function validarRegistroUsuario(
   const correoNormalizado = correo.replace(/\s+/g, "").toLowerCase();
   const ocupacionNormalizada = ocupacion.trim();
 
+  if (!/^\d{1,10}$/.test(usuarioId)) {
+    return {
+      valido: false,
+      error: "La cédula debe contener solo números y máximo 10 dígitos.",
+    };
+  }
+
   if (
-    usuarioId.length > 20 ||
     nombre.length > 50 ||
     (segundoNombreNormalizado !== null && segundoNombreNormalizado.length > 50) ||
     apellido.length > 50 ||
