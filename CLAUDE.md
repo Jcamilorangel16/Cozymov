@@ -247,3 +247,12 @@ calificaciones, que lista las reservas completadas aún sin calificar. El backen
 exige `reserva.Estado == "completada"` para aceptar una calificación. Hoy solo
 el pasajero califica al conductor desde la UI; el backend admite también la
 dirección inversa.
+
+### Calificaciones anónimas
+
+Las calificaciones recibidas son anónimas. El proxy `Frontend/app/api/calificaciones`
+(GET sin `emitidas`) devuelve solo `idCalificacion`, `puntuacion` y `comentario`;
+omite `idEvaluador` e `idReserva`, que permitirían identificar a quien calificó.
+El evaluador sí ve sus calificaciones enviadas completas (para borrarlas). El
+backend conserva el evaluador en la base por integridad; el anonimato se aplica
+en el proxy, así que no expongas esos campos desde otra ruta.

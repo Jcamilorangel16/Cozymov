@@ -121,7 +121,7 @@ namespace Backend.Controllers
             var mensajes = await _context.Mensajes
                 .Where(m => (m.IdEmisor == yo && m.IdReceptor == otro) ||
                             (m.IdEmisor == otro && m.IdReceptor == yo))
-                .OrderBy(m => m.FechaHora)
+                .OrderBy(m => m.FechaHora).ThenBy(m => m.IdMensaje)
                 .ToListAsync();
 
             // Marcar como leídos solo los que me llegaron a mí
@@ -200,7 +200,9 @@ namespace Backend.Controllers
             {
                 IdEmisor = idEmisor,
                 IdReceptor = mensajeCreate.IdReceptor,
-                Contenido = mensajeCreate.Contenido.Trim()
+                Contenido = mensajeCreate.Contenido.Trim(),
+                // Siempre en UTC: el navegador la convierte a la hora local del dispositivo.
+                FechaHora = DateTime.UtcNow
             };
 
             _context.Mensajes.Add(mensaje);

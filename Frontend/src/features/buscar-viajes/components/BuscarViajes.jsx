@@ -37,7 +37,7 @@ export default function BuscarViajes({ onEnviarMensaje, onNavigate }) {
     <div className="container py-4">
       <div className="card shadow-lg border-0 rounded-4">
         <div className="card-body p-4">
-          <h2 className="text-center mb-4"> Buscar Viajes</h2>
+          <h2 className="text-center mb-4 titulo-icono"><i className="bi bi-compass-fill" aria-hidden="true" /> Buscar Viajes</h2>
 
           <form onSubmit={handleBuscar}>
             <div className="row g-3">

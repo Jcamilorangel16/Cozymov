@@ -39,8 +39,14 @@ export default function FormularioSolicitudInicio({
 
   return (
     <section className="viaje-item inicio-destacado" aria-labelledby={`${id}-titulo`}>
-      <h2 className="h5 letra-contenido" id={`${id}-titulo`}>
-        ¡No se encontraron viajes disponibles!
+      <div className="vacio-ilustracion" aria-hidden="true">
+        <i className="bi bi-signpost-2-fill" />
+        <i className="bi bi-emoji-neutral-fill" />
+        <i className="bi bi-car-front" />
+      </div>
+      <h2 className="h5 letra-contenido titulo-icono" id={`${id}-titulo`}>
+        <i className="bi bi-megaphone-fill" aria-hidden="true" />
+        Nadie va a {destino} todavía
       </h2>
       <p className="texto-secundario">
         Propón un precio y cuándo necesitas viajar a {destino}.

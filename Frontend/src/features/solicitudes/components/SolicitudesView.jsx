@@ -213,7 +213,7 @@ export default function SolicitudesView() {
   return (
     <section className="solicitudes-view">
       <div className="mb-4">
-        <h3 className="letra-contenido">Solicitar un viaje</h3>
+        <h3 className="letra-contenido titulo-icono"><i className="bi bi-hand-index-thumb-fill" aria-hidden="true" /> Solicitar un viaje</h3>
         <p className="texto-secundario">
           Publica la ruta y el horario que necesitas; consulta viajes que coincidan.
         </p>
@@ -314,7 +314,7 @@ export default function SolicitudesView() {
       </form>
 
       <div>
-        <h4 className="h5 letra-contenido mb-3">Mis solicitudes</h4>
+        <h4 className="h5 letra-contenido mb-3 titulo-icono"><i className="bi bi-card-checklist" aria-hidden="true" /> Mis solicitudes</h4>
         {cargando ? (
           <p role="status">Actualizando tus solicitudes...</p>
         ) : solicitudes.length === 0 ? (

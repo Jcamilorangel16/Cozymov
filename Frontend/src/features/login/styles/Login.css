@@ -1,92 +1,108 @@
 /* Estilos visuales de la pantalla de inicio de sesión. */
 body {
-    background-color: #88d2f0;
+    background:
+        radial-gradient(circle at 15% 15%, rgba(56, 103, 169, 0.10), transparent 28rem),
+        radial-gradient(circle at 85% 85%, rgba(42, 167, 161, 0.08), transparent 24rem),
+        #f7f8fa;
     min-height: 100vh;
 }
 
 /* Tarjeta principal */
 
 .contenedor {
-    background-color: #fbf8f8;
-    width: 540px;
-    min-height: 420px;
-    border-radius: 16px;
+    background-color: #ffffff;
+    width: min(460px, calc(100vw - 32px));
+    min-height: 520px;
+    border: 1px solid rgba(23, 33, 43, 0.10);
+    border-radius: 20px;
+    box-shadow:
+        0 2px 4px rgba(15, 23, 42, 0.04),
+        0 20px 50px rgba(15, 23, 42, 0.10);
 }
 
 /* Logo */
 
 .logo {
-    font-weight: bold;
-    font-size: 18px;
-    color: #4ec1ed;
+    font-weight: 800;
+    font-size: 20px;
+    color: #3867a9;
+    letter-spacing: -0.02em;
 }
 
 /* Título */
 
 .titulo {
-    color: #0b1922;
-    font-weight: 600;
+    color: #17212b;
+    font-size: 28px;
+    font-weight: 750;
+    letter-spacing: -0.02em;
 }
 
 /* Formulario */
 
 .formulario {
-    width: 70%;
+    width: min(340px, 100%);
 }
 
 /* Texto de los campos */
 
 .form-label {
-    color: #0b1922;
+    color: #344252;
     font-size: 14px;
-    margin-bottom: 5px;
+    font-weight: 650;
+    margin-bottom: 6px;
 }
 
 /* Campos de correo y contraseña */
 
 .form-control {
-    border: none;
-    border-radius: 20px;
-    height: 38px;
-    font-size: 13px;
-    padding-left: 15px;
-    background-color: #f8fbf9;
+    border: 1px solid rgba(23, 33, 43, 0.14);
+    border-radius: 10px;
+    height: 44px;
+    font-size: 15px;
+    padding-left: 14px;
+    background-color: #fafbfc;
 }
 
 /* Cuando seleccionamos un campo */
 
 .form-control:focus {
-    box-shadow: 0 0 0 2px #4fe8e0;
+    border-color: rgba(56, 103, 169, 0.55);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(56, 103, 169, 0.12);
 }
 
 /* Botón Iniciar sesión */
 
 .btn-login {
-    background-color: #a4e4e1;
-    border: none;
-    color: #0b1922;
-    border-radius: 20px;
-    height: 38px;
-    font-size: 13px;
+    background-color: #3867a9;
+    border: 1px solid #3867a9;
+    color: #ffffff;
+    border-radius: 10px;
+    height: 44px;
+    font-size: 15px;
+    box-shadow: 0 6px 16px rgba(56, 103, 169, 0.18);
 }
 
 /* Botón Registrarse */
 
 .btn-crear {
-    background-color: #4ec1ed;
-    border: none;
-    color: #fbfaf8;
-    border-radius: 20px;
-    height: 38px;
-    font-size: 13px;
+    background-color: #ffffff;
+    border: 1px solid rgba(23, 33, 43, 0.14);
+    color: #344252;
+    border-radius: 10px;
+    height: 44px;
+    font-size: 15px;
 }
 
 /* Efecto al pasar el mouse */
 
 .btn-crear:hover,
 .btn-login:hover {
-    color: #fbfaf8;
-    background-color: #0b1922
+    color: #ffffff;
+    background-color: #244b7a;
+    border-color: #244b7a;
+    transform: translateY(-1px);
 }
 /* Inicio de sesión con Google */
 .separador-google {

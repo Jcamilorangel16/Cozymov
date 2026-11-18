@@ -63,7 +63,10 @@ export default function SidebarMenu({ vistaActiva, onNavigate }) {
   return (
     <header className="topbar">
       <div className="brand-logo">
-        <h2>Cozymov</h2>
+        <h2>
+          <i className="bi bi-geo-alt-fill logo-icono" aria-hidden="true" />
+          Cozymov
+        </h2>
       </div>
 
       <nav className="topbar-nav" aria-label="Navegación principal">
@@ -76,6 +79,7 @@ export default function SidebarMenu({ vistaActiva, onNavigate }) {
                 aria-current={vistaActiva === enlace.id ? "page" : undefined}
                 onClick={(evento) => manejarNavegacion(evento, enlace.id)}
               >
+                <i className={`bi ${enlace.icono} nav-icono`} aria-hidden="true" />
                 {enlace.label}
               </a>
             </li>

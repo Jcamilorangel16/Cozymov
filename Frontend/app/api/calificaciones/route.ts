@@ -31,11 +31,26 @@ export async function GET(request: Request) {
 		return respuesta instanceof NextResponse ? respuesta : reenviarRespuesta(respuesta);
 	}
 
-	const filtro = searchParams.has("emitidas")
-		? `idEvaluador=${ctx.idUsuario}`
-		: `idEvaluado=${ctx.idUsuario}`;
-	const respuesta = await llamarBackend(ctx, `/api/calificaciones?${filtro}`);
-	return respuesta instanceof NextResponse ? respuesta : reenviarRespuesta(respuesta);
+	if (searchParams.has("emitidas")) {
+		const emitidas = await llamarBackend(ctx, `/api/calificaciones?idEvaluador=${ctx.idUsuario}`);
+		return emitidas instanceof NextResponse ? emitidas : reenviarRespuesta(emitidas);
+	}
+
+	// Las calificaciones recibidas son anónimas: nunca se expone quién las
+	// escribió ni la reserva (que permitiría deducirlo).
+	const respuesta = await llamarBackend(ctx, `/api/calificaciones?idEvaluado=${ctx.idUsuario}`);
+	if (respuesta instanceof NextResponse) return respuesta;
+	if (!respuesta.ok) return reenviarRespuesta(respuesta);
+
+	const datos: unknown = await respuesta.json().catch(() => null);
+	if (!Array.isArray(datos)) return respuestaError("Respuesta inesperada del servidor.", 502);
+	return NextResponse.json(
+		datos.map((c: { idCalificacion: number; puntuacion: number; comentario: string | null }) => ({
+			idCalificacion: c.idCalificacion,
+			puntuacion: c.puntuacion,
+			comentario: c.comentario ?? null,
+		})),
+	);
 }
 
 /** Crea una valoración; el evaluador es siempre el usuario autenticado. */

@@ -52,6 +52,10 @@ function FormularioCalificacion({ viaje, guardando, onEnviar }) {
           />
         </div>
       </div>
+      <p className="small text-muted mt-3 mb-0">
+        <i className="bi bi-incognito me-1" aria-hidden="true" />
+        Tu calificación es anónima: la otra persona verá la puntuación y el comentario, pero no tu nombre.
+      </p>
       <button type="submit" className="btn btn-primary mt-3" disabled={guardando}>
         {guardando ? "Enviando..." : "Enviar calificación"}
       </button>
@@ -179,7 +183,7 @@ export default function CalificacionesView() {
 
   return (
     <section className="calificaciones-view">
-      <h3 className="letra-contenido">Calificaciones</h3>
+      <h3 className="letra-contenido titulo-icono"><i className="bi bi-stars" aria-hidden="true" /> Calificaciones</h3>
       <p className="texto-secundario">
         Consulta tu reputación y comparte cómo fue tu experiencia en viajes finalizados.
       </p>
@@ -187,7 +191,7 @@ export default function CalificacionesView() {
       {mensaje && <div className="alert alert-success" role="status">{mensaje}</div>}
 
       <div className="panel-lateral mb-4">
-        <h4 className="h5 letra-contenido">Tu resumen</h4>
+        <h4 className="h5 letra-contenido titulo-icono"><i className="bi bi-trophy-fill" aria-hidden="true" /> Tu resumen</h4>
         <p className="mb-0">
           <strong>{resumen?.promedio == null ? "Sin calificaciones" : `${Number(resumen.promedio).toFixed(1)} / 5`}</strong>
           {" · "}
@@ -221,7 +225,8 @@ export default function CalificacionesView() {
 
       <div className="row g-4">
         <div className="col-lg-6">
-          <h4 className="h5 letra-contenido">Recibidas</h4>
+          <h4 className="h5 letra-contenido titulo-icono"><i className="bi bi-inbox-fill" aria-hidden="true" /> Recibidas</h4>
+          <p className="small text-muted mb-2">Son anónimas: no se muestra quién te calificó.</p>
           {recibidas.length === 0 ? (
             <p className="text-muted">Todavía no tienes calificaciones recibidas.</p>
           ) : (
@@ -229,7 +234,9 @@ export default function CalificacionesView() {
               {recibidas.map((item) => (
                 <li className="list-group-item" key={item.idCalificacion}>
                   <strong>{item.puntuacion} / 5</strong>
-                  <small className="d-block text-muted">Reserva #{item.idReserva}</small>
+                  <small className="d-block text-muted">
+                    <i className="bi bi-incognito me-1" aria-hidden="true" />Anónima
+                  </small>
                   {item.comentario && <p className="mb-0 mt-2">{item.comentario}</p>}
                 </li>
               ))}
@@ -237,7 +244,7 @@ export default function CalificacionesView() {
           )}
         </div>
         <div className="col-lg-6">
-          <h4 className="h5 letra-contenido">Enviadas</h4>
+          <h4 className="h5 letra-contenido titulo-icono"><i className="bi bi-send-fill" aria-hidden="true" /> Enviadas</h4>
           {emitidas.length === 0 ? (
             <p className="text-muted">Todavía no has enviado calificaciones.</p>
           ) : (
@@ -250,7 +257,7 @@ export default function CalificacionesView() {
                   <span>
                     <strong>{item.puntuacion} / 5</strong>
                     <small className="d-block text-muted">
-                      Reserva #{item.idReserva} · Usuario #{item.idEvaluado}
+                      <i className="bi bi-incognito me-1" aria-hidden="true" />Enviada de forma anónima
                     </small>
                     {item.comentario && <span className="d-block mt-2">{item.comentario}</span>}
                   </span>
