@@ -56,7 +56,6 @@ export default function OfrecerViajes({
     reintentarConsulta,
     reintentarValidacionViajeEnCurso,
     editarViajePublicado,
-    prepararOtroViaje,
     aceptarPasajero,
   } = useOfrecerViajes({ pasajeroSeleccionado, setMensajeAccion });
 
@@ -109,7 +108,6 @@ export default function OfrecerViajes({
         <EsperandoPasajeros
           viaje={viajePublicado}
           onEditarViaje={editarViajePublicado}
-          onPublicarOtro={prepararOtroViaje}
         />
       ) : estadoViajeEnCurso === "en-curso" ? (
         <div className="alert alert-warning" role="alert">

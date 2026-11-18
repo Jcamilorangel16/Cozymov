@@ -119,12 +119,10 @@ export function validarSolicitudViaje({ origen, destino, precio, fecha, hora }, 
 
   const fechaHora = combinarFechaHora(fecha, hora);
   if (!fechaHora) return "Indica la fecha y la hora del viaje.";
-  // El input time solo tiene precisión de minutos: la hora actual (valor por defecto)
-  // debe aceptarse aunque ya hayan pasado algunos segundos del minuto.
-  const inicioDelMinuto = new Date(ahora);
-  inicioDelMinuto.setSeconds(0, 0);
-  if (new Date(fechaHora).getTime() < inicioDelMinuto.getTime()) {
-    return "La fecha y la hora no pueden ser anteriores al momento actual.";
+  // Se puede pedir un viaje para hoy a cualquier hora (el valor por defecto es la hora actual
+  // y envejece mientras se llena el formulario); solo se rechazan días anteriores a hoy.
+  if (fecha < fechaLocalISO(ahora)) {
+    return "La fecha de salida no puede ser anterior a hoy.";
   }
   return "";
 }

@@ -106,7 +106,7 @@ export default function CamposRutaHorario({
               className="form-control"
               id="fecha-salida"
               type="date"
-              min={fechaSalida || undefined}
+              min={obtenerPartesFechaHora(new Date()).fecha}
               value={fechaSalida}
               onChange={(evento) => {
                 setFechaSalida(evento.target.value);

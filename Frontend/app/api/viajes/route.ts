@@ -218,7 +218,7 @@ export async function POST(request: Request) {
 		);
 	}
 
-	const validacion = validarDatosNuevoViaje(body, sesion.id);
+	const validacion = validarDatosNuevoViaje(body, sesion.id, { toleranciaDias: 1 });
 	if (!validacion.valido) {
 		return NextResponse.json({ error: validacion.error }, { status: 400 });
 	}
@@ -307,7 +307,7 @@ export async function PUT(request: Request) {
 		);
 	}
 
-	const validacion = validarDatosNuevoViaje(body, sesion.id);
+	const validacion = validarDatosNuevoViaje(body, sesion.id, { toleranciaDias: 1 });
 	if (!validacion.valido) {
 		return NextResponse.json({ error: validacion.error }, { status: 400 });
 	}

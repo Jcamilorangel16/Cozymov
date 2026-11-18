@@ -58,7 +58,14 @@ namespace Backend.Controllers
                     .ThenInclude(usuario => usuario.Vehiculos)
                         .ThenInclude(vehiculo => vehiculo.Moto)
                 .Include(v => v.Ruta)
-                .Where(v => v.Estado.ToLower() == "activo" && v.CuposDisponibles > 0);
+                .Where(v => v.Estado.ToLower() == "activo");
+
+            // La búsqueda pública solo muestra viajes con cupos. Al consultar los viajes de un
+            // usuario se incluyen también los llenos: siguen siendo su viaje publicado.
+            if (!idUsuario.HasValue)
+            {
+                consulta = consulta.Where(v => v.CuposDisponibles > 0);
+            }
 
             if (!string.IsNullOrWhiteSpace(origen))
             {
@@ -514,6 +521,12 @@ namespace Backend.Controllers
                     "No puedes publicar un viaje mientras tengas una solicitud de viaje pendiente. Elimínala o espera a que un conductor la acepte.");
             }
 
+            // Un conductor tiene un solo viaje publicado: si ya lo tiene, solo puede actualizarlo.
+            if (await TieneViajePublicado(viajeCreate.IdUsuario, cancellationToken))
+            {
+                return Conflict(MensajeViajeYaPublicado);
+            }
+
             // Para publicar hay que ser conductor: tener al menos un vehículo registrado.
             if (!await _context.Vehiculos.AnyAsync(
                     v => v.IdUsuario == viajeCreate.IdUsuario,
@@ -533,6 +546,12 @@ namespace Backend.Controllers
                     cancellationToken))
             {
                 return Conflict("No puedes publicar un viaje mientras tengas uno en curso.");
+            }
+
+            // Se repite dentro del bloqueo por usuario: dos envíos simultáneos no publican dos viajes.
+            if (await TieneViajePublicado(viajeCreate.IdUsuario, cancellationToken))
+            {
+                return Conflict(MensajeViajeYaPublicado);
             }
 
             var viaje = new Viaje
@@ -587,6 +606,17 @@ namespace Backend.Controllers
             await _context.SaveChangesAsync(cancellationToken);
 
             return NoContent();
+        }
+
+        private const string MensajeViajeYaPublicado =
+            "Ya tienes un viaje publicado. Solo puedes actualizarlo; no puedes publicar otro.";
+
+        /// <summary>Viaje publicado = estado "activo" (con o sin cupos); los privados no cuentan.</summary>
+        private Task<bool> TieneViajePublicado(int idUsuario, CancellationToken cancellationToken)
+        {
+            return _context.Viajes.AnyAsync(
+                v => v.IdUsuario == idUsuario && v.Estado.ToLower() == "activo",
+                cancellationToken);
         }
 
         private Task<bool> ViajeExists(long id_viaje, CancellationToken cancellationToken)

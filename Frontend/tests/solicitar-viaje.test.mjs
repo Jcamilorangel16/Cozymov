@@ -60,17 +60,29 @@ test("el precio debe ser un número positivo y razonable", () => {
   assert.equal(validarSolicitudViaje({ ...base, precio: 4200 }, ahora), "");
 });
 
-test("la fecha y la hora son obligatorias y no pueden ser pasadas", () => {
+test("la fecha y la hora son obligatorias y no puede ser un día anterior a hoy", () => {
   assert.match(validarSolicitudViaje({ ...base, hora: "" }, ahora), /fecha y la hora/);
   assert.match(validarSolicitudViaje({ ...base, fecha: "" }, ahora), /fecha y la hora/);
   assert.match(
     validarSolicitudViaje({ ...base, fecha: "2029-12-31" }, ahora),
-    /anteriores/,
+    /anterior a hoy/,
   );
-  assert.match(
+  // Hoy es válido a cualquier hora, incluso una ya pasada del día.
+  assert.equal(
     validarSolicitudViaje({ ...base, fecha: "2030-01-01", hora: "06:59" }, ahora),
-    /anteriores/,
+    "",
   );
+  assert.equal(
+    validarSolicitudViaje({ ...base, fecha: "2030-01-01", hora: "00:00" }, ahora),
+    "",
+  );
+});
+
+test("la hora por defecto sigue siendo válida aunque el formulario lleve varios minutos abierto", () => {
+  const alAbrir = new Date("2030-01-01T07:00:10");
+  const porDefecto = { ...base, fecha: fechaLocalISO(alAbrir), hora: horaLocalHHmm(alAbrir) };
+  const alEnviar = new Date("2030-01-01T07:12:40");
+  assert.equal(validarSolicitudViaje(porDefecto, alEnviar), "");
 });
 
 test("la fecha y la hora actuales (valores por defecto) son válidas aunque pasen segundos", () => {

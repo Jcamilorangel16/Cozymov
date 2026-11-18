@@ -23,14 +23,29 @@ function esTextoValido(valor: unknown): valor is string {
   return typeof valor === "string" && valor.trim().length > 0;
 }
 
+/** Opciones de la validación de publicación; solo existen para poder probarla. */
+export interface OpcionesValidacionViaje {
+  /** Momento de referencia (por defecto, ahora). */
+  ahora?: Date;
+  /**
+   * Días de margen antes de «hoy». El navegador valida con su hora local (0). El servidor
+   * puede estar en otra zona horaria y usa 1 para no rechazar «hoy» por la diferencia horaria.
+   */
+  toleranciaDias?: number;
+}
+
 /**
  * Valida y normaliza los datos de publicación de un viaje.
+ * La fecha de salida puede ser hoy a cualquier hora; solo se rechazan días anteriores.
  * @param body Cuerpo desconocido de la solicitud.
+ * @param idUsuarioAutenticado Usuario de la sesión.
+ * @param opciones Momento de referencia y margen de días.
  * @returns Datos del viaje o error de validación.
  */
 export function validarDatosNuevoViaje(
   body: unknown,
   idUsuarioAutenticado: string,
+  { ahora = new Date(), toleranciaDias = 0 }: OpcionesValidacionViaje = {},
 ): ResultadoValidacion<DatosNuevoViaje> {
   if (!esRegistro(body)) {
     return { valido: false, error: "El cuerpo de la solicitud es inválido." };
@@ -92,12 +107,20 @@ export function validarDatosNuevoViaje(
   }
 
   const salida = new Date(`${fecha_salida}T${hora_salida}`);
-  const ahora = new Date();
-  ahora.setSeconds(0, 0);
-  if (Number.isNaN(salida.getTime()) || salida < ahora) {
+  if (Number.isNaN(salida.getTime())) {
     return {
       valido: false,
-      error: "La fecha y hora de salida no pueden estar en el pasado.",
+      error: "La fecha y la hora de salida no son válidas.",
+    };
+  }
+  // Inicio del día de hoy (menos el margen): cualquier hora de hoy es válida.
+  const inicioDeHoy = new Date(ahora);
+  inicioDeHoy.setHours(0, 0, 0, 0);
+  inicioDeHoy.setDate(inicioDeHoy.getDate() - toleranciaDias);
+  if (salida < inicioDeHoy) {
+    return {
+      valido: false,
+      error: "La fecha de salida no puede ser anterior a hoy.",
     };
   }
 

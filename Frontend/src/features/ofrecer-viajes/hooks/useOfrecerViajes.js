@@ -429,30 +429,6 @@ export function useOfrecerViajes({ pasajeroSeleccionado, setMensajeAccion }) {
   }
 
   /**
-   * Reinicia el formulario para iniciar la publicación de otro viaje.
-   * @returns {void}
-   */
-  function prepararOtroViaje() {
-    viajeEnEdicionRef.current = null;
-    setViajeEnEdicion(null);
-    setViajePublicado(null);
-    setOrigen(UNIVERSIDAD_POPULAR_CESAR);
-    setDestino(UNIVERSIDAD_POPULAR_CESAR);
-    setPuntoEncuentro("");
-    setPrecioPasaje("");
-    setCuposDisponibles("1");
-    setInformacionAdicional("");
-    const salidaPredeterminada = new Date(
-      Date.now() + MINUTOS_POR_DEFECTO_SALIDA * 60 * 1000,
-    );
-    const partesSalida = obtenerPartesFechaHora(salidaPredeterminada);
-    setFechaSalida(partesSalida.fecha);
-    setHoraSalida(partesSalida.hora);
-    setAtajoSalida(String(MINUTOS_POR_DEFECTO_SALIDA));
-    setErrorPublicacion("");
-  }
-
-  /**
    * Actualiza el mensaje local tras aceptar una solicitud de pasajero.
    * @returns {void}
    */
@@ -497,7 +473,6 @@ export function useOfrecerViajes({ pasajeroSeleccionado, setMensajeAccion }) {
     reintentarConsulta,
     reintentarValidacionViajeEnCurso,
     editarViajePublicado,
-    prepararOtroViaje,
     aceptarPasajero,
   };
 }
