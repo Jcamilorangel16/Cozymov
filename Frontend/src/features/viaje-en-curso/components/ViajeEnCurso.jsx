@@ -137,6 +137,41 @@ export default function ViajeEnCurso({ onNavigate, onMensajeConductor }) {
     }
   }
 
+  async function cancelarComoConductor() {
+    const confirmacion = await Swal.fire({
+      icon: "warning",
+      title: "¿Cancelar el viaje?",
+      text: "El viaje se cancelará y la solicitud volverá a quedar disponible para otros conductores.",
+      showCancelButton: true,
+      confirmButtonText: "Sí, cancelar viaje",
+      cancelButtonText: "Mantener el viaje",
+      confirmButtonColor: "#dc3545",
+      reverseButtons: true,
+    });
+    if (!confirmacion.isConfirmed) return;
+
+    setCancelando(true);
+    setError("");
+    try {
+      const respuesta = await fetch("/api/viajes/en-curso?rol=conductor", { method: "DELETE" });
+      const resultado = await respuesta.json();
+      if (!respuesta.ok) {
+        throw new Error(resultado.error || "No se pudo cancelar el viaje.");
+      }
+
+      setViaje(null);
+      await Swal.fire({
+        icon: "success",
+        title: "Viaje cancelado",
+        text: "El viaje se canceló y quedaste libre para atender otras solicitudes.",
+      });
+    } catch (errorCancelacion) {
+      setError(errorCancelacion.message || "No se pudo cancelar el viaje.");
+    } finally {
+      setCancelando(false);
+    }
+  }
+
   async function finalizarViaje() {
     const confirmacion = await Swal.fire({
       icon: "question",
@@ -220,9 +255,19 @@ export default function ViajeEnCurso({ onNavigate, onMensajeConductor }) {
           </button>
 
           {esConductor ? (
-            <p className="texto-secundario small mt-3 mb-0">
-              El pasajero finaliza el viaje al llegar a su destino; entonces podrá calificarte.
-            </p>
+            <>
+              <button
+                type="button"
+                className="btn btn-outline-danger w-100 mt-2"
+                onClick={cancelarComoConductor}
+                disabled={cancelando}
+              >
+                {cancelando ? "Cancelando viaje..." : "Cancelar viaje"}
+              </button>
+              <p className="texto-secundario small mt-3 mb-0">
+                El pasajero finaliza el viaje al llegar a su destino; entonces podrá calificarte.
+              </p>
+            </>
           ) : (
             <>
               <button

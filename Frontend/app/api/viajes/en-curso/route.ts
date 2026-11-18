@@ -168,12 +168,19 @@ export async function GET() {
 	}
 }
 
-export async function DELETE() {
+/**
+ * Cancela el viaje en curso del usuario autenticado.
+ * Sin parámetros cancela su reserva como pasajero; con `?rol=conductor` cancela el
+ * viaje que atiende como conductor. En ambos casos el usuario sale de la sesión.
+ */
+export async function DELETE(request: Request) {
 	const resultado = await obtenerUrlReservaActiva();
 	if ("respuesta" in resultado) return resultado.respuesta;
 
+	const comoConductor = new URL(request.url).searchParams.get("rol") === "conductor";
+
 	try {
-		const respuesta = await fetch(resultado.url, {
+		const respuesta = await fetch(comoConductor ? resultado.urlConductor : resultado.url, {
 			method: "DELETE",
 			headers: resultado.headers,
 			cache: "no-store",

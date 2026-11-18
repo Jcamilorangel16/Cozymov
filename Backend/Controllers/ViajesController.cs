@@ -275,6 +275,71 @@ namespace Backend.Controllers
             });
         }
 
+        /// <summary>
+        /// El conductor cancela el viaje que atiende: el viaje queda "cancelado" y sus reservas
+        /// activas se cancelan. Si el viaje nació de una solicitud, ésta vuelve a "pendiente"
+        /// para que otro conductor pueda aceptarla y el pasajero no se quede sin viaje.
+        /// </summary>
+        // DELETE: api/Viajes/viaje-conductor-activo/5
+        [HttpDelete("viaje-conductor-activo/{id_conductor:int}")]
+        public async Task<IActionResult> CancelarViajeConductor(
+            int id_conductor,
+            CancellationToken cancellationToken)
+        {
+            await using var transaccion =
+                await _context.Database.BeginTransactionAsync(cancellationToken);
+
+            // Mismo criterio que GetViajeConductorActivo: la reserva activa más reciente.
+            var reservaActiva = await _context.ReservasViaje
+                .Include(r => r.Viaje)
+                .Where(r => r.Estado == "activa" && r.Viaje.IdUsuario == id_conductor)
+                .OrderByDescending(r => r.IdReserva)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (reservaActiva is null)
+            {
+                return NotFound("No tienes un viaje en curso para cancelar.");
+            }
+
+            var viaje = reservaActiva.Viaje;
+            var reservas = await _context.ReservasViaje
+                .Where(r => r.IdViaje == viaje.IdViaje && r.Estado == "activa")
+                .ToListAsync(cancellationToken);
+            foreach (var reserva in reservas)
+            {
+                reserva.Estado = "cancelada";
+            }
+
+            viaje.Estado = "cancelado";
+
+            var solicitudes = await _context.Solicitudes
+                .Where(s => s.IdViaje == viaje.IdViaje)
+                .ToListAsync(cancellationToken);
+            foreach (var solicitud in solicitudes)
+            {
+                solicitud.Estado = Solicitud.EstadoPendiente;
+                solicitud.IdViaje = null;
+            }
+
+            try
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+                await transaccion.CommitAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                await transaccion.RollbackAsync(cancellationToken);
+                return Conflict("El viaje cambió mientras lo cancelabas. Inténtalo de nuevo.");
+            }
+
+            return Ok(new
+            {
+                cancelado = true,
+                id_viaje = viaje.IdViaje,
+                solicitudes_reabiertas = solicitudes.Count
+            });
+        }
+
         [HttpGet("reservas-completadas/{id_pasajero:int}")]
         public async Task<ActionResult<IEnumerable<ReservaViajeDTO>>> GetReservasCompletadas(
             int id_pasajero,

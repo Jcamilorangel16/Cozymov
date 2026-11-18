@@ -144,7 +144,8 @@ public class SolicitudesController(AppDbContext context) : ControllerBase
 
     /// <summary>
     /// Un conductor elegible acepta la solicitud: se crea el viaje privado y la reserva
-    /// activa del pasajero que la pidió. No se publica ningún viaje público.
+    /// activa del pasajero que la pidió. No se publica ningún viaje público y el viaje
+    /// publicado del conductor, si tenía uno, se retira.
     /// </summary>
     // POST: api/solicitudes/5/aceptar
     [HttpPost("{idSolicitud:long}/aceptar")]
@@ -183,6 +184,10 @@ public class SolicitudesController(AppDbContext context) : ControllerBase
                 r => r.IdPasajero == solicitud.IdUsuario && r.Estado == "activa", cancellationToken))
             return Conflict("Quien hizo la solicitud ya tiene un viaje en curso.");
 
+        // Un conductor atiende un solo viaje a la vez: su viaje publicado deja de existir.
+        // (Si tuviera pasajeros activos, ya se habría rechazado la solicitud arriba.)
+        await RetirarViajesPublicados(dto.IdConductor, cancellationToken);
+
         var viaje = new Viaje
         {
             IdUsuario = dto.IdConductor,
@@ -220,6 +225,36 @@ public class SolicitudesController(AppDbContext context) : ControllerBase
 
         viaje.Usuario = conductor;
         return Ok(CrearReservaDto(reserva, viaje));
+    }
+
+    /// <summary>
+    /// Quita los viajes publicados (estado "activo") del conductor. Se eliminan cuando nunca
+    /// tuvieron reservas; si ya tienen historial (reservas completadas o canceladas) se marcan
+    /// "cancelado" para no borrar en cascada las reservas ni sus calificaciones. No guarda
+    /// cambios: se confirman junto con el resto de la aceptación.
+    /// </summary>
+    private async Task RetirarViajesPublicados(int idConductor, CancellationToken cancellationToken)
+    {
+        var publicados = await context.Viajes
+            .Where(v => v.IdUsuario == idConductor && v.Estado.ToLower() == "activo")
+            .ToListAsync(cancellationToken);
+        if (publicados.Count == 0)
+            return;
+
+        var ids = publicados.Select(v => v.IdViaje).ToList();
+        var conHistorial = await context.ReservasViaje
+            .Where(r => ids.Contains(r.IdViaje))
+            .Select(r => r.IdViaje)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        foreach (var publicado in publicados)
+        {
+            if (conHistorial.Contains(publicado.IdViaje))
+                publicado.Estado = "cancelado";
+            else
+                context.Viajes.Remove(publicado);
+        }
     }
 
     [HttpPut("{idSolicitud:long}")]

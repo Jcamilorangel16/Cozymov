@@ -313,7 +313,11 @@ export function useBuscarViajes() {
     const confirmacion = await Swal.fire({
       icon: "question",
       title: "¿Aceptar esta solicitud?",
-      text: `${solicitud.origen ?? ""} → ${solicitud.destino ?? ""}`,
+      text:
+        `${solicitud.origen ?? ""} → ${solicitud.destino ?? ""}` +
+        (tieneViajePublicado
+          ? "\n\nTu viaje publicado se eliminará al aceptar esta solicitud."
+          : ""),
       showCancelButton: true,
       confirmButtonText: "Sí, aceptar solicitud",
       cancelButtonText: "Cancelar",
@@ -342,6 +346,9 @@ export function useBuscarViajes() {
         actuales.filter((actual) => actual.idSolicitud !== solicitud.idSolicitud),
       );
       setTieneViajeEnCurso(true);
+      // El backend retira los viajes publicados del conductor al aceptar la solicitud.
+      setTieneViajePublicado(false);
+      setViajes((actuales) => actuales.filter((viaje) => String(viaje.id_usuario) !== idUsuario));
       await Swal.fire({
         icon: "success",
         title: "Solicitud aceptada",
