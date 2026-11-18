@@ -13,10 +13,30 @@ import {
 
 export const runtime = "nodejs";
 
+/** Deja pasar solo números finitos; el resto viaja como null. */
+function numero(valor: unknown): number | null {
+	const convertido = Number(valor);
+	return valor !== null && valor !== "" && Number.isFinite(convertido) ? convertido : null;
+}
+
+function texto(valor: unknown): string | null {
+	return typeof valor === "string" && valor.trim() ? valor.trim() : null;
+}
+
+/**
+ * Carga que recibe el backend. El origen y el destino son barrios del catálogo:
+ * la API resuelve (o crea) la ruta correspondiente cuando no se envía idRuta.
+ */
 function cargaSolicitud(idUsuario: number, cuerpo: Registro): Registro {
 	return {
 		idUsuario,
-		idRuta: cuerpo.idRuta,
+		idRuta: numero(cuerpo.idRuta) ?? 0,
+		origen: texto(cuerpo.origen),
+		destino: texto(cuerpo.destino),
+		latOrigen: numero(cuerpo.latOrigen),
+		lonOrigen: numero(cuerpo.lonOrigen),
+		latDestino: numero(cuerpo.latDestino),
+		lonDestino: numero(cuerpo.lonDestino),
 		fechaHora: cuerpo.fechaHora,
 		horaLimite: cuerpo.horaLimite ?? null,
 		presupuesto: cuerpo.presupuesto ?? null,
@@ -30,6 +50,7 @@ function idDeConsulta(request: Request): number | null {
 
 /**
  * Sin parámetros lista las solicitudes del usuario autenticado.
+ * Con ?pendientes=1 lista las solicitudes pendientes de otros usuarios (vista del conductor).
  * Con ?id=1 devuelve una solicitud propia; con ?id=1&coincidencias=1, sus viajes coincidentes.
  */
 export async function GET(request: Request) {
@@ -37,6 +58,14 @@ export async function GET(request: Request) {
 	if (esRespuesta(ctx)) return ctx;
 
 	const { searchParams } = new URL(request.url);
+	if (searchParams.has("pendientes")) {
+		const respuesta = await llamarBackend(
+			ctx,
+			`/api/solicitudes/pendientes?idUsuario=${ctx.idUsuario}`,
+		);
+		return respuesta instanceof NextResponse ? respuesta : reenviarRespuesta(respuesta);
+	}
+
 	if (!searchParams.has("id")) {
 		const respuesta = await llamarBackend(ctx, `/api/solicitudes?idUsuario=${ctx.idUsuario}`);
 		return respuesta instanceof NextResponse ? respuesta : reenviarRespuesta(respuesta);

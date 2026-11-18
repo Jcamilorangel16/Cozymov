@@ -5,8 +5,10 @@ import OfrecerViajes from "../../ofrecer-viajes/components/OfrecerViajes";
 import MensajesView from "../../mensajes/components/MensajesView";
 import "../styles/menu-principal.css";
 import BuscarViajes from "../../buscar-viajes/components/BuscarViajes";
+import AvisoSolicitudes from "./AvisoSolicitudes";
 import PanelInicio from "./PanelInicio";
 import SidebarMenu from "./SidebarMenu";
+import { useAvisosSolicitudes } from "../hooks/useAvisosSolicitudes";
 import { useMenuPrincipal } from "../hooks/useMenuPrincipal";
 import ViajeEnCurso from "../../viaje-en-curso/components/ViajeEnCurso";
 import ConfiguracionGeneral from "../../configuracion/components/ConfiguracionGeneral";
@@ -36,11 +38,28 @@ export default function MenuPrincipal({ usuarioActualId }) {
     irAVista,
   } = useMenuPrincipal();
 
+  // Los conductores reciben aviso de las solicitudes de viaje nuevas.
+  const { pendientes, aviso, cerrarAviso } = useAvisosSolicitudes(usuarioActualId, () =>
+    irAVista("buscar"),
+  );
+
   return (
     <PerfilProvider>
       <div className="app-shell">
         <div className="menu-fondo" aria-hidden="true" />
-        <SidebarMenu vistaActiva={vistaActiva} onNavigate={irAVista} />
+        <SidebarMenu
+          vistaActiva={vistaActiva}
+          onNavigate={irAVista}
+          solicitudesPendientes={pendientes}
+        />
+        <AvisoSolicitudes
+          aviso={aviso}
+          onCerrar={cerrarAviso}
+          onVer={() => {
+            cerrarAviso();
+            irAVista("buscar");
+          }}
+        />
 
         <main className="main-content flex-grow-1 p-4">
           <div className="border rounded-3 p-4 bloque_contenido" style={{ minHeight: 400 }}>

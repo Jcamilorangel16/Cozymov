@@ -37,7 +37,6 @@ export function validarDatosNuevoViaje(
   }
 
   const {
-    id_vehiculo,
     origen,
     destino,
     punto_encuentro,
@@ -54,11 +53,6 @@ export function validarDatosNuevoViaje(
       valido: false,
       error: "La sesión no contiene un identificador de usuario válido.",
     };
-  }
-
-  const idVehiculo = Number(id_vehiculo);
-  if (!Number.isInteger(idVehiculo) || idVehiculo <= 0) {
-    return { valido: false, error: "id_vehiculo debe ser un identificador válido." };
   }
 
   if (!esTextoValido(origen) || !esTextoValido(destino)) {
@@ -122,7 +116,6 @@ export function validarDatosNuevoViaje(
     valido: true,
     datos: {
       id_usuario: idUsuario,
-      id_vehiculo: idVehiculo,
       origen: origen.trim(),
       destino: destino.trim(),
       punto_encuentro: punto_encuentro.trim(),
@@ -208,6 +201,41 @@ export function puedeAceptarViaje(
     tieneViajePublicado === false &&
     !tieneViajeEnCurso
   );
+}
+
+/**
+ * Determina si el usuario puede aceptar una solicitud de viaje: necesita sesión,
+ * un vehículo registrado y no estar en un viaje en curso.
+ * @param idUsuario Identificador del usuario activo.
+ * @param tieneVehiculo Si tiene vehículo registrado (null si no se pudo comprobar).
+ * @param tieneViajeEnCurso Si ya está en un viaje.
+ * @returns Si la acción de aceptar la solicitud debe estar habilitada.
+ */
+export function puedeAceptarSolicitud(
+  idUsuario: string,
+  tieneVehiculo: boolean | null,
+  tieneViajeEnCurso = false,
+) {
+  return Boolean(idUsuario) && tieneVehiculo === true && !tieneViajeEnCurso;
+}
+
+/**
+ * Explica por qué no se puede aceptar una solicitud.
+ * @param idUsuario Identificador del usuario activo.
+ * @param tieneVehiculo Si tiene vehículo registrado (null si no se pudo comprobar).
+ * @param tieneViajeEnCurso Si ya está en un viaje.
+ * @returns Mensaje para la interfaz, o null si sí puede aceptar.
+ */
+export function motivoNoAceptarSolicitud(
+  idUsuario: string,
+  tieneVehiculo: boolean | null,
+  tieneViajeEnCurso = false,
+): string | null {
+  if (!idUsuario) return "Inicia sesión para aceptar solicitudes.";
+  if (tieneViajeEnCurso) return "Ya tienes un viaje en curso.";
+  if (tieneVehiculo === null) return "No pudimos comprobar tu vehículo registrado.";
+  if (!tieneVehiculo) return "Registra un vehículo para aceptar solicitudes.";
+  return null;
 }
 
 /**

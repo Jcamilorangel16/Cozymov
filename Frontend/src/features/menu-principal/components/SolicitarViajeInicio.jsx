@@ -1,0 +1,173 @@
+"use client";
+
+// Formulario de Inicio para pedir un viaje cuando ninguno de los publicados sirve.
+import { useId } from "react";
+import BarrioDropdown from "../../ofrecer-viajes/components/BarrioDropdown";
+import barriosRutaCotidiana from "../../ofrecer-viajes/constants/barriosRutaCotidiana";
+import { LUGARES_ADICIONALES } from "../../ofrecer-viajes/constants/ofrecerViajes";
+import { useSolicitarViaje } from "../hooks/useSolicitarViaje";
+
+const MENSAJE_UBICACION = {
+  cargando: "Buscando tu ubicación para proponerte el origen...",
+  sugerida: "Origen sugerido por tu ubicación actual. Puedes cambiarlo.",
+  manual: "No pudimos obtener tu ubicación: elige el barrio de origen.",
+};
+
+/**
+ * Permite registrar una solicitud de viaje con origen, destino, precio, fecha y hora.
+ * @param {{destinoInicial?: string, onVerSolicitudes?: () => void}} props Destino preseleccionado y navegación opcional.
+ * @returns Formulario de solicitud de viaje.
+ */
+export default function SolicitarViajeInicio({ destinoInicial = "", onVerSolicitudes }) {
+  const id = useId();
+  const {
+    origen,
+    destino,
+    precio,
+    fecha,
+    hora,
+    estadoUbicacion,
+    enviando,
+    error,
+    creada,
+    cambiarOrigen,
+    cambiarDestino,
+    setPrecio,
+    setFecha,
+    setHora,
+    reintentarUbicacion,
+    enviar,
+    minimoFecha,
+  } = useSolicitarViaje({ destinoInicial });
+
+  function manejarEnvio(evento) {
+    evento.preventDefault();
+    void enviar();
+  }
+
+  if (creada) {
+    return (
+      <section className="viaje-item inicio-destacado" aria-labelledby={`${id}-titulo`}>
+        <h2 className="h5 letra-contenido" id={`${id}-titulo`}>
+          Solicitud enviada
+        </h2>
+        <div className="alert alert-success" role="status">
+          Registramos tu solicitud de {origen} a {destino}. Un conductor con vehículo puede
+          aceptarla desde «Buscar»; cuando lo haga, tu viaje aparecerá en «En curso».
+        </div>
+        {onVerSolicitudes && (
+          <button type="button" className="btn btn-outline-primary" onClick={onVerSolicitudes}>
+            Ver mis solicitudes
+          </button>
+        )}
+      </section>
+    );
+  }
+
+  return (
+    <section className="viaje-item inicio-destacado" aria-labelledby={`${id}-titulo`}>
+      <h2 className="h5 letra-contenido" id={`${id}-titulo`}>
+        Solicitar un viaje
+      </h2>
+      <p className="texto-secundario">
+        Dinos desde dónde sales, a dónde vas y cuánto puedes pagar. Los conductores verán tu
+        solicitud en «Buscar».
+      </p>
+
+      <form onSubmit={manejarEnvio} noValidate>
+        <div className="mb-2">
+          <BarrioDropdown
+            id={`${id}-origen`}
+            label="Desde"
+            value={origen}
+            onChange={cambiarOrigen}
+            opcionesBase={barriosRutaCotidiana}
+            opcionesAdicionales={LUGARES_ADICIONALES}
+            textoSeleccion="Seleccionar barrio de origen"
+          />
+          <p className="texto-secundario small mt-1 mb-0" role="status">
+            {MENSAJE_UBICACION[estadoUbicacion]}
+            {estadoUbicacion === "manual" && (
+              <button
+                type="button"
+                className="btn btn-link btn-sm p-0 ms-1 align-baseline"
+                onClick={reintentarUbicacion}
+              >
+                Usar mi ubicación
+              </button>
+            )}
+          </p>
+        </div>
+
+        <div className="mb-3">
+          <BarrioDropdown
+            id={`${id}-destino`}
+            label="Hacia"
+            value={destino}
+            onChange={cambiarDestino}
+            opcionesBase={barriosRutaCotidiana}
+            opcionesAdicionales={LUGARES_ADICIONALES}
+            textoSeleccion="Seleccionar barrio de destino"
+          />
+        </div>
+
+        <div className="mb-3">
+          <label className="form-label letra-contenido" htmlFor={`${id}-precio`}>
+            Precio que propones (COP)
+          </label>
+          <input
+            id={`${id}-precio`}
+            type="number"
+            className="form-control"
+            inputMode="numeric"
+            min="1"
+            step="100"
+            value={precio}
+            onChange={(evento) => setPrecio(evento.target.value)}
+            required
+          />
+        </div>
+
+        <div className="row g-2 mb-3">
+          <div className="col-7">
+            <label className="form-label letra-contenido" htmlFor={`${id}-fecha`}>
+              Fecha
+            </label>
+            <input
+              id={`${id}-fecha`}
+              type="date"
+              className="form-control"
+              min={minimoFecha}
+              value={fecha}
+              onChange={(evento) => setFecha(evento.target.value)}
+              required
+            />
+          </div>
+          <div className="col-5">
+            <label className="form-label letra-contenido" htmlFor={`${id}-hora`}>
+              Hora
+            </label>
+            <input
+              id={`${id}-hora`}
+              type="time"
+              className="form-control"
+              value={hora}
+              onChange={(evento) => setHora(evento.target.value)}
+              required
+            />
+          </div>
+        </div>
+
+        {error && (
+          <div className="alert alert-danger" role="alert">
+            {error}
+          </div>
+        )}
+
+        <button type="submit" className="btn-reservar" disabled={enviando}>
+          {enviando ? "Enviando..." : "Solicitar viaje"}
+        </button>
+      </form>
+    </section>
+  );
+}

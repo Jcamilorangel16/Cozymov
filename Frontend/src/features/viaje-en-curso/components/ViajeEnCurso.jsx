@@ -19,6 +19,8 @@ const MapaRuta = dynamic(() => import("./MapaRuta"), {
  */
 export default function ViajeEnCurso({ onNavigate, onMensajeConductor }) {
   const [viaje, setViaje] = useState(null);
+  // "pasajero" con reserva propia; "conductor" cuando atiende una solicitud que aceptó.
+  const [rol, setRol] = useState("pasajero");
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
   const [intento, setIntento] = useState(0);
@@ -37,6 +39,7 @@ export default function ViajeEnCurso({ onNavigate, onMensajeConductor }) {
           throw new Error("La respuesta del servidor no contiene tu viaje.");
         }
         setViaje(resultado.viaje);
+        setRol(resultado.rol === "conductor" ? "conductor" : "pasajero");
       })
       .catch((errorConsulta) => {
         if (errorConsulta.name !== "AbortError") {
@@ -85,12 +88,17 @@ export default function ViajeEnCurso({ onNavigate, onMensajeConductor }) {
     );
   }
 
+  const esConductor = rol === "conductor";
   const nombreConductor = viaje.nombre_conductor || "No disponible";
+  const nombrePasajero = viaje.nombre_pasajero || "No disponible";
+  // Como conductor la contraparte es el pasajero que hizo la solicitud.
+  const nombreContraparte = esConductor ? nombrePasajero : nombreConductor;
+  const idContraparte = esConductor ? viaje.id_pasajero : viaje.id_usuario_conductor;
   const fechaSalida = viaje.fecha_salida
     ? `${formatearFecha(viaje.fecha_salida)}${viaje.hora_salida ? ` · ${viaje.hora_salida}` : ""}`
     : "No disponible";
   const escribirAlConductor = () => {
-    onMensajeConductor?.(String(viaje.id_conductor), nombreConductor);
+    onMensajeConductor?.(String(idContraparte), nombreContraparte);
     onNavigate("mensajes");
   };
 
@@ -171,8 +179,12 @@ export default function ViajeEnCurso({ onNavigate, onMensajeConductor }) {
     <div className="row g-4">
       <div className="col-lg-8">
         <div className="d-flex align-items-center gap-2 mb-3 flex-wrap">
-          <h3 className="mb-0 letra-contenido">Tu viaje en curso</h3>
-          <span className="estado-viaje">Reserva confirmada</span>
+          <h3 className="mb-0 letra-contenido">
+            {esConductor ? "Viaje que estás atendiendo" : "Tu viaje en curso"}
+          </h3>
+          <span className="estado-viaje">
+            {esConductor ? "Solicitud aceptada" : "Reserva confirmada"}
+          </span>
         </div>
         <section className="panel-lateral viaje-resumen-ruta">
           <small className="texto-secundario">Tu ruta</small>
@@ -194,32 +206,43 @@ export default function ViajeEnCurso({ onNavigate, onMensajeConductor }) {
 
       <div className="col-lg-4 d-flex flex-column gap-3">
         <section className="panel-lateral">
-          <h5 className="letra-contenido fw-bold mb-3">Tu conductor</h5>
+          <h5 className="letra-contenido fw-bold mb-3">
+            {esConductor ? "Tu pasajero" : "Tu conductor"}
+          </h5>
           <div className="d-flex align-items-center gap-3">
             <div className="conductor-avatar" aria-hidden="true">
-              {nombreConductor.charAt(0)}
+              {nombreContraparte.charAt(0)}
             </div>
-            <div className="fw-semibold letra-contenido">{nombreConductor}</div>
+            <div className="fw-semibold letra-contenido">{nombreContraparte}</div>
           </div>
           <button type="button" className="btn btn-primary w-100 mt-3" onClick={escribirAlConductor}>
             💬 Enviar mensaje
           </button>
-          <button
-            type="button"
-            className="btn btn-success w-100 mt-2"
-            onClick={finalizarViaje}
-            disabled={finalizando || cancelando}
-          >
-            {finalizando ? "Finalizando viaje..." : "Finalizar viaje"}
-          </button>
-          <button
-            type="button"
-            className="btn btn-outline-danger w-100 mt-2"
-            onClick={salirDelViaje}
-            disabled={cancelando || finalizando}
-          >
-            {cancelando ? "Cancelando reserva..." : "Salir del viaje"}
-          </button>
+
+          {esConductor ? (
+            <p className="texto-secundario small mt-3 mb-0">
+              El pasajero finaliza el viaje al llegar a su destino; entonces podrá calificarte.
+            </p>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="btn btn-success w-100 mt-2"
+                onClick={finalizarViaje}
+                disabled={finalizando || cancelando}
+              >
+                {finalizando ? "Finalizando viaje..." : "Finalizar viaje"}
+              </button>
+              <button
+                type="button"
+                className="btn btn-outline-danger w-100 mt-2"
+                onClick={salirDelViaje}
+                disabled={cancelando || finalizando}
+              >
+                {cancelando ? "Cancelando reserva..." : "Salir del viaje"}
+              </button>
+            </>
+          )}
           {error && <p className="alert alert-danger mt-3 mb-0" role="alert">{error}</p>}
         </section>
 

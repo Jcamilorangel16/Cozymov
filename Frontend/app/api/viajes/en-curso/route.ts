@@ -19,7 +19,7 @@ function normalizarViaje(valor: Registro): Registro {
 		fecha_salida: fechaHoraTexto.slice(0, 10),
 		hora_salida: fechaHoraTexto.slice(11, 16),
 		precio_pasaje: valor.costo ?? valor.Costo,
-		id_conductor: valor.idConductor ?? valor.IdConductor,
+		id_usuario_conductor: valor.idUsuarioConductor ?? valor.IdUsuarioConductor,
 		nombre_conductor: valor.nombreConductor ?? valor.NombreConductor ?? "No disponible",
 	};
 }
@@ -87,8 +87,38 @@ async function obtenerUrlReservaActiva() {
 
 	return {
 		url: `${api.baseUrl}/api/Viajes/reserva-activa/${idPasajero}`,
+		urlConductor: `${api.baseUrl}/api/Viajes/viaje-conductor-activo/${idPasajero}`,
 		headers: api.headers,
 	};
+}
+
+/** Viaje privado que el usuario atiende como conductor tras aceptar una solicitud. */
+function normalizarViajeConductor(valor: Registro): Registro {
+	const fechaHora = valor.fechaHoraSalida ?? valor.FechaHoraSalida;
+	const fechaHoraTexto = typeof fechaHora === "string" ? fechaHora : "";
+
+	return {
+		id_viaje: valor.idViaje ?? valor.IdViaje,
+		origen: valor.origen ?? valor.Origen,
+		destino: valor.destino ?? valor.Destino,
+		fecha_salida: fechaHoraTexto.slice(0, 10),
+		hora_salida: fechaHoraTexto.slice(11, 16),
+		precio_pasaje: valor.costo ?? valor.Costo,
+		id_pasajero: valor.idPasajero ?? valor.IdPasajero,
+		nombre_pasajero: valor.nombrePasajero ?? valor.NombrePasajero ?? "No disponible",
+	};
+}
+
+/** Consulta el viaje del conductor; devuelve null si no atiende ninguno. */
+async function consultarViajeConductor(url: string, headers: Record<string, string>) {
+	const respuesta = await fetch(url, { headers, cache: "no-store" });
+	if (!respuesta.ok) return null;
+
+	const cuerpo = await respuesta.text();
+	if (!cuerpo.trim()) return null;
+
+	const datos: unknown = JSON.parse(cuerpo);
+	return esRegistro(datos) ? normalizarViajeConductor(datos) : null;
 }
 
 export async function GET() {
@@ -105,14 +135,21 @@ export async function GET() {
 		}
 
 		const cuerpo = await respuesta.text();
-		if (!cuerpo.trim()) {
-			return NextResponse.json({ viaje: null });
+		const reserva: unknown = cuerpo.trim() ? JSON.parse(cuerpo) : null;
+
+		// Sin reserva propia, el usuario puede ser el conductor de una solicitud aceptada.
+		if (reserva === null) {
+			const comoConductor = await consultarViajeConductor(
+				resultado.urlConductor,
+				resultado.headers,
+			);
+			return NextResponse.json(
+				comoConductor
+					? { viaje: comoConductor, rol: "conductor" }
+					: { viaje: null, rol: null },
+			);
 		}
 
-		const reserva: unknown = JSON.parse(cuerpo);
-		if (reserva === null) {
-			return NextResponse.json({ viaje: null });
-		}
 		if (!esRegistro(reserva)) {
 			console.error("La API devolvió una reserva activa inválida.");
 			return NextResponse.json(
@@ -121,7 +158,7 @@ export async function GET() {
 			);
 		}
 
-		return NextResponse.json({ viaje: normalizarViaje(reserva) });
+		return NextResponse.json({ viaje: normalizarViaje(reserva), rol: "pasajero" });
 	} catch (error) {
 		console.error("No se pudo consultar el viaje en curso en la API:", error);
 		return NextResponse.json(

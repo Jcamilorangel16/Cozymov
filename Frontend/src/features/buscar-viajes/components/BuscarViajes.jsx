@@ -4,6 +4,7 @@
 import { puedeAceptarViaje } from "../../viajes/validations/viajes";
 import { useBuscarViajes } from "../hooks/useBuscarViajes";
 import { formatearFecha, formatearPrecio } from "../utils/viajes";
+import SolicitudesPendientes from "./SolicitudesPendientes";
 
 /**
  * Muestra filtros de viaje y resultados de búsqueda.
@@ -31,6 +32,13 @@ export default function BuscarViajes({ onEnviarMensaje, onNavigate }) {
     handleBuscar,
     handleEliminarViaje,
     handleAceptarViaje,
+    solicitudes,
+    totalSolicitudes,
+    cargandoSolicitudes,
+    errorSolicitudes,
+    tieneVehiculo,
+    aceptandoSolicitudId,
+    handleAceptarSolicitud,
   } = useBuscarViajes();
 
   return (
@@ -87,6 +95,20 @@ export default function BuscarViajes({ onEnviarMensaje, onNavigate }) {
           </form>
         </div>
       </div>
+
+      <SolicitudesPendientes
+        solicitudes={solicitudes}
+        totalSolicitudes={totalSolicitudes}
+        cargando={cargandoSolicitudes}
+        error={errorSolicitudes}
+        idUsuario={idUsuario}
+        tieneVehiculo={tieneVehiculo}
+        tieneViajeEnCurso={tieneViajeEnCurso}
+        aceptandoSolicitudId={aceptandoSolicitudId}
+        onAceptar={(solicitud) =>
+          handleAceptarSolicitud(solicitud, () => onNavigate?.("en-curso"))
+        }
+      />
 
       <section className="mt-4" aria-live="polite">
         {buscando && <p className="text-center" role="status">Consultando viajes...</p>}

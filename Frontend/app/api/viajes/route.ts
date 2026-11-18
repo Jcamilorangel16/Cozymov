@@ -60,7 +60,6 @@ function normalizarViaje(viaje: Registro, respaldo: Registro = {}): Registro {
 	return {
 		...viaje,
 		id_viaje: obtenerCampo(viaje, "id_viaje", "idViaje", "IdViaje"),
-		id_conductor: obtenerCampo(viaje, "id_conductor", "idConductor", "IdConductor"),
 		id_usuario: obtenerCampo(viaje, "id_usuario", "idUsuario", "IdUsuario"),
 		id_ruta: obtenerCampo(viaje, "id_ruta", "idRuta", "IdRuta"),
 		origen: obtenerCampo(viaje, "origen", "Origen") ?? obtenerCampo(respaldo, "origen"),
@@ -226,9 +225,7 @@ export async function POST(request: Request) {
 
 	const datos = validacion.datos;
 	const viaje = {
-		IdConductor: sesion.id,
 		IdUsuario: Number(sesion.id),
-		IdVehiculo: datos.id_vehiculo,
 		IdRuta: null,
 		Origen: datos.origen,
 		Destino: datos.destino,
@@ -357,10 +354,8 @@ export async function PUT(request: Request) {
 				"Content-Type": "application/json",
 			},
 			body: JSON.stringify({
-				IdConductor: sesion.id,
 				IdUsuario: Number(sesion.id),
 				IdRuta: idRutaActual ?? null,
-				IdVehiculo: datos.id_vehiculo,
 				Origen: datos.origen,
 				Destino: datos.destino,
 				PuntoEncuentro: datos.punto_encuentro,
@@ -382,7 +377,6 @@ export async function PUT(request: Request) {
 			viaje: normalizarViaje(
 				{
 					IdViaje: idViaje,
-					IdConductor: sesion.id,
 					IdUsuario: Number(sesion.id),
 					IdRuta: idRutaActual ?? null,
 					Origen: datos.origen,

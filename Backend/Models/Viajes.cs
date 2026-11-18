@@ -10,21 +10,13 @@ namespace Backend.Models
         [Column("id_viaje")]
         public long IdViaje { get; set; }
 
-        [Column("id_conductor")]
-        [StringLength(20)]
-        public string IdConductor { get; set; } = string.Empty;
-
+        /// <summary>Conductor del viaje: su vehículo se obtiene de <see cref="Usuarios.Vehiculos"/>.</summary>
         public int IdUsuario { get; set; }
         public Usuarios Usuario { get; set; } = null!;
-
-        public Vehiculo? Vehiculo { get; set; }
 
         [Column("id_ruta")]
         public long? IdRuta { get; set; }
         public Ruta? Ruta { get; set; }
-
-        [Column("id_vehiculo")]
-        public long? IdVehiculo { get; set; }
 
         [Column("origen")]
         [StringLength(200)]

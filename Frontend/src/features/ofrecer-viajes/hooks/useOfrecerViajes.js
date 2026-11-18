@@ -276,7 +276,6 @@ export function useOfrecerViajes({ pasajeroSeleccionado, setMensajeAccion }) {
     const validacion = validarDatosNuevoViaje(
       {
         id_usuario: idUsuario,
-        id_vehiculo: vehiculoGuardado.id_vehiculo,
         origen,
         destino,
         punto_encuentro: puntoEncuentro,

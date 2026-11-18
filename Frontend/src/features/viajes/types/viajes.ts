@@ -3,7 +3,6 @@
 /** Datos normalizados requeridos para publicar un viaje. */
 export interface DatosNuevoViaje {
   id_usuario: string;
-  id_vehiculo: number;
   origen: string;
   destino: string;
   punto_encuentro: string;

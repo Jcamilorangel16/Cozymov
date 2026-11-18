@@ -6,10 +6,10 @@ import Swal from "sweetalert2";
 
 /**
  * Renderiza los enlaces de navegación del menú.
- * @param {{vistaActiva: string, onNavigate: (id: string) => void}} props Estado y acción de navegación.
+ * @param {{vistaActiva: string, onNavigate: (id: string) => void, solicitudesPendientes?: number}} props Estado, acción de navegación y solicitudes de viaje por atender.
  * @returns Cabezal de navegación principal.
  */
-export default function SidebarMenu({ vistaActiva, onNavigate }) {
+export default function SidebarMenu({ vistaActiva, onNavigate, solicitudesPendientes = 0 }) {
   async function manejarNavegacion(evento, idVista) {
     evento.preventDefault();
 
@@ -77,6 +77,12 @@ export default function SidebarMenu({ vistaActiva, onNavigate }) {
                 onClick={(evento) => manejarNavegacion(evento, enlace.id)}
               >
                 {enlace.label}
+                {enlace.id === "buscar" && solicitudesPendientes > 0 && vistaActiva !== "buscar" && (
+                  <span className="badge rounded-pill text-bg-success ms-1">
+                    {solicitudesPendientes}
+                    <span className="visually-hidden"> solicitudes de viaje pendientes</span>
+                  </span>
+                )}
               </a>
             </li>
           ))}

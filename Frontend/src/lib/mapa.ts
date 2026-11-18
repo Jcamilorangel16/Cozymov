@@ -171,3 +171,78 @@ export async function obtenerRutaPrecargada(
 }
 
 const UNIVERSIDAD_NOMBRE = "Universidad Popular Del Cesar";
+
+/** Catálogo `{ "NOMBRE BARRIO": [lat, lng] }` servido en /barrios-coordenadas.json. */
+export type CatalogoBarrios = Record<string, Coordenada>;
+
+/** Radio máximo para dar por válido el barrio sugerido por el GPS. */
+export const METROS_BARRIO_CERCANO = 4000;
+
+let catalogoEnMemoria: CatalogoBarrios | null = null;
+
+/**
+ * Descarga (una sola vez por sesión) las coordenadas verificadas de los barrios.
+ * @param senal Señal opcional para cancelar la descarga.
+ * @returns El catálogo, o `{}` si el archivo no está disponible.
+ */
+export async function cargarCoordenadasBarrios(senal?: AbortSignal): Promise<CatalogoBarrios> {
+  if (catalogoEnMemoria) return catalogoEnMemoria;
+
+  const respuesta = await fetch("/barrios-coordenadas.json", { signal: senal });
+  if (!respuesta.ok) return {};
+
+  const datos: unknown = await respuesta.json();
+  const catalogo: CatalogoBarrios = {};
+  if (datos && typeof datos === "object") {
+    for (const [nombre, valor] of Object.entries(datos as Record<string, unknown>)) {
+      if (!Array.isArray(valor) || valor.length < 2) continue;
+      const [latitud, longitud] = valor;
+      if (Number.isFinite(latitud) && Number.isFinite(longitud)) {
+        catalogo[nombre] = [Number(latitud), Number(longitud)];
+      }
+    }
+  }
+  // La universidad no es un barrio del archivo, pero es origen/destino válido de una solicitud.
+  catalogo[UNIVERSIDAD_NOMBRE] = UNIVERSIDAD_COORDENADA;
+  catalogoEnMemoria = catalogo;
+  return catalogo;
+}
+
+/**
+ * Barrio del catálogo más cercano a la posición dada.
+ * @param posicion Coordenada del dispositivo.
+ * @param catalogo Coordenadas de los barrios.
+ * @param maximoMetros Distancia máxima aceptada.
+ * @returns Nombre del barrio o `null` si ninguno queda dentro del radio.
+ */
+export function barrioMasCercano(
+  posicion: Coordenada,
+  catalogo: CatalogoBarrios,
+  maximoMetros = METROS_BARRIO_CERCANO,
+): string | null {
+  let elegido: string | null = null;
+  let menor = Infinity;
+  for (const [nombre, coordenada] of Object.entries(catalogo)) {
+    const distancia = distanciaMetros(posicion, coordenada);
+    if (distancia < menor) {
+      menor = distancia;
+      elegido = nombre;
+    }
+  }
+  return elegido !== null && menor <= maximoMetros ? elegido : null;
+}
+
+/**
+ * Coordenada verificada de un barrio, comparando sin acentos ni mayúsculas.
+ * @param nombre Barrio del catálogo de la interfaz.
+ * @param catalogo Coordenadas de los barrios.
+ * @returns La coordenada o `null` si ese barrio no está en el catálogo.
+ */
+export function coordenadaDeBarrio(nombre: string, catalogo: CatalogoBarrios): Coordenada | null {
+  const buscado = slugBarrio(nombre);
+  if (!buscado) return null;
+  for (const [clave, coordenada] of Object.entries(catalogo)) {
+    if (slugBarrio(clave) === buscado) return coordenada;
+  }
+  return buscado === slugBarrio(UNIVERSIDAD_NOMBRE) ? UNIVERSIDAD_COORDENADA : null;
+}

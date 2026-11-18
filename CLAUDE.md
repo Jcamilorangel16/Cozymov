@@ -92,12 +92,14 @@ Las entidades principales (más las cuatro del PDF descritas abajo) son `Usuario
 
 - Un usuario puede tener varios vehículos y publicar varios viajes. La
   eliminación del usuario se restringe cuando existen estos registros.
-- Cada viaje pertenece a un usuario; `IdConductor` es texto, no una clave
-  foránea.
+- Cada viaje pertenece a un usuario, que es su conductor (`viaje.IdUsuario`).
+  `viaje` ya no tiene `id_conductor` ni `id_vehiculo`: el vehículo que se
+  muestra en un viaje es el primero del conductor en la tabla `vehiculo`.
 - `viaje.IdRuta` es opcional; al borrar una ruta con viajes relacionados, la
   eliminación se restringe.
-- `viaje.IdVehiculo` es opcional y referencia `vehiculo.id_vehiculo`. Al borrar
-  un vehículo, el viaje se conserva y la referencia queda en `NULL`.
+- Al borrar un vehículo, los viajes de su dueño no se ven afectados (no hay FK
+  entre `viaje` y `vehiculo`; la migración `QuitarConductorVehiculoViaje` la
+  eliminó junto con las columnas).
 - Una reserva vincula un viaje con el usuario pasajero. Al borrar un viaje, sus
   reservas se eliminan en cascada. Los índices únicos parciales evitan reservas
   activas repetidas del mismo pasajero.
@@ -202,7 +204,7 @@ hacia evaluador y evaluado, CHECK de puntuación 1–5). Sus controladores son
 `/api/telefonos`, `/api/preferencias/{idUsuario}`, `/api/solicitudes` (con
 `{id}/coincidencias`) y `/api/calificaciones` (con `resumen/{idEvaluado}`);
 los DTOs están en `Backend/DTOs/`. Diferencias deliberadas con el PDF: un usuario puede
-tener varios vehículos y `viaje.IdConductor` sigue siendo texto. La regla de
+tener varios vehículos y `viaje` no guarda conductor en texto ni vehículo. La regla de
 cupos ≤ capacidad del vehículo (trigger) y la exclusividad automóvil/moto
 siguen pendientes.
 

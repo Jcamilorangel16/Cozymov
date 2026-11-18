@@ -1,9 +1,13 @@
 // Coordina filtros, carga de viajes y validación de disponibilidad del usuario.
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Swal from "sweetalert2";
+import { filtrarSolicitudes } from "../utils/solicitudes";
 import { consultarViajes, ordenarViajesPorSimilitud } from "../utils/viajes";
+
+/** Cada cuánto se refrescan las solicitudes mientras «Buscar» está abierto. */
+const INTERVALO_SOLICITUDES_MS = 20_000;
 import { useSessionUserId } from "../../../hooks/useSessionUserId";
 
 /**
@@ -26,6 +30,15 @@ export function useBuscarViajes() {
   const [validacionCompletada, setValidacionCompletada] = useState(false);
   const [eliminandoViajeId, setEliminandoViajeId] = useState(null);
   const [aceptandoViajeId, setAceptandoViajeId] = useState(null);
+  // Solicitudes pendientes de otros usuarios y elegibilidad para aceptarlas.
+  const [solicitudes, setSolicitudes] = useState([]);
+  // Arranca en «cargando»: la consulta se lanza al montar y SolicitudesPendientes no se ve sin sesión.
+  const [cargandoSolicitudes, setCargandoSolicitudes] = useState(true);
+  const [errorSolicitudes, setErrorSolicitudes] = useState("");
+  const [tieneVehiculo, setTieneVehiculo] = useState(null);
+  const [aceptandoSolicitudId, setAceptandoSolicitudId] = useState(null);
+  // Filtros con los que se hizo la última búsqueda; las solicitudes también los respetan.
+  const [filtrosAplicados, setFiltrosAplicados] = useState({ origen: "", destino: "", fecha: "" });
   const idUsuario = useSessionUserId();
 
   useEffect(() => {
@@ -84,6 +97,79 @@ export function useBuscarViajes() {
     return () => controlador.abort();
   }, [idUsuario]);
 
+  // Solicitudes pendientes de otros usuarios y vehículo propio (requisito para aceptarlas).
+  useEffect(() => {
+    if (!idUsuario) return undefined;
+
+    const controlador = new AbortController();
+    Promise.all([
+      fetch("/api/solicitudes?pendientes=1", {
+        cache: "no-store",
+        signal: controlador.signal,
+      }),
+      fetch(`/api/vehiculo?id_usuario=${encodeURIComponent(idUsuario)}`, {
+        signal: controlador.signal,
+      }),
+    ])
+      .then(async ([respuestaSolicitudes, respuestaVehiculo]) => {
+        const [datosSolicitudes, datosVehiculo] = await Promise.all([
+          respuestaSolicitudes.json(),
+          respuestaVehiculo.json(),
+        ]);
+        if (!respuestaSolicitudes.ok) {
+          throw new Error(
+            datosSolicitudes.error || "No se pudieron consultar las solicitudes pendientes.",
+          );
+        }
+
+        setSolicitudes(Array.isArray(datosSolicitudes) ? datosSolicitudes : []);
+        setTieneVehiculo(respuestaVehiculo.ok ? Boolean(datosVehiculo?.vehiculo) : null);
+      })
+      .catch((errorConsulta) => {
+        if (errorConsulta.name !== "AbortError") {
+          setErrorSolicitudes(
+            errorConsulta.message || "No se pudieron consultar las solicitudes pendientes.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!controlador.signal.aborted) setCargandoSolicitudes(false);
+      });
+
+    return () => controlador.abort();
+  }, [idUsuario]);
+
+  // Las solicitudes nuevas de otros pasajeros aparecen sin recargar la sección.
+  useEffect(() => {
+    if (!idUsuario) return undefined;
+
+    const controlador = new AbortController();
+    const temporizador = setInterval(async () => {
+      try {
+        const respuesta = await fetch("/api/solicitudes?pendientes=1", {
+          cache: "no-store",
+          signal: controlador.signal,
+        });
+        const datos = await respuesta.json();
+        if (respuesta.ok && Array.isArray(datos) && !controlador.signal.aborted) {
+          setSolicitudes(datos);
+        }
+      } catch {
+        // Se conserva la lista actual y se reintenta en el siguiente ciclo.
+      }
+    }, INTERVALO_SOLICITUDES_MS);
+
+    return () => {
+      controlador.abort();
+      clearInterval(temporizador);
+    };
+  }, [idUsuario]);
+
+  const solicitudesVisibles = useMemo(
+    () => filtrarSolicitudes(solicitudes, filtrosAplicados),
+    [solicitudes, filtrosAplicados],
+  );
+
   /**
    * Busca los viajes disponibles y los ordena según los filtros del usuario.
    * @param {React.FormEvent<HTMLFormElement>} evento Envío del formulario.
@@ -102,6 +188,7 @@ export function useBuscarViajes() {
         fecha,
       };
       setViajes(ordenarViajesPorSimilitud(todosLosViajes, filtros));
+      setFiltrosAplicados(filtros);
       setBusquedaRealizada(true);
     } catch (errorConsulta) {
       setError(errorConsulta.message || "No se pudieron consultar los viajes.");
@@ -215,6 +302,60 @@ export function useBuscarViajes() {
     }
   }
 
+  /**
+   * Un conductor con vehículo acepta una solicitud pendiente: la API crea el viaje
+   * privado y la reserva del pasajero, sin publicar ningún viaje.
+   * @param {{idSolicitud: number, origen?: string, destino?: string}} solicitud Solicitud elegida.
+   * @param {() => void} [alAceptar] Acción posterior, normalmente ir a «En curso».
+   * @returns {Promise<void>}
+   */
+  async function handleAceptarSolicitud(solicitud, alAceptar) {
+    const confirmacion = await Swal.fire({
+      icon: "question",
+      title: "¿Aceptar esta solicitud?",
+      text: `${solicitud.origen ?? ""} → ${solicitud.destino ?? ""}`,
+      showCancelButton: true,
+      confirmButtonText: "Sí, aceptar solicitud",
+      cancelButtonText: "Cancelar",
+      confirmButtonColor: "#198754",
+      reverseButtons: true,
+    });
+    if (!confirmacion.isConfirmed) return;
+
+    setAceptandoSolicitudId(solicitud.idSolicitud);
+    setErrorSolicitudes("");
+    try {
+      const respuesta = await fetch("/api/solicitudes/aceptar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id_solicitud: solicitud.idSolicitud }),
+      });
+      const resultado = await respuesta.json();
+      if (!respuesta.ok) {
+        throw new Error(resultado.error || "No se pudo aceptar la solicitud.");
+      }
+      if (!resultado.reserva) {
+        throw new Error("La respuesta del servidor no confirmó la reserva.");
+      }
+
+      setSolicitudes((actuales) =>
+        actuales.filter((actual) => actual.idSolicitud !== solicitud.idSolicitud),
+      );
+      setTieneViajeEnCurso(true);
+      await Swal.fire({
+        icon: "success",
+        title: "Solicitud aceptada",
+        text: "El viaje ya está disponible en «En curso».",
+        confirmButtonText: "Ver viaje",
+      });
+      alAceptar?.();
+    } catch (errorAceptacion) {
+      setErrorSolicitudes(errorAceptacion.message || "No se pudo aceptar la solicitud.");
+    } finally {
+      setAceptandoSolicitudId(null);
+    }
+  }
+
   return {
     origen,
     setOrigen,
@@ -235,5 +376,12 @@ export function useBuscarViajes() {
     handleBuscar,
     handleEliminarViaje,
     handleAceptarViaje,
+    solicitudes: solicitudesVisibles,
+    totalSolicitudes: solicitudes.length,
+    cargandoSolicitudes,
+    errorSolicitudes,
+    tieneVehiculo,
+    aceptandoSolicitudId,
+    handleAceptarSolicitud,
   };
 }

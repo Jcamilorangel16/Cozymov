@@ -52,10 +52,11 @@ namespace Backend.Controllers
             var consulta = _context.Viajes
                 .AsNoTracking()
                 .Include(v => v.Usuario)
-                .Include(v => v.Vehiculo)
-                    .ThenInclude(vehiculo => vehiculo!.Automovil)
-                .Include(v => v.Vehiculo)
-                    .ThenInclude(vehiculo => vehiculo!.Moto)
+                    .ThenInclude(usuario => usuario.Vehiculos)
+                        .ThenInclude(vehiculo => vehiculo.Automovil)
+                .Include(v => v.Usuario)
+                    .ThenInclude(usuario => usuario.Vehiculos)
+                        .ThenInclude(vehiculo => vehiculo.Moto)
                 .Include(v => v.Ruta)
                 .Where(v => v.Estado.ToLower() == "activo" && v.CuposDisponibles > 0);
 
@@ -100,13 +101,12 @@ namespace Backend.Controllers
 
             return viajes.Select(v =>
             {
-                var vehiculo = v.Vehiculo;
+                // El viaje no guarda el vehículo: se muestra el primer vehículo del conductor.
+                var vehiculo = v.Usuario.Vehiculos.OrderBy(x => x.IdVehiculo).FirstOrDefault();
                 return new ViajePublicoDTO(
                     v.IdViaje,
-                    v.IdConductor,
                     v.IdUsuario,
                     v.IdRuta,
-                    vehiculo?.IdVehiculo,
                     v.Origen ?? v.Ruta?.Origen,
                     v.Destino ?? v.Ruta?.Destino,
                     v.PuntoEncuentro,
@@ -145,10 +145,8 @@ namespace Backend.Controllers
                 .Select(v => new ViajeDTO
                 {
                     IdViaje = v.IdViaje,
-                    IdConductor = v.IdConductor,
                     IdUsuario = v.IdUsuario,
                     IdRuta = v.IdRuta,
-                    IdVehiculo = v.IdVehiculo,
                     Origen = v.Origen ?? (v.Ruta == null ? null : v.Ruta.Origen),
                     Destino = v.Destino ?? (v.Ruta == null ? null : v.Ruta.Destino),
                     PuntoEncuentro = v.PuntoEncuentro,
@@ -241,6 +239,42 @@ namespace Backend.Controllers
             return Ok(new { finalizada = true, id_reserva = reserva.IdReserva, id_viaje = reserva.IdViaje });
         }
 
+        // Viaje privado que el conductor atiende tras aceptar una solicitud: existe la
+        // reserva activa del pasajero pero el viaje no es público, así que no sale en la búsqueda.
+        [HttpGet("viaje-conductor-activo/{id_conductor:int}")]
+        public async Task<ActionResult<ViajeConductorActivoDTO?>> GetViajeConductorActivo(
+            int id_conductor,
+            CancellationToken cancellationToken)
+        {
+            var reserva = await _context.ReservasViaje
+                .AsNoTracking()
+                .Include(r => r.Pasajero)
+                .Include(r => r.Viaje)
+                    .ThenInclude(v => v.Ruta)
+                .Where(r => r.Estado == "activa" && r.Viaje.IdUsuario == id_conductor)
+                .OrderByDescending(r => r.IdReserva)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (reserva is null)
+            {
+                return Ok(null);
+            }
+
+            return Ok(new ViajeConductorActivoDTO
+            {
+                IdViaje = reserva.IdViaje,
+                IdReserva = reserva.IdReserva,
+                IdPasajero = reserva.IdPasajero,
+                NombrePasajero = string.Join(" ",
+                    new[] { reserva.Pasajero.PrimerNombre, reserva.Pasajero.PrimerApellido }
+                        .Where(nombre => !string.IsNullOrWhiteSpace(nombre))),
+                Origen = reserva.Viaje.Origen ?? reserva.Viaje.Ruta?.Origen,
+                Destino = reserva.Viaje.Destino ?? reserva.Viaje.Ruta?.Destino,
+                FechaHoraSalida = reserva.Viaje.FechaHoraSalida,
+                Costo = reserva.Viaje.Costo
+            });
+        }
+
         [HttpGet("reservas-completadas/{id_pasajero:int}")]
         public async Task<ActionResult<IEnumerable<ReservaViajeDTO>>> GetReservasCompletadas(
             int id_pasajero,
@@ -288,8 +322,7 @@ namespace Backend.Controllers
             {
                 return Conflict("El viaje ya no está disponible.");
             }
-            if (viaje.IdUsuario == solicitud.IdPasajero ||
-                string.Equals(viaje.IdConductor, solicitud.IdPasajero.ToString(), StringComparison.Ordinal))
+            if (viaje.IdUsuario == solicitud.IdPasajero)
             {
                 return BadRequest("No puedes aceptar tu propio viaje.");
             }
@@ -355,19 +388,8 @@ namespace Backend.Controllers
                 return BadRequest($"El usuario {viajeUpdate.IdUsuario} no existe.");
             }
 
-            if (viajeUpdate.IdVehiculo is not null &&
-                !await _context.Vehiculos.AnyAsync(
-                    v => v.IdVehiculo == viajeUpdate.IdVehiculo &&
-                         v.IdUsuario == viajeUpdate.IdUsuario,
-                    cancellationToken))
-            {
-                return BadRequest("El vehículo no pertenece al usuario.");
-            }
-
-            viaje.IdConductor = viajeUpdate.IdConductor;
             viaje.IdUsuario = viajeUpdate.IdUsuario;
             viaje.IdRuta = viajeUpdate.IdRuta;
-            viaje.IdVehiculo = viajeUpdate.IdVehiculo;
             if (viajeUpdate.Origen is not null)
             {
                 viaje.Origen = viajeUpdate.Origen.Trim();
@@ -417,13 +439,12 @@ namespace Backend.Controllers
                 return BadRequest("El origen y el destino son obligatorios.");
             }
 
-            if (viajeCreate.IdVehiculo is null ||
-                !await _context.Vehiculos.AnyAsync(
-                    v => v.IdVehiculo == viajeCreate.IdVehiculo &&
-                         v.IdUsuario == viajeCreate.IdUsuario,
+            // Para publicar hay que ser conductor: tener al menos un vehículo registrado.
+            if (!await _context.Vehiculos.AnyAsync(
+                    v => v.IdUsuario == viajeCreate.IdUsuario,
                     cancellationToken))
             {
-                return BadRequest("El vehículo no pertenece al usuario.");
+                return BadRequest("Debes registrar un vehículo antes de publicar un viaje.");
             }
 
             await using var transaccion =
@@ -441,10 +462,8 @@ namespace Backend.Controllers
 
             var viaje = new Viaje
             {
-                IdConductor = viajeCreate.IdConductor,
                 IdUsuario = viajeCreate.IdUsuario,
                 IdRuta = viajeCreate.IdRuta,
-                IdVehiculo = viajeCreate.IdVehiculo,
                 Origen = viajeCreate.Origen.Trim(),
                 Destino = viajeCreate.Destino.Trim(),
                 PuntoEncuentro = viajeCreate.PuntoEncuentro?.Trim(),
@@ -462,10 +481,8 @@ namespace Backend.Controllers
             var viajeDto = new ViajeDTO
             {
                 IdViaje = viaje.IdViaje,
-                IdConductor = viaje.IdConductor,
                 IdUsuario = viaje.IdUsuario,
                 IdRuta = viaje.IdRuta,
-                IdVehiculo = viaje.IdVehiculo,
                 Origen = viaje.Origen,
                 Destino = viaje.Destino,
                 PuntoEncuentro = viaje.PuntoEncuentro,
@@ -513,7 +530,6 @@ namespace Backend.Controllers
                 Destino = viaje.Destino ?? viaje.Ruta?.Destino,
                 FechaHoraSalida = viaje.FechaHoraSalida,
                 Costo = viaje.Costo,
-                IdConductor = viaje.IdConductor,
                 IdUsuarioConductor = viaje.IdUsuario,
                 NombreConductor = string.Join(" ",
                     new[] { viaje.Usuario.PrimerNombre, viaje.Usuario.PrimerApellido }

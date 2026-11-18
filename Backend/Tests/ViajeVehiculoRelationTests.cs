@@ -7,20 +7,20 @@ namespace Backend.Tests;
 public sealed class ViajeVehiculoRelationTests
 {
     [Fact]
-    public void ViajeReferencesOptionalVehiculoAndClearsReferenceWhenDeleted()
+    public void ViajeNoGuardaConductorTextoNiVehiculo()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
 
         using var context = new AppDbContext(options);
-        var navigation = context.Model
-            .FindEntityType(typeof(Viaje))!
-            .FindNavigation(nameof(Viaje.Vehiculo))!;
+        var viaje = context.Model.FindEntityType(typeof(Viaje))!;
 
-        Assert.False(navigation.ForeignKey.IsRequired);
-        Assert.Equal(DeleteBehavior.SetNull, navigation.ForeignKey.DeleteBehavior);
-        Assert.Equal(nameof(Viaje.IdVehiculo), navigation.ForeignKey.Properties.Single().Name);
-        Assert.Equal(typeof(Vehiculo), navigation.ForeignKey.PrincipalEntityType.ClrType);
+        // El conductor es IdUsuario; su vehículo se obtiene de la tabla vehiculo.
+        Assert.Null(viaje.FindProperty("IdConductor"));
+        Assert.Null(viaje.FindProperty("IdVehiculo"));
+        Assert.Null(viaje.FindNavigation("Vehiculo"));
+        Assert.DoesNotContain(viaje.GetForeignKeys(), fk => fk.PrincipalEntityType.ClrType == typeof(Vehiculo));
+        Assert.NotNull(viaje.FindProperty(nameof(Viaje.IdUsuario)));
     }
 }

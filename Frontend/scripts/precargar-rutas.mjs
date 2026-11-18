@@ -1,6 +1,6 @@
 // Precalcula las rutas barrio ⇄ Universidad Popular del Cesar y las guarda en public/rutas/.
 // Uso (desde Frontend/):  node scripts/precargar-rutas.mjs   (solo calcula las que faltan; --todo recalcula todas)
-// Las coordenadas de los barrios vienen de scripts/barrios-coordenadas.json (Google Maps) y OSRM calcula el trayecto.
+// Las coordenadas de los barrios vienen de public/barrios-coordenadas.json (Google Maps) y OSRM calcula el trayecto.
 // El resultado se versiona; solo hay que volver a ejecutarlo si cambia el catálogo de barrios.
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
@@ -10,7 +10,8 @@ import barrios from "../src/features/ofrecer-viajes/constants/barriosRutaCotidia
 
 const UNIVERSIDAD = [10.4491234, -73.2625229]; // [lat, lng]; debe coincidir con src/lib/mapa.ts
 const SALIDA = path.resolve("public/rutas");
-const MANUAL = path.resolve("scripts/barrios-coordenadas.json"); // { "NOMBRE BARRIO": [lat, lng] } verificadas a mano
+// { "NOMBRE BARRIO": [lat, lng] } verificadas a mano; el navegador también lo usa para sugerir el barrio actual.
+const MANUAL = path.resolve("public/barrios-coordenadas.json");
 const AGENTE = "cozymov-precarga-rutas/1.0";
 const RECALCULAR = process.argv.includes("--todo");
 

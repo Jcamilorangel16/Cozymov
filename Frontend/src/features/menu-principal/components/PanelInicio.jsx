@@ -5,7 +5,7 @@ import { useId, useState } from "react";
 import Swal from "sweetalert2";
 import { usePanelInicio } from "../hooks/usePanelInicio";
 import { normalizarDestino } from "../utils/destinosInicio";
-import FormularioSolicitudInicio from "./FormularioSolicitudInicio";
+import SolicitarViajeInicio from "./SolicitarViajeInicio";
 import SugerenciasDestinoInicio from "./SugerenciasDestinoInicio";
 import TarjetaViajeResumenInicio from "./TarjetaViajeResumenInicio";
 import ViajeEncontradoInicio from "./ViajeEncontradoInicio";
@@ -39,15 +39,12 @@ export default function PanelInicio({ onNavigate }) {
     aceptarViaje,
     aceptandoId,
     errorAccion,
-    rutasDelDestino,
-    enviarSolicitud,
-    enviandoSolicitud,
-    errorSolicitud,
-    solicitudCreada,
   } = usePanelInicio();
   const idSugerencias = useId();
   const [indiceActivo, setIndiceActivo] = useState(-1);
   const [aviso, setAviso] = useState("");
+  // Se abre cuando el usuario dice que ningún viaje publicado le sirve.
+  const [solicitudAbierta, setSolicitudAbierta] = useState(false);
 
   const mostrarBotonConductor =
     !cargando &&
@@ -74,6 +71,7 @@ export default function PanelInicio({ onNavigate }) {
   function elegirDestino(destino) {
     setIndiceActivo(-1);
     setAviso("");
+    setSolicitudAbierta(false);
     void buscarPorDestino(destino);
   }
 
@@ -240,16 +238,27 @@ export default function PanelInicio({ onNavigate }) {
                       ))}
                     </div>
                   </section>
+                ) : null}
+
+                {resultados.length === 0 ? (
+                  <>
+                    <p className="letra-contenido fw-semibold">
+                      No se encontraron viajes disponibles a {destinoElegido}.
+                    </p>
+                    <SolicitarViajeInicio key={destinoElegido} destinoInicial={destinoElegido} />
+                  </>
+                ) : solicitudAbierta ? (
+                  <div className="mt-3">
+                    <SolicitarViajeInicio key={destinoElegido} destinoInicial={destinoElegido} />
+                  </div>
                 ) : (
-                  <FormularioSolicitudInicio
-                    key={destinoElegido}
-                    destino={destinoElegido}
-                    rutas={rutasDelDestino}
-                    enviando={enviandoSolicitud}
-                    error={errorSolicitud}
-                    creada={solicitudCreada}
-                    onEnviar={enviarSolicitud}
-                  />
+                  <button
+                    type="button"
+                    className="btn btn-outline-primary mt-3"
+                    onClick={() => setSolicitudAbierta(true)}
+                  >
+                    Ninguno me sirve: solicitar un viaje
+                  </button>
                 )}
               </>
             )}
