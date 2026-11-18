@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Swal from "sweetalert2";
-import { filtrarSolicitudes } from "../utils/solicitudes";
+import { filtrarSolicitudes, solicitudesPropiasPendientes } from "../utils/solicitudes";
 import { consultarViajes, ordenarViajesPorSimilitud } from "../utils/viajes";
 
 /** Cada cuánto se refrescan las solicitudes mientras «Buscar» está abierto. */
@@ -12,9 +12,10 @@ import { useSessionUserId } from "../../../hooks/useSessionUserId";
 
 /**
  * Gestiona la consulta de viajes y la elegibilidad para aceptar uno.
+ * @param {string} [idUsuarioServidor] Identificador de la sesión verificada en el servidor.
  * @returns Estado de búsqueda, campos de filtro y acción para buscar.
  */
-export function useBuscarViajes() {
+export function useBuscarViajes(idUsuarioServidor = "") {
   // Criterios que el usuario edita antes de iniciar una búsqueda.
   const [origen, setOrigen] = useState("");
   const [destino, setDestino] = useState("");
@@ -37,9 +38,16 @@ export function useBuscarViajes() {
   const [errorSolicitudes, setErrorSolicitudes] = useState("");
   const [tieneVehiculo, setTieneVehiculo] = useState(null);
   const [aceptandoSolicitudId, setAceptandoSolicitudId] = useState(null);
+  // Solicitudes que el propio usuario pidió como pasajero y siguen esperando conductor.
+  const [misSolicitudes, setMisSolicitudes] = useState([]);
+  const [errorMisSolicitudes, setErrorMisSolicitudes] = useState("");
+  const [eliminandoSolicitudId, setEliminandoSolicitudId] = useState(null);
   // Filtros con los que se hizo la última búsqueda; las solicitudes también los respetan.
   const [filtrosAplicados, setFiltrosAplicados] = useState({ origen: "", destino: "", fecha: "" });
-  const idUsuario = useSessionUserId();
+  // sessionStorage se pierde al abrir otra pestaña aunque la sesión siga activa; el id que
+  // verifica el servidor (cookie) sirve de respaldo para no ocultar las solicitudes.
+  const idSesionNavegador = useSessionUserId();
+  const idUsuario = idSesionNavegador || String(idUsuarioServidor || "");
 
   useEffect(() => {
     const controlador = new AbortController();
@@ -139,23 +147,52 @@ export function useBuscarViajes() {
     return () => controlador.abort();
   }, [idUsuario]);
 
-  // Las solicitudes nuevas de otros pasajeros aparecen sin recargar la sección.
+  // Solicitudes propias: se cargan al abrir «Buscar» y se refrescan junto con las demás.
   useEffect(() => {
     if (!idUsuario) return undefined;
 
     const controlador = new AbortController();
+    fetch("/api/solicitudes", { cache: "no-store", signal: controlador.signal })
+      .then(async (respuesta) => {
+        const datos = await respuesta.json();
+        if (!respuesta.ok) {
+          throw new Error(datos.error || "No se pudieron consultar tus solicitudes.");
+        }
+        setMisSolicitudes(solicitudesPropiasPendientes(datos));
+      })
+      .catch((errorConsulta) => {
+        if (errorConsulta.name !== "AbortError") {
+          setErrorMisSolicitudes(
+            errorConsulta.message || "No se pudieron consultar tus solicitudes.",
+          );
+        }
+      });
+
+    return () => controlador.abort();
+  }, [idUsuario]);
+
+  // Las solicitudes nuevas de otros pasajeros aparecen sin recargar la sección, y una
+  // solicitud propia que un conductor acepta deja de listarse como pendiente.
+  useEffect(() => {
+    if (!idUsuario) return undefined;
+
+    const controlador = new AbortController();
+    async function leerLista(url) {
+      const respuesta = await fetch(url, { cache: "no-store", signal: controlador.signal });
+      const datos = await respuesta.json();
+      return respuesta.ok && Array.isArray(datos) && !controlador.signal.aborted ? datos : null;
+    }
+
     const temporizador = setInterval(async () => {
       try {
-        const respuesta = await fetch("/api/solicitudes?pendientes=1", {
-          cache: "no-store",
-          signal: controlador.signal,
-        });
-        const datos = await respuesta.json();
-        if (respuesta.ok && Array.isArray(datos) && !controlador.signal.aborted) {
-          setSolicitudes(datos);
-        }
+        const [ajenas, propias] = await Promise.all([
+          leerLista("/api/solicitudes?pendientes=1"),
+          leerLista("/api/solicitudes"),
+        ]);
+        if (ajenas) setSolicitudes(ajenas);
+        if (propias) setMisSolicitudes(solicitudesPropiasPendientes(propias));
       } catch {
-        // Se conserva la lista actual y se reintenta en el siguiente ciclo.
+        // Se conservan las listas actuales y se reintenta en el siguiente ciclo.
       }
     }, INTERVALO_SOLICITUDES_MS);
 
@@ -303,6 +340,53 @@ export function useBuscarViajes() {
   }
 
   /**
+   * El pasajero elimina una solicitud suya que ningún conductor ha aceptado.
+   * @param {{idSolicitud: number, origen?: string, destino?: string}} solicitud Solicitud propia.
+   * @returns {Promise<void>}
+   */
+  async function handleEliminarSolicitud(solicitud) {
+    const confirmacion = await Swal.fire({
+      icon: "warning",
+      title: "¿Eliminar tu solicitud?",
+      text: `${solicitud.origen ?? ""} → ${solicitud.destino ?? ""}\n\nLos conductores dejarán de verla.`,
+      showCancelButton: true,
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Conservarla",
+      confirmButtonColor: "#dc3545",
+      reverseButtons: true,
+    });
+    if (!confirmacion.isConfirmed) return;
+
+    setEliminandoSolicitudId(solicitud.idSolicitud);
+    setErrorMisSolicitudes("");
+    try {
+      const respuesta = await fetch(
+        `/api/solicitudes?id=${encodeURIComponent(solicitud.idSolicitud)}`,
+        { method: "DELETE" },
+      );
+      if (!respuesta.ok) {
+        // Un 409 significa que un conductor la aceptó mientras tanto: el backend lo explica.
+        const texto = await respuesta.text();
+        let mensaje = "";
+        try {
+          mensaje = texto ? JSON.parse(texto)?.error : "";
+        } catch {
+          mensaje = "";
+        }
+        throw new Error(mensaje || "No se pudo eliminar la solicitud.");
+      }
+
+      setMisSolicitudes((actuales) =>
+        actuales.filter((actual) => actual.idSolicitud !== solicitud.idSolicitud),
+      );
+    } catch (errorEliminacion) {
+      setErrorMisSolicitudes(errorEliminacion.message || "No se pudo eliminar la solicitud.");
+    } finally {
+      setEliminandoSolicitudId(null);
+    }
+  }
+
+  /**
    * Un conductor con vehículo acepta una solicitud pendiente: la API crea el viaje
    * privado y la reserva del pasajero, sin publicar ningún viaje.
    * @param {{idSolicitud: number, origen?: string, destino?: string}} solicitud Solicitud elegida.
@@ -390,5 +474,9 @@ export function useBuscarViajes() {
     tieneVehiculo,
     aceptandoSolicitudId,
     handleAceptarSolicitud,
+    misSolicitudes,
+    errorMisSolicitudes,
+    eliminandoSolicitudId,
+    handleEliminarSolicitud,
   };
 }

@@ -2,6 +2,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { solicitudesPropiasPendientes } from "../../buscar-viajes/utils/solicitudes";
 import {
   barrioMasCercano,
   cargarCoordenadasBarrios,
@@ -33,6 +34,9 @@ export function useSolicitarViaje({ destinoInicial = "" } = {}) {
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState("");
   const [creada, setCreada] = useState(false);
+  // Solo se permite una solicitud pendiente por pasajero: si ya tiene una, no se pide otra.
+  const [solicitudPendiente, setSolicitudPendiente] = useState(null);
+  const [verificandoPendiente, setVerificandoPendiente] = useState(true);
   const coordenadasRef = useRef({});
   const origenTocadoRef = useRef(false);
 
@@ -77,6 +81,23 @@ export function useSolicitarViaje({ destinoInicial = "" } = {}) {
     return () => controlador.abort();
   }, [detectarUbicacion]);
 
+  // Si la consulta falla el formulario sigue disponible: el backend también rechaza la repetida.
+  useEffect(() => {
+    const controlador = new AbortController();
+    fetch("/api/solicitudes", { cache: "no-store", signal: controlador.signal })
+      .then(async (respuesta) => {
+        const datos = await respuesta.json();
+        if (respuesta.ok) {
+          setSolicitudPendiente(solicitudesPropiasPendientes(datos)[0] ?? null);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!controlador.signal.aborted) setVerificandoPendiente(false);
+      });
+    return () => controlador.abort();
+  }, []);
+
   /**
    * Cambia el origen manualmente; deja de sobrescribirse con el GPS.
    * @param {string} barrio Barrio elegido.
@@ -101,6 +122,11 @@ export function useSolicitarViaje({ destinoInicial = "" } = {}) {
   async function enviar() {
     if (enviando || creada) return false;
     setError("");
+
+    if (solicitudPendiente) {
+      setError("Ya tienes una solicitud pendiente. Elimínala para poder pedir otra.");
+      return false;
+    }
 
     const invalido = validarSolicitudViaje({ origen, destino, precio, fecha, hora });
     if (invalido) {
@@ -161,6 +187,8 @@ export function useSolicitarViaje({ destinoInicial = "" } = {}) {
     enviando,
     error,
     creada,
+    solicitudPendiente,
+    verificandoPendiente,
     cambiarOrigen,
     cambiarDestino,
     setPrecio,

@@ -4,6 +4,7 @@ import { test } from "node:test";
 import {
   detectarSolicitudesNuevas,
   filtrarSolicitudes,
+  solicitudesPropiasPendientes,
   textoAvisoSolicitudes,
 } from "../src/features/buscar-viajes/utils/solicitudes.js";
 
@@ -68,4 +69,19 @@ test("el aviso describe una solicitud o resume varias", () => {
   const varias = textoAvisoSolicitudes(solicitudes);
   assert.match(varias.titulo, /^3 solicitudes nuevas/);
   assert.match(varias.texto, /Buscar/);
+});
+
+test("solo se listan como propias las solicitudes pendientes, las más próximas primero", () => {
+  const propias = [
+    { idSolicitud: 1, estado: "aceptada", fechaHora: "2030-01-01T07:00:00" },
+    { idSolicitud: 2, estado: "pendiente", fechaHora: "2030-01-03T07:00:00" },
+    { idSolicitud: 3, estado: "Pendiente", fechaHora: "2030-01-02T07:00:00" },
+    { idSolicitud: 4, fechaHora: "2030-01-01T07:00:00" },
+  ];
+  assert.deepEqual(
+    solicitudesPropiasPendientes(propias).map((s) => s.idSolicitud),
+    [3, 2],
+  );
+  assert.deepEqual(solicitudesPropiasPendientes([]), []);
+  assert.deepEqual(solicitudesPropiasPendientes(null), []);
 });

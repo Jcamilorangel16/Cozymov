@@ -45,6 +45,8 @@ export default function PanelInicio({ onNavigate }) {
   const [aviso, setAviso] = useState("");
   // Se abre cuando el usuario dice que ningún viaje publicado le sirve.
   const [solicitudAbierta, setSolicitudAbierta] = useState(false);
+  // Se abre con el botón «Pedir viaje» de la barra superior.
+  const [pedirViajeAbierto, setPedirViajeAbierto] = useState(false);
 
   const mostrarBotonConductor =
     !cargando &&
@@ -120,7 +122,15 @@ export default function PanelInicio({ onNavigate }) {
 
   return (
     <div className="vista">
-      <div className="d-flex justify-content-end align-items-center flex-wrap gap-2 mb-3">
+      <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+        <button
+          type="button"
+          className="btn btn-success"
+          aria-expanded={pedirViajeAbierto}
+          onClick={() => setPedirViajeAbierto((abierto) => !abierto)}
+        >
+          Pedir viaje
+        </button>
         {mostrarBotonConductor && (
           <button
             type="button"
@@ -139,6 +149,17 @@ export default function PanelInicio({ onNavigate }) {
             <button type="button" className="btn btn-outline-danger" onClick={reintentar}>
               Reintentar
             </button>
+          </div>
+        )}
+
+        {pedirViajeAbierto && (
+          <div className="mb-4">
+            <SolicitarViajeInicio
+              key={`pedir-${destinoElegido ?? ""}`}
+              destinoInicial={destinoElegido ?? ""}
+              onVerSolicitudes={() => onNavigate("buscar")}
+              onCerrar={() => setPedirViajeAbierto(false)}
+            />
           </div>
         )}
 
@@ -245,11 +266,21 @@ export default function PanelInicio({ onNavigate }) {
                     <p className="letra-contenido fw-semibold">
                       No se encontraron viajes disponibles a {destinoElegido}.
                     </p>
-                    <SolicitarViajeInicio key={destinoElegido} destinoInicial={destinoElegido} />
+                    {!pedirViajeAbierto && (
+                      <SolicitarViajeInicio
+                        key={destinoElegido}
+                        destinoInicial={destinoElegido}
+                        onVerSolicitudes={() => onNavigate("buscar")}
+                      />
+                    )}
                   </>
-                ) : solicitudAbierta ? (
+                ) : pedirViajeAbierto ? null : solicitudAbierta ? (
                   <div className="mt-3">
-                    <SolicitarViajeInicio key={destinoElegido} destinoInicial={destinoElegido} />
+                    <SolicitarViajeInicio
+                      key={destinoElegido}
+                      destinoInicial={destinoElegido}
+                      onVerSolicitudes={() => onNavigate("buscar")}
+                    />
                   </div>
                 ) : (
                   <button

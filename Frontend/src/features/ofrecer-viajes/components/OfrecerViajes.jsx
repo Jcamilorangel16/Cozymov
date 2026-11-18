@@ -17,6 +17,7 @@ export default function OfrecerViajes({
   setPasajeroSeleccionado,
   mensajeAccion,
   setMensajeAccion,
+  onNavigate,
 }) {
   const {
     idUsuario,
@@ -113,6 +114,20 @@ export default function OfrecerViajes({
       ) : estadoViajeEnCurso === "en-curso" ? (
         <div className="alert alert-warning" role="alert">
           No puedes publicar un viaje mientras tengas uno en curso. Completa tu viaje actual antes de publicar otro.
+        </div>
+      ) : estadoViajeEnCurso === "solicitud-pendiente" ? (
+        <div className="alert alert-warning" role="alert">
+          <p className="mb-2">
+            No puedes publicar un viaje mientras tengas una solicitud de viaje pendiente. Elimínala
+            en «Buscar» o espera a que un conductor la acepte.
+          </p>
+          <button
+            className="btn btn-outline-primary"
+            type="button"
+            onClick={() => onNavigate?.("buscar")}
+          >
+            Ver mi solicitud
+          </button>
         </div>
       ) : estadoViajeEnCurso === "cargando" ? (
         <p role="status">Validando si tienes un viaje en curso...</p>

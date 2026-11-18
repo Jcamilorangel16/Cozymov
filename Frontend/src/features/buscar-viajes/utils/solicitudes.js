@@ -22,6 +22,18 @@ export function filtrarSolicitudes(solicitudes, filtros = {}) {
 }
 
 /**
+ * Deja las solicitudes propias que todavía esperan conductor, las más próximas primero.
+ * @param {Array<{estado?: string, fechaHora?: string}>} solicitudes Solicitudes del usuario (cualquier estado).
+ * @returns {Array} Solo las pendientes, ordenadas por fecha y hora de salida.
+ */
+export function solicitudesPropiasPendientes(solicitudes) {
+  if (!Array.isArray(solicitudes)) return [];
+  return solicitudes
+    .filter((solicitud) => String(solicitud?.estado ?? "").toLowerCase() === "pendiente")
+    .sort((a, b) => String(a.fechaHora ?? "").localeCompare(String(b.fechaHora ?? "")));
+}
+
+/**
  * Separa las solicitudes que el conductor aún no conocía.
  * Sin historial previo (`null`) la primera consulta solo se memoriza: no se avisa de
  * solicitudes que ya existían antes de que el conductor usara la aplicación.

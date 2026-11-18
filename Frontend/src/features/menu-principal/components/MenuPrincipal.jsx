@@ -73,6 +73,7 @@ export default function MenuPrincipal({ usuarioActualId }) {
                   mensajeAccion={mensajeBusqueda}
                   setMensajeAccion={setMensajeBusqueda}
                   onNavigate={irAVista}
+                  usuarioActualId={usuarioActualId}
                 />
               </div>
             )}
@@ -82,6 +83,7 @@ export default function MenuPrincipal({ usuarioActualId }) {
                 setPasajeroSeleccionado={setPasajeroSeleccionado}
                 mensajeAccion={mensajePasajero}
                 setMensajeAccion={setMensajePasajero}
+                onNavigate={irAVista}
               />
             )}
 

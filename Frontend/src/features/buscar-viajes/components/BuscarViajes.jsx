@@ -4,6 +4,7 @@
 import { puedeAceptarViaje } from "../../viajes/validations/viajes";
 import { useBuscarViajes } from "../hooks/useBuscarViajes";
 import { formatearFecha, formatearPrecio } from "../utils/viajes";
+import MisSolicitudes from "./MisSolicitudes";
 import SolicitudesPendientes from "./SolicitudesPendientes";
 
 /**
@@ -11,7 +12,7 @@ import SolicitudesPendientes from "./SolicitudesPendientes";
  * @param {{onEnviarMensaje?: (contacto: {id: string, nombre: string}) => void, onNavigate?: (id: string) => void}} props Acciones para el chat y la navegación.
  * @returns Interfaz de búsqueda de viajes.
  */
-export default function BuscarViajes({ onEnviarMensaje, onNavigate }) {
+export default function BuscarViajes({ onEnviarMensaje, onNavigate, usuarioActualId = "" }) {
   const {
     origen,
     setOrigen,
@@ -39,7 +40,11 @@ export default function BuscarViajes({ onEnviarMensaje, onNavigate }) {
     tieneVehiculo,
     aceptandoSolicitudId,
     handleAceptarSolicitud,
-  } = useBuscarViajes();
+    misSolicitudes,
+    errorMisSolicitudes,
+    eliminandoSolicitudId,
+    handleEliminarSolicitud,
+  } = useBuscarViajes(usuarioActualId);
 
   return (
     <div className="container py-4">
@@ -95,6 +100,15 @@ export default function BuscarViajes({ onEnviarMensaje, onNavigate }) {
           </form>
         </div>
       </div>
+
+      {idUsuario && (
+        <MisSolicitudes
+          solicitudes={misSolicitudes}
+          error={errorMisSolicitudes}
+          eliminandoId={eliminandoSolicitudId}
+          onEliminar={handleEliminarSolicitud}
+        />
+      )}
 
       <SolicitudesPendientes
         solicitudes={solicitudes}

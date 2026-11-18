@@ -15,10 +15,14 @@ const MENSAJE_UBICACION = {
 
 /**
  * Permite registrar una solicitud de viaje con origen, destino, precio, fecha y hora.
- * @param {{destinoInicial?: string, onVerSolicitudes?: () => void}} props Destino preseleccionado y navegación opcional.
+ * @param {{destinoInicial?: string, onVerSolicitudes?: () => void, onCerrar?: () => void}} props Destino preseleccionado, navegación opcional y cierre opcional del formulario.
  * @returns Formulario de solicitud de viaje.
  */
-export default function SolicitarViajeInicio({ destinoInicial = "", onVerSolicitudes }) {
+export default function SolicitarViajeInicio({
+  destinoInicial = "",
+  onVerSolicitudes,
+  onCerrar,
+}) {
   const id = useId();
   const {
     origen,
@@ -30,6 +34,8 @@ export default function SolicitarViajeInicio({ destinoInicial = "", onVerSolicit
     enviando,
     error,
     creada,
+    solicitudPendiente,
+    verificandoPendiente,
     cambiarOrigen,
     cambiarDestino,
     setPrecio,
@@ -55,11 +61,53 @@ export default function SolicitarViajeInicio({ destinoInicial = "", onVerSolicit
           Registramos tu solicitud de {origen} a {destino}. Un conductor con vehículo puede
           aceptarla desde «Buscar»; cuando lo haga, tu viaje aparecerá en «En curso».
         </div>
-        {onVerSolicitudes && (
-          <button type="button" className="btn btn-outline-primary" onClick={onVerSolicitudes}>
-            Ver mis solicitudes
-          </button>
-        )}
+        <div className="d-flex flex-wrap gap-2">
+          {onVerSolicitudes && (
+            <button type="button" className="btn btn-outline-primary" onClick={onVerSolicitudes}>
+              Ver mis solicitudes
+            </button>
+          )}
+          {onCerrar && (
+            <button type="button" className="btn btn-outline-secondary" onClick={onCerrar}>
+              Cerrar
+            </button>
+          )}
+        </div>
+      </section>
+    );
+  }
+
+  if (verificandoPendiente) {
+    return (
+      <p className="texto-secundario" role="status">
+        Comprobando tus solicitudes...
+      </p>
+    );
+  }
+
+  if (solicitudPendiente) {
+    return (
+      <section className="viaje-item inicio-destacado" aria-labelledby={`${id}-titulo`}>
+        <h2 className="h5 letra-contenido" id={`${id}-titulo`}>
+          Ya tienes una solicitud pendiente
+        </h2>
+        <div className="alert alert-success" role="status">
+          Pediste un viaje de {solicitudPendiente.origen} a {solicitudPendiente.destino}. Solo
+          puedes tener una solicitud a la vez: elimínala en «Buscar» o espera a que un
+          conductor la acepte para pedir otra.
+        </div>
+        <div className="d-flex flex-wrap gap-2">
+          {onVerSolicitudes && (
+            <button type="button" className="btn btn-outline-primary" onClick={onVerSolicitudes}>
+              Ver mi solicitud
+            </button>
+          )}
+          {onCerrar && (
+            <button type="button" className="btn btn-outline-secondary" onClick={onCerrar}>
+              Cerrar
+            </button>
+          )}
+        </div>
       </section>
     );
   }
@@ -164,9 +212,21 @@ export default function SolicitarViajeInicio({ destinoInicial = "", onVerSolicit
           </div>
         )}
 
-        <button type="submit" className="btn-reservar" disabled={enviando}>
-          {enviando ? "Enviando..." : "Solicitar viaje"}
-        </button>
+        <div className="d-flex flex-wrap align-items-center gap-2">
+          <button type="submit" className="btn-reservar" disabled={enviando}>
+            {enviando ? "Enviando..." : "Solicitar viaje"}
+          </button>
+          {onCerrar && (
+            <button
+              type="button"
+              className="btn btn-outline-secondary"
+              onClick={onCerrar}
+              disabled={enviando}
+            >
+              Cancelar
+            </button>
+          )}
+        </div>
       </form>
     </section>
   );

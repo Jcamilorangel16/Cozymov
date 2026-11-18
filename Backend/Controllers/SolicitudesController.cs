@@ -128,6 +128,12 @@ public class SolicitudesController(AppDbContext context) : ControllerBase
         if (!await context.Usuarios.AnyAsync(u => u.IdPersonas == dto.IdUsuario))
             return BadRequest("El usuario no existe.");
 
+        // Un pasajero solo puede tener una solicitud esperando conductor a la vez.
+        if (await context.Solicitudes.AnyAsync(
+                s => s.IdUsuario == dto.IdUsuario && s.Estado == Solicitud.EstadoPendiente))
+            return Conflict(
+                "Ya tienes una solicitud de viaje pendiente. Elimínala o espera a que un conductor la acepte para pedir otra.");
+
         var resuelta = await ResolverRuta(dto);
         if (resuelta.Error is not null)
             return resuelta.Error;

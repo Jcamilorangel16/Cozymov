@@ -504,6 +504,16 @@ namespace Backend.Controllers
                 return BadRequest("El origen y el destino son obligatorios.");
             }
 
+            // Quien espera conductor como pasajero no puede publicar un viaje como conductor.
+            if (await _context.Solicitudes.AnyAsync(
+                    s => s.IdUsuario == viajeCreate.IdUsuario &&
+                         s.Estado == Solicitud.EstadoPendiente,
+                    cancellationToken))
+            {
+                return Conflict(
+                    "No puedes publicar un viaje mientras tengas una solicitud de viaje pendiente. Elimínala o espera a que un conductor la acepte.");
+            }
+
             // Para publicar hay que ser conductor: tener al menos un vehículo registrado.
             if (!await _context.Vehiculos.AnyAsync(
                     v => v.IdUsuario == viajeCreate.IdUsuario,
