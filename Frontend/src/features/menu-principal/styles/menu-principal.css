@@ -448,27 +448,6 @@ body {
     font-size: 1.05rem;
 }
 
-.hero-nube {
-    position: absolute;
-    color: rgba(255, 255, 255, 0.22);
-    pointer-events: none;
-}
-.hero-nube-1 { top: 10px; left: 6%; font-size: 64px; }
-.hero-nube-2 { bottom: 8px; right: 7%; font-size: 84px; }
-
-.hero-ruta {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: min(360px, 80%);
-    font-size: 1.3rem;
-    color: #fff;
-}
-.hero-ruta-linea {
-    flex: 1;
-    border-top: 3px dotted rgba(255, 255, 255, 0.8);
-}
-.hero-auto { color: #ffe08a; }
 
 .btn-conductor {
     display: inline-flex;
@@ -525,41 +504,6 @@ body {
 .chip-destino .bi { color: #4fb4ee; }
 .chip-destino:hover { background: #e3f3ff; transform: translateY(-1px); }
 
-.acciones-rapidas {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-    gap: 14px;
-    margin-top: 26px;
-}
-.accion-tarjeta {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 14px 16px;
-    text-align: left;
-    border: 1px solid rgba(79, 180, 238, 0.35);
-    border-radius: 16px;
-    background: #fff;
-    color: #0b1922;
-}
-.accion-tarjeta:hover { transform: translateY(-3px); border-color: #4fb4ee; }
-.accion-icono {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 48px;
-    height: 48px;
-    flex-shrink: 0;
-    border-radius: 14px;
-    font-size: 1.4rem;
-    color: #fff;
-}
-.accion-texto { display: flex; flex-direction: column; line-height: 1.25; }
-.accion-texto small { color: #6b7683; }
-.accion-celeste .accion-icono { background: linear-gradient(135deg, #4fb4ee, #3867a9); }
-.accion-verde .accion-icono { background: linear-gradient(135deg, #5fd3a0, #2aa7a1); }
-.accion-rosa .accion-icono { background: linear-gradient(135deg, #ff9db5, #e0547e); }
-.accion-ambar .accion-icono { background: linear-gradient(135deg, #ffd25e, #f08a24); }
 
 /* ───────── Inicio: actividad, carga, vacío y hora ───────── */
 .actividad-panel { margin-top: 30px; }
@@ -651,4 +595,116 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
     .esqueleto, .buscando-auto { animation: none; }
+}
+
+/* ───────── Inicio: nubes, ruta y accesos rápidos ───────── */
+.hero-nube {
+    position: absolute;
+    color: rgba(255, 255, 255, 0.22);
+    pointer-events: none;
+}
+.hero-nube-1 { top: 10px; left: 6%; font-size: 64px; }
+.hero-nube-2 { bottom: 8px; right: 7%; font-size: 84px; }
+
+.hero-ruta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: min(360px, 80%);
+    font-size: 1.3rem;
+    color: #fff;
+}
+.hero-ruta-linea {
+    flex: 1;
+    border-top: 3px dotted rgba(255, 255, 255, 0.8);
+}
+.hero-auto { color: #ffe08a; }
+
+.acciones-rapidas {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 14px;
+    margin-top: 26px;
+}
+.accion-tarjeta {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    text-align: left;
+    border: 1px solid rgba(79, 180, 238, 0.35);
+    border-radius: 16px;
+    background: #fff;
+    color: #0b1922;
+}
+.accion-tarjeta:hover { transform: translateY(-3px); border-color: #4fb4ee; }
+.accion-icono {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+    border-radius: 14px;
+    font-size: 1.4rem;
+    color: #fff;
+}
+.accion-texto { display: flex; flex-direction: column; line-height: 1.25; }
+.accion-texto small { color: #6b7683; }
+.accion-celeste .accion-icono { background: linear-gradient(135deg, #4fb4ee, #3867a9); }
+.accion-verde .accion-icono { background: linear-gradient(135deg, #5fd3a0, #2aa7a1); }
+.accion-rosa .accion-icono { background: linear-gradient(135deg, #ff9db5, #e0547e); }
+.accion-ambar .accion-icono { background: linear-gradient(135deg, #ffd25e, #f08a24); }
+
+/* ───────── Barra desplegable en pantallas pequeñas ───────── */
+.topbar-toggle {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+    border: 1px solid rgba(79, 180, 238, 0.5);
+    border-radius: 12px;
+    font-size: 1.4rem;
+    color: #3867a9;
+    background: #e3f3ff;
+}
+.topbar-toggle:hover { background: #d3ecff; }
+.topbar-toggle:focus-visible { outline: 2px solid #3867a9; outline-offset: 2px; }
+
+@media (max-width: 991px) {
+    .topbar-toggle { display: inline-flex; }
+
+    .topbar { gap: 12px; padding: 8px 14px; }
+    .brand-logo { flex: 1; min-width: 0; }
+
+    /* El menú pasa a ser un panel que se despliega bajo la barra */
+    .topbar-nav {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        display: none;
+        padding: 10px 14px 14px;
+        background: #ffffff;
+        border-bottom: 3px solid #7cc7f0;
+        box-shadow: 0 14px 24px rgba(56, 120, 180, 0.22);
+        max-height: calc(100vh - 72px);
+        overflow-y: auto;
+    }
+    .topbar-nav.abierto { display: block; }
+
+    .topbar-nav .nav {
+        flex-direction: column;
+        flex-wrap: nowrap;
+        gap: 4px;
+        overflow: visible;
+    }
+    .topbar .topbar-nav .nav-link {
+        display: flex !important;
+        width: 100%;
+        padding: 12px 14px;
+        font-size: 1.02rem;
+    }
 }
