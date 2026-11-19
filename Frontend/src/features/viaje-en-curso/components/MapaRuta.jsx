@@ -204,7 +204,7 @@ export default function MapaRuta({ origen, destino, onLlegada }) {
       {llego && (
         <p className="alert alert-success py-2" role="status">
           {onLlegada
-            ? "Llegaste a tu destino. Estamos finalizando tu viaje…"
+            ? "Llegaste a tu destino. Finaliza tu viaje; si no lo haces, se finalizará solo en 1 hora."
             : "Llegaste a tu destino. Ya puedes finalizar el viaje."}
         </p>
       )}

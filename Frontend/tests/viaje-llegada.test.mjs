@@ -4,9 +4,15 @@ import { test } from "node:test";
 import {
   LECTURAS_PARA_LLEGAR,
   METROS_LLEGADA,
+  MS_AUTOFINALIZAR,
   PRECISION_MAXIMA_METROS,
+  borrarLlegada,
   contarLecturasEnDestino,
+  debeAutofinalizar,
   esLecturaDeLlegada,
+  guardarLlegada,
+  leerLlegada,
+  limiteAutofinalizar,
   llegadaConfirmada,
 } from "../src/features/viaje-en-curso/utils/llegada.js";
 
@@ -51,4 +57,35 @@ test("la llegada se confirma con lecturas consecutivas y se reinicia si el usuar
 test("una sola lectura dentro del radio no basta", () => {
   assert.equal(llegadaConfirmada(contarLecturasEnDestino(0, true)), false);
   assert.equal(llegadaConfirmada(0), false);
+});
+
+test("el viaje se finaliza solo exactamente una hora después de la llegada", () => {
+  const llegada = Date.parse("2026-11-18T10:00:00");
+  assert.equal(limiteAutofinalizar(llegada), llegada + MS_AUTOFINALIZAR);
+  assert.equal(MS_AUTOFINALIZAR, 3_600_000);
+  assert.equal(debeAutofinalizar(llegada, llegada + MS_AUTOFINALIZAR - 1), false);
+  assert.equal(debeAutofinalizar(llegada, llegada + MS_AUTOFINALIZAR), true);
+  assert.equal(debeAutofinalizar(null, llegada + MS_AUTOFINALIZAR * 5), false);
+});
+
+test("la hora de llegada se guarda, se lee y se borra por viaje", () => {
+  const datos = new Map();
+  const almacen = {
+    getItem: (k) => datos.get(k) ?? null,
+    setItem: (k, v) => datos.set(k, v),
+    removeItem: (k) => datos.delete(k),
+  };
+  assert.equal(leerLlegada(almacen, 7), null);
+  guardarLlegada(almacen, 7, 1234567);
+  assert.equal(leerLlegada(almacen, 7), 1234567);
+  assert.equal(leerLlegada(almacen, 8), null);
+  borrarLlegada(almacen, 7);
+  assert.equal(leerLlegada(almacen, 7), null);
+});
+
+test("sin almacenamiento o con datos corruptos no falla", () => {
+  assert.equal(leerLlegada(null, 1), null);
+  assert.equal(leerLlegada({ getItem: () => "abc" }, 1), null);
+  assert.equal(leerLlegada({ getItem: () => { throw new Error("bloqueado"); } }, 1), null);
+  assert.doesNotThrow(() => guardarLlegada({ setItem: () => { throw new Error("lleno"); } }, 1, 5));
 });
