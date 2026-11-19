@@ -5,7 +5,7 @@ import {
   motivoNoAceptarSolicitud,
   puedeAceptarSolicitud,
 } from "../../viajes/validations/viajes";
-import { formatearFecha, formatearPrecio } from "../utils/viajes";
+import { formatearFecha, formatearPresupuestoSolicitud } from "../utils/viajes";
 
 /**
  * Presenta las solicitudes pendientes de otros usuarios y permite aceptarlas.
@@ -74,9 +74,7 @@ export default function SolicitudesPendientes({
                     </p>
                   </div>
                   <strong className="text-success-emphasis">
-                    {solicitud.presupuesto == null
-                      ? "Sin presupuesto"
-                      : formatearPrecio(solicitud.presupuesto)}
+                    {formatearPresupuestoSolicitud(solicitud.presupuesto)}
                   </strong>
                 </div>
 

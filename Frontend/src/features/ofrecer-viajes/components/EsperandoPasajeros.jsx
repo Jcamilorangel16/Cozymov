@@ -1,5 +1,7 @@
 // Muestra el resumen del viaje que quedó publicado y esperando pasajeros.
 
+import { formatearPrecioViaje } from "../../buscar-viajes/utils/viajes";
+
 /**
  * Presenta los detalles de un viaje publicado y sus acciones disponibles.
  * @param {object} props Viaje publicado y controlador de edición.
@@ -49,11 +51,7 @@ export default function EsperandoPasajeros({
         <div className="rounded-3 bg-light p-3 mb-4">
           <small className="d-block text-secondary">Precio del pasaje</small>
           <strong className="fs-5 letra-contenido">
-            {new Intl.NumberFormat("es-CO", {
-              style: "currency",
-              currency: "COP",
-              maximumFractionDigits: 0,
-            }).format(viaje.precioPasaje)}
+            {formatearPrecioViaje(viaje.precioPasaje)}
           </strong>
         </div>
 

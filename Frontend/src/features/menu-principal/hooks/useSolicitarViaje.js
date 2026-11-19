@@ -37,6 +37,8 @@ export function useSolicitarViaje({ destinoInicial = "" } = {}) {
   // Solo se permite una solicitud pendiente por pasajero: si ya tiene una, no se pide otra.
   const [solicitudPendiente, setSolicitudPendiente] = useState(null);
   const [verificandoPendiente, setVerificandoPendiente] = useState(true);
+  // El backend informó que hay un viaje publicado y por eso no admite la solicitud.
+  const [bloqueadoPorViajePublicado, setBloqueadoPorViajePublicado] = useState(false);
   const coordenadasRef = useRef({});
   const origenTocadoRef = useRef(false);
 
@@ -163,6 +165,12 @@ export function useSolicitarViaje({ destinoInicial = "" } = {}) {
       } catch {
         datos = null;
       }
+      // El backend rechaza la solicitud si el usuario tiene un viaje publicado (p. ej. si la
+      // pantalla aún no lo había cargado): se muestra el aviso que lleva a ese viaje.
+      if (respuesta.status === 409 && /viaje publicado/i.test(datos?.error ?? "")) {
+        setBloqueadoPorViajePublicado(true);
+        return false;
+      }
       if (!respuesta.ok) {
         throw new Error(datos?.error || "No se pudo registrar la solicitud.");
       }
@@ -189,6 +197,7 @@ export function useSolicitarViaje({ destinoInicial = "" } = {}) {
     creada,
     solicitudPendiente,
     verificandoPendiente,
+    bloqueadoPorViajePublicado,
     cambiarOrigen,
     cambiarDestino,
     setPrecio,

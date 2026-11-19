@@ -1,6 +1,6 @@
 "use client";
 
-import { formatearPrecio } from "../../buscar-viajes/utils/viajes";
+import { formatearPrecioViaje } from "../../buscar-viajes/utils/viajes";
 import {
   descripcionVehiculo,
   etiquetaCalificacion,
@@ -27,7 +27,7 @@ export default function ViajeEncontradoInicio({
       <dl className="inicio-datos">
         <div>
           <dt><i className="bi bi-cash-coin" aria-hidden="true" /> Precio</dt>
-          <dd>{formatearPrecio(viaje.precio_pasaje)}</dd>
+          <dd>{formatearPrecioViaje(viaje.precio_pasaje)}</dd>
         </div>
         <div>
           <dt><i className="bi bi-clock-fill" aria-hidden="true" /> Salida</dt>

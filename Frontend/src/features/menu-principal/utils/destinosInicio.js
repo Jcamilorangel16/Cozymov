@@ -112,8 +112,9 @@ export function validarSolicitudViaje({ origen, destino, precio, fecha, hora }, 
 
   const texto = String(precio ?? "").trim();
   const valor = Number(texto);
-  if (!texto || !Number.isFinite(valor) || valor <= 0) {
-    return "Propón un precio en COP mayor que cero.";
+  // 0 es válido: es el modo colaboración (el pasajero no pagará). Vacío no cuenta como 0.
+  if (!texto || !Number.isFinite(valor) || valor < 0) {
+    return "Propón un precio en COP (0 para modo colaboración).";
   }
   if (valor > PRESUPUESTO_MAXIMO) return "El precio propuesto es demasiado alto.";
 

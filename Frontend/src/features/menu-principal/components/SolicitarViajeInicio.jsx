@@ -5,7 +5,9 @@ import { useId } from "react";
 import BarrioDropdown from "../../ofrecer-viajes/components/BarrioDropdown";
 import barriosRutaCotidiana from "../../ofrecer-viajes/constants/barriosRutaCotidiana";
 import { LUGARES_ADICIONALES } from "../../ofrecer-viajes/constants/ofrecerViajes";
+import { esModoColaboracion } from "../../buscar-viajes/utils/viajes";
 import { useSolicitarViaje } from "../hooks/useSolicitarViaje";
+import { PRESUPUESTO_PREDETERMINADO } from "../utils/destinosInicio";
 
 const MENSAJE_UBICACION = {
   cargando: "Buscando tu ubicación para proponerte el origen...",
@@ -15,12 +17,14 @@ const MENSAJE_UBICACION = {
 
 /**
  * Permite registrar una solicitud de viaje con origen, destino, precio, fecha y hora.
- * @param {{destinoInicial?: string, sinViajes?: boolean, onVerSolicitudes?: () => void, onCerrar?: () => void}} props Destino preseleccionado, si aparece porque la búsqueda no encontró viajes, navegación opcional y cierre opcional del formulario.
+ * @param {{destinoInicial?: string, sinViajes?: boolean, tieneViajePublicado?: boolean, onVerViajePublicado?: () => void, onVerSolicitudes?: () => void, onCerrar?: () => void}} props Destino preseleccionado, si aparece porque la búsqueda no encontró viajes, si el usuario tiene un viaje publicado (no puede solicitar otro) y cómo llevarlo a él, navegación opcional y cierre opcional del formulario.
  * @returns Formulario de solicitud de viaje.
  */
 export default function SolicitarViajeInicio({
   destinoInicial = "",
   sinViajes = false,
+  tieneViajePublicado = false,
+  onVerViajePublicado,
   onVerSolicitudes,
   onCerrar,
 }) {
@@ -37,6 +41,7 @@ export default function SolicitarViajeInicio({
     creada,
     solicitudPendiente,
     verificandoPendiente,
+    bloqueadoPorViajePublicado,
     cambiarOrigen,
     cambiarDestino,
     setPrecio,
@@ -46,6 +51,7 @@ export default function SolicitarViajeInicio({
     enviar,
     minimoFecha,
   } = useSolicitarViaje({ destinoInicial });
+  const modoColaboracion = esModoColaboracion(precio);
 
   function manejarEnvio(evento) {
     evento.preventDefault();
@@ -66,6 +72,33 @@ export default function SolicitarViajeInicio({
           {onVerSolicitudes && (
             <button type="button" className="btn btn-outline-primary" onClick={onVerSolicitudes}>
               Ver mis solicitudes
+            </button>
+          )}
+          {onCerrar && (
+            <button type="button" className="btn btn-outline-secondary" onClick={onCerrar}>
+              Cerrar
+            </button>
+          )}
+        </div>
+      </section>
+    );
+  }
+
+  // Un conductor con un viaje publicado no pide viaje como pasajero (el backend también lo rechaza).
+  if (tieneViajePublicado || bloqueadoPorViajePublicado) {
+    return (
+      <section className="viaje-item inicio-destacado" aria-labelledby={`${id}-titulo`}>
+        <h2 className="h5 letra-contenido" id={`${id}-titulo`}>
+          Tienes un viaje publicado
+        </h2>
+        <div className="alert alert-warning" role="status">
+          No puedes solicitar un viaje mientras tengas uno publicado. Cancélalo o espera a que
+          termine para pedir uno como pasajero.
+        </div>
+        <div className="d-flex flex-wrap gap-2">
+          {onVerViajePublicado && (
+            <button type="button" className="btn btn-primary" onClick={onVerViajePublicado}>
+              Ir a mi viaje publicado
             </button>
           )}
           {onCerrar && (
@@ -183,12 +216,28 @@ export default function SolicitarViajeInicio({
             type="number"
             className="form-control"
             inputMode="numeric"
-            min="1"
+            min="0"
             step="100"
             value={precio}
             onChange={(evento) => setPrecio(evento.target.value)}
+            disabled={modoColaboracion}
             required
           />
+          <div className="form-check form-switch mt-2">
+            <input
+              id={`${id}-colaboracion`}
+              type="checkbox"
+              role="switch"
+              className="form-check-input"
+              checked={modoColaboracion}
+              onChange={(evento) =>
+                setPrecio(evento.target.checked ? "0" : String(PRESUPUESTO_PREDETERMINADO))
+              }
+            />
+            <label className="form-check-label letra-contenido" htmlFor={`${id}-colaboracion`}>
+              Modo colaboración (no pagaré, $0)
+            </label>
+          </div>
         </div>
 
         <div className="row g-2 mb-3">

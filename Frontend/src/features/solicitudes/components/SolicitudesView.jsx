@@ -2,7 +2,12 @@
 
 import { useEffect, useState } from "react";
 import "../styles/solicitudes.css";
-import { formatearFecha, formatearPrecio } from "../../buscar-viajes/utils/viajes";
+import {
+  esModoColaboracion,
+  formatearFecha,
+  formatearPrecio,
+  formatearPrecioViaje,
+} from "../../buscar-viajes/utils/viajes";
 
 const formularioInicial = {
   idRuta: "",
@@ -39,6 +44,8 @@ export default function SolicitudesView() {
   const [rutas, setRutas] = useState([]);
   const [solicitudes, setSolicitudes] = useState([]);
   const [formulario, setFormulario] = useState(formularioInicial);
+  // Presupuesto "0" = modo colaboración; vacío significa «sin límite», no colaboración.
+  const modoColaboracion = esModoColaboracion(formulario.presupuesto);
   const [solicitudEditando, setSolicitudEditando] = useState(null);
   const [coincidencias, setCoincidencias] = useState(null);
   const [cargando, setCargando] = useState(true);
@@ -283,7 +290,26 @@ export default function SolicitudesView() {
               value={formulario.presupuesto}
               onChange={cambiarCampo}
               placeholder="Sin límite"
+              disabled={modoColaboracion}
             />
+            <div className="form-check form-switch mt-2">
+              <input
+                id="solicitud-colaboracion"
+                type="checkbox"
+                role="switch"
+                className="form-check-input"
+                checked={modoColaboracion}
+                onChange={(evento) =>
+                  setFormulario((actual) => ({
+                    ...actual,
+                    presupuesto: evento.target.checked ? "0" : "",
+                  }))
+                }
+              />
+              <label className="form-check-label" htmlFor="solicitud-colaboracion">
+                Modo colaboración ($0)
+              </label>
+            </div>
           </div>
           <div className="col-md-4 d-flex align-items-end">
             <div className="form-check mb-2">
@@ -333,7 +359,9 @@ export default function SolicitudesView() {
                     <small className="text-muted">
                       {solicitud.presupuesto == null
                         ? "Sin presupuesto máximo"
-                        : `Presupuesto: ${formatearPrecio(solicitud.presupuesto)}`}
+                        : esModoColaboracion(solicitud.presupuesto)
+                          ? "Modo colaboración"
+                          : `Presupuesto: ${formatearPrecio(solicitud.presupuesto)}`}
                       {" · "}
                       {solicitud.compartir ? "Acepta compartir" : "No acepta compartir"}
                     </small>
@@ -380,7 +408,7 @@ export default function SolicitudesView() {
                               Viaje #{viaje.idViaje} · {fechaVisible(viaje.fechaHoraSalida)}
                             </span>
                             <span>
-                              {formatearPrecio(viaje.costo)} · {viaje.cuposDisponibles} cupos
+                              {formatearPrecioViaje(viaje.costo)} · {viaje.cuposDisponibles} cupos
                             </span>
                           </li>
                         ))}
