@@ -15,6 +15,13 @@ En Vercel configura:
 | `SESSION_SECRET` | Secreto privado para firmar las sesiones del frontend. Mínimo 32 caracteres aleatorios; con menos, el inicio de sesión falla. |
 | `INTERNAL_API_KEY` | Clave compartida entre Next.js y el backend. El backend la exige en todas las rutas `/api`. |
 | `ORIGENES_PERMITIDOS` | Opcional. Orígenes adicionales (separados por coma) desde los que se aceptan POST/PUT/DELETE a `/api`. Solo hace falta si un proxy cambia el `Host` y las solicitudes legítimas reciben 403. |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Credenciales OAuth de Google para el inicio de sesión con Google. |
+| `GOOGLE_REDIRECT_URI` | URL de callback registrada en Google. En producción: `https://cozymov.com/api/auth/google/callback`. Su origen también se usa para las redirecciones finales. Si falta, se usa el origen de la solicitud. |
+
+En Google Cloud Console (APIs y servicios > Credenciales > ID de cliente OAuth)
+agrega `https://cozymov.com` en "Orígenes autorizados de JavaScript" y
+`https://cozymov.com/api/auth/google/callback` en "URI de redireccionamiento
+autorizados". Si usas también `www`, agrégalo igual y redirige uno al otro.
 
 En el backend, `Cors__OrigenesPermitidos` es opcional y está vacío por defecto:
 el navegador no llama a la API directamente, así que no hace falta abrir CORS.

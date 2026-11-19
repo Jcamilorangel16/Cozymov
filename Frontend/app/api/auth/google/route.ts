@@ -5,6 +5,7 @@ import {
   crearParametrosOAuth,
   DURACION_OAUTH_SEGUNDOS,
   obtenerConfigGoogle,
+  origenPublico,
 } from "../../../../src/lib/google";
 
 export const runtime = "nodejs";
@@ -16,8 +17,8 @@ export const runtime = "nodejs";
  * @returns Redirección a Google o al login con un código de error.
  */
 export async function GET(request: NextRequest) {
-  const origen = request.nextUrl.origin;
-  const config = obtenerConfigGoogle(origen);
+  const config = obtenerConfigGoogle(request.nextUrl.origin);
+  const origen = origenPublico(request.nextUrl.origin, config);
   if (!config) {
     console.error("Faltan GOOGLE_CLIENT_ID o GOOGLE_CLIENT_SECRET.");
     return NextResponse.redirect(new URL("/?google_error=configuracion", origen));
