@@ -1,4 +1,5 @@
 // Lógica pura del buscador «¿A dónde quieres ir?» de Inicio (sin React ni red).
+import { UNIVERSIDAD_POPULAR_CESAR } from "../../ofrecer-viajes/constants/ofrecerViajes.js";
 
 /**
  * Normaliza un texto para comparar sin mayúsculas, acentos ni espacios repetidos.
@@ -16,6 +17,7 @@ export function normalizarDestino(valor) {
 
 /**
  * Une el catálogo de barrios con los destinos de las rutas persistidas.
+ * La Universidad Popular del Cesar siempre forma parte del catálogo.
  * Deduplica ignorando mayúsculas y acentos; conserva la primera grafía vista.
  * @param {string[]} barrios Catálogo local de barrios.
  * @param {Array<{destino?: string}>} rutas Rutas devueltas por /api/rutas.
@@ -24,6 +26,7 @@ export function normalizarDestino(valor) {
 export function construirCatalogoDestinos(barrios, rutas) {
   const vistos = new Map();
   const candidatos = [
+    UNIVERSIDAD_POPULAR_CESAR,
     ...barrios,
     ...(Array.isArray(rutas) ? rutas.map((ruta) => ruta?.destino) : []),
   ];
@@ -56,21 +59,6 @@ export function filtrarSugerencias(catalogo, consulta, limite = 8) {
 }
 
 /**
- * Devuelve las rutas persistidas cuyo destino coincide con el elegido.
- * No inventa rutas: si no hay coincidencia exacta, la lista queda vacía.
- * @param {Array<{idRuta: number, origen: string, destino: string}>} rutas Rutas reales.
- * @param {string} destino Destino elegido.
- * @returns {Array} Rutas compatibles.
- */
-export function rutasCompatibles(rutas, destino) {
-  const clave = normalizarDestino(destino);
-  if (!clave || !Array.isArray(rutas)) return [];
-  return rutas.filter(
-    (ruta) => ruta?.idRuta != null && normalizarDestino(ruta.destino) === clave,
-  );
-}
-
-/**
  * Combina fecha (YYYY-MM-DD) y hora (HH:mm) en el formato de /api/solicitudes.
  * @param {string} fecha Fecha elegida.
  * @param {string} hora Hora elegida.
@@ -82,23 +70,60 @@ export function combinarFechaHora(fecha, hora) {
 }
 
 /**
- * Valida el formulario de solicitud sin red.
- * @param {{precio: string, fecha: string, hora: string, idRuta: string}} campos Valores del formulario.
+ * Fecha local en formato YYYY-MM-DD, apta para el mínimo de un input date.
+ * @param {Date} [ahora] Momento de referencia.
+ * @returns {string} Fecha local.
+ */
+export function fechaLocalISO(ahora = new Date()) {
+  return new Date(ahora.getTime() - ahora.getTimezoneOffset() * 60_000)
+    .toISOString()
+    .slice(0, 10);
+}
+
+/**
+ * Hora local en formato HH:mm, apta para el valor de un input time.
+ * @param {Date} [ahora] Momento de referencia.
+ * @returns {string} Hora local.
+ */
+export function horaLocalHHmm(ahora = new Date()) {
+  return `${String(ahora.getHours()).padStart(2, "0")}:${String(ahora.getMinutes()).padStart(2, "0")}`;
+}
+
+/** Presupuesto propuesto por defecto al solicitar un viaje, en COP. */
+export const PRESUPUESTO_PREDETERMINADO = 3500;
+
+/** Tope del presupuesto aceptado por la columna numeric(10,2) de `solicitud`. */
+const PRESUPUESTO_MAXIMO = 99999999;
+
+/**
+ * Valida el formulario para solicitar un viaje, sin red.
+ * @param {{origen: string, destino: string, precio: string|number, fecha: string, hora: string}} campos Valores del formulario.
  * @param {Date} [ahora] Momento de referencia.
  * @returns {string} Mensaje de error o cadena vacía si es válido.
  */
-export function validarSolicitud({ precio, fecha, hora, idRuta }, ahora = new Date()) {
+export function validarSolicitudViaje({ origen, destino, precio, fecha, hora }, ahora = new Date()) {
+  const barrioOrigen = String(origen ?? "").trim();
+  const barrioDestino = String(destino ?? "").trim();
+  if (!barrioOrigen) return "Elige el barrio desde donde sales.";
+  if (!barrioDestino) return "Elige el barrio al que quieres llegar.";
+  if (normalizarDestino(barrioOrigen) === normalizarDestino(barrioDestino)) {
+    return "El origen y el destino deben ser diferentes.";
+  }
+
   const texto = String(precio ?? "").trim();
   const valor = Number(texto);
   if (!texto || !Number.isFinite(valor) || valor <= 0) {
     return "Propón un precio en COP mayor que cero.";
   }
+  if (valor > PRESUPUESTO_MAXIMO) return "El precio propuesto es demasiado alto.";
+
   const fechaHora = combinarFechaHora(fecha, hora);
   if (!fechaHora) return "Indica la fecha y la hora del viaje.";
-  if (new Date(fechaHora).getTime() < ahora.getTime()) {
-    return "La fecha y la hora deben ser futuras.";
+  // Se puede pedir un viaje para hoy a cualquier hora (el valor por defecto es la hora actual
+  // y envejece mientras se llena el formulario); solo se rechazan días anteriores a hoy.
+  if (fecha < fechaLocalISO(ahora)) {
+    return "La fecha de salida no puede ser anterior a hoy.";
   }
-  if (!idRuta) return "Selecciona una ruta compatible para enviar la solicitud.";
   return "";
 }
 

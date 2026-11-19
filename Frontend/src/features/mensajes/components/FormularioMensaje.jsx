@@ -13,21 +13,19 @@ export default function FormularioMensaje({ onEnviarMensaje }) {
     useFormularioMensaje(onEnviarMensaje);
 
   return (
-    <form onSubmit={handleSubmit} className="d-flex gap-2 mt-3">
+    <form onSubmit={handleSubmit} className="msj-form">
       <input
         type="text"
         className="form-control"
-        placeholder="Escribe un mensaje ..."
+        placeholder="Escribe un mensaje..."
+        aria-label="Mensaje"
         maxLength={500}
         value={texto}
         onChange={(e) => setTexto(e.target.value)}
         disabled={enviando}
       />
-      <button 
-        type="submit" 
-        className="btn btn-primary px-4"
-        disabled={!mensajeListo}
-      >
+      <button type="submit" className="msj-enviar" disabled={!mensajeListo}>
+        <i className="bi bi-send-fill" aria-hidden="true" />
         {enviando ? "Enviando..." : "Enviar"}
       </button>
     </form>

@@ -305,6 +305,15 @@ namespace Backend.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("compartir");
 
+                    b.Property<string>("Estado")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("pendiente")
+                        .HasColumnName("estado");
+
                     b.Property<DateTime>("FechaHora")
                         .HasColumnType("timestamp without time zone")
                         .HasColumnName("fecha_hora");
@@ -321,15 +330,23 @@ namespace Backend.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("id_usuario");
 
+                    b.Property<long?>("IdViaje")
+                        .HasColumnType("bigint")
+                        .HasColumnName("id_viaje");
+
                     b.Property<decimal?>("Presupuesto")
                         .HasColumnType("numeric(10,2)")
                         .HasColumnName("presupuesto");
 
                     b.HasKey("IdSolicitud");
 
+                    b.HasIndex("Estado");
+
                     b.HasIndex("IdRuta");
 
                     b.HasIndex("IdUsuario");
+
+                    b.HasIndex("IdViaje");
 
                     b.ToTable("solicitud", (string)null);
                 });
@@ -501,22 +518,12 @@ namespace Backend.Migrations
                         .HasColumnType("timestamp without time zone")
                         .HasColumnName("fecha_hora_salida");
 
-                    b.Property<string>("IdConductor")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("id_conductor");
-
                     b.Property<long?>("IdRuta")
                         .HasColumnType("bigint")
                         .HasColumnName("id_ruta");
 
                     b.Property<int>("IdUsuario")
                         .HasColumnType("integer");
-
-                    b.Property<long?>("IdVehiculo")
-                        .HasColumnType("bigint")
-                        .HasColumnName("id_vehiculo");
 
                     b.Property<string>("InformacionAdicional")
                         .HasMaxLength(500)
@@ -538,8 +545,6 @@ namespace Backend.Migrations
                     b.HasIndex("IdRuta");
 
                     b.HasIndex("IdUsuario");
-
-                    b.HasIndex("IdVehiculo");
 
                     b.ToTable("viaje", (string)null);
                 });
@@ -678,9 +683,16 @@ namespace Backend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Backend.Models.Viaje", "Viaje")
+                        .WithMany()
+                        .HasForeignKey("IdViaje")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Ruta");
 
                     b.Navigation("Usuario");
+
+                    b.Navigation("Viaje");
                 });
 
             modelBuilder.Entity("Backend.Models.TelefonoUsuario", b =>
@@ -718,16 +730,9 @@ namespace Backend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Backend.Models.Vehiculo", "Vehiculo")
-                        .WithMany("Viajes")
-                        .HasForeignKey("IdVehiculo")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.Navigation("Ruta");
 
                     b.Navigation("Usuario");
-
-                    b.Navigation("Vehiculo");
                 });
 
             modelBuilder.Entity("Backend.Models.ReservaViaje", b =>
@@ -766,8 +771,6 @@ namespace Backend.Migrations
                     b.Navigation("Bicicleta");
 
                     b.Navigation("Moto");
-
-                    b.Navigation("Viajes");
                 });
 #pragma warning restore 612, 618
         }

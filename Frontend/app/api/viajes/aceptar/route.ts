@@ -20,7 +20,7 @@ function normalizarReserva(valor: Registro): Registro {
 		destino: valor.destino ?? valor.Destino,
 		fecha_hora_salida: fechaHoraTexto,
 		costo: valor.costo ?? valor.Costo,
-		id_conductor: valor.idConductor ?? valor.IdConductor,
+		id_usuario_conductor: valor.idUsuarioConductor ?? valor.IdUsuarioConductor,
 		nombre_conductor: valor.nombreConductor ?? valor.NombreConductor ?? "",
 	};
 }

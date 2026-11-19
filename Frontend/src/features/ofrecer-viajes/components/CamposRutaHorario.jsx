@@ -27,7 +27,7 @@ export default function CamposRutaHorario({
       <div className="d-flex align-items-center gap-3 mb-4">
         <span className="fs-2" aria-hidden="true">🗺️</span>
         <div>
-          <h3 className="h4 letra-contenido mb-1">Ruta y puntos de recorrido</h3>
+          <h3 className="h4 letra-contenido mb-1 titulo-icono"><i className="bi bi-map-fill" aria-hidden="true" /> Ruta y puntos de recorrido</h3>
           <p className="texto-secundario mb-0">Elige el barrio de origen y el de destino.</p>
         </div>
       </div>
@@ -69,7 +69,7 @@ export default function CamposRutaHorario({
 
       <div className="rounded-3 bg-light p-3 mb-4">
         <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-          <h4 className="h6 fw-semibold mb-0">Fecha y hora de salida</h4>
+          <h4 className="h6 fw-semibold mb-0 titulo-icono"><i className="bi bi-alarm-fill" aria-hidden="true" /> Fecha y hora de salida</h4>
           <label className="visually-hidden" htmlFor="atajo-salida">
             Seleccionar hora rápida de salida
           </label>
@@ -106,7 +106,7 @@ export default function CamposRutaHorario({
               className="form-control"
               id="fecha-salida"
               type="date"
-              min={fechaSalida || undefined}
+              min={obtenerPartesFechaHora(new Date()).fecha}
               value={fechaSalida}
               onChange={(evento) => {
                 setFechaSalida(evento.target.value);

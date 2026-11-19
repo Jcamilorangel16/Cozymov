@@ -3,9 +3,12 @@
 // Busca viajes por destino y permite aceptarlos o solicitar uno nuevo.
 import { useId, useState } from "react";
 import Swal from "sweetalert2";
+import { usePerfil } from "../../configuracion/context/PerfilContext";
+import AccionesRapidasInicio from "./AccionesRapidasInicio";
+import ActividadInicio from "./ActividadInicio";
 import { usePanelInicio } from "../hooks/usePanelInicio";
 import { normalizarDestino } from "../utils/destinosInicio";
-import FormularioSolicitudInicio from "./FormularioSolicitudInicio";
+import SolicitarViajeInicio from "./SolicitarViajeInicio";
 import SugerenciasDestinoInicio from "./SugerenciasDestinoInicio";
 import TarjetaViajeResumenInicio from "./TarjetaViajeResumenInicio";
 import ViajeEncontradoInicio from "./ViajeEncontradoInicio";
@@ -19,6 +22,7 @@ export default function PanelInicio({ onNavigate }) {
   const {
     idUsuario,
     viajePublicado,
+    viajeReservado,
     estadoVehiculo,
     cargando,
     error,
@@ -26,6 +30,7 @@ export default function PanelInicio({ onNavigate }) {
     consulta,
     cambiarConsulta,
     sugerencias,
+    destinosPopulares,
     destinoElegido,
     buscarPorDestino,
     reintentarBusqueda,
@@ -39,15 +44,18 @@ export default function PanelInicio({ onNavigate }) {
     aceptarViaje,
     aceptandoId,
     errorAccion,
-    rutasDelDestino,
-    enviarSolicitud,
-    enviandoSolicitud,
-    errorSolicitud,
-    solicitudCreada,
   } = usePanelInicio();
+  const { perfil } = usePerfil();
+  const hora = new Date().getHours();
+  const saludo = hora < 12 ? "¡Buenos días" : hora < 19 ? "¡Buenas tardes" : "¡Buenas noches";
+  const primerNombre = perfil.nombre.trim().split(/\s+/)[0];
   const idSugerencias = useId();
   const [indiceActivo, setIndiceActivo] = useState(-1);
   const [aviso, setAviso] = useState("");
+  // Se abre cuando el usuario dice que ningún viaje publicado le sirve.
+  const [solicitudAbierta, setSolicitudAbierta] = useState(false);
+  // Se abre con el botón «Pedir viaje» de la barra superior.
+  const [pedirViajeAbierto, setPedirViajeAbierto] = useState(false);
 
   const mostrarBotonConductor =
     !cargando &&
@@ -74,6 +82,7 @@ export default function PanelInicio({ onNavigate }) {
   function elegirDestino(destino) {
     setIndiceActivo(-1);
     setAviso("");
+    setSolicitudAbierta(false);
     void buscarPorDestino(destino);
   }
 
@@ -122,19 +131,40 @@ export default function PanelInicio({ onNavigate }) {
 
   return (
     <div className="vista">
-      <div className="d-flex justify-content-end align-items-center flex-wrap gap-2 mb-3">
-        {mostrarBotonConductor && (
+      <section className="hero-inicio">
+        <i className="bi bi-cloud-fill hero-nube hero-nube-1" aria-hidden="true" />
+        <i className="bi bi-cloud-fill hero-nube hero-nube-2" aria-hidden="true" />
+        <div className="hero-texto">
+          <h1 className="hero-titulo" suppressHydrationWarning>
+            {`${saludo}${primerNombre ? ", " + primerNombre : ""}!`}
+          </h1>
+          <p className="hero-sub">¿A dónde te llevamos hoy?</p>
+        </div>
+        <div className="hero-ruta" aria-hidden="true">
+          <i className="bi bi-geo-alt-fill" />
+          <span className="hero-ruta-linea" />
+          <i className="bi bi-car-front-fill hero-auto" />
+          <span className="hero-ruta-linea" />
+          <i className="bi bi-flag-fill" />
+        </div>
+        <div className="hero-acciones">
           <button
             type="button"
-            className="btn btn-primary"
-            onClick={confirmarSerConductor}
+            className="btn-pedir-viaje"
+            aria-expanded={pedirViajeAbierto}
+            onClick={() => setPedirViajeAbierto((abierto) => !abierto)}
           >
-            Quiero ser conductor
+            <i className="bi bi-megaphone-fill" aria-hidden="true" /> Pedir viaje
           </button>
-        )}
-      </div>
+          {mostrarBotonConductor && (
+            <button type="button" className="btn-conductor" onClick={confirmarSerConductor}>
+              <i className="bi bi-car-front-fill" aria-hidden="true" /> Quiero ser conductor
+            </button>
+          )}
+        </div>
+      </section>
 
-      <div className="mx-auto" style={{ maxWidth: 640 }}>
+      <div className="mx-auto" style={{ maxWidth: 760 }}>
         {!cargando && error && (
           <div className="alert alert-danger" role="alert">
             <p className="mb-2">{error}</p>
@@ -144,15 +174,26 @@ export default function PanelInicio({ onNavigate }) {
           </div>
         )}
 
+        {pedirViajeAbierto && (
+          <div className="mb-4">
+            <SolicitarViajeInicio
+              key={`pedir-${destinoElegido ?? ""}`}
+              destinoInicial={destinoElegido ?? ""}
+              onVerSolicitudes={() => onNavigate("buscar")}
+              onCerrar={() => setPedirViajeAbierto(false)}
+            />
+          </div>
+        )}
+
         <section className="mb-4 inicio-buscador">
-          <form className="input-group" onSubmit={enviarBusqueda} role="search">
+          <form className="input-group buscador-grande" onSubmit={enviarBusqueda} role="search">
             <button
               type="submit"
               className="input-group-text"
               aria-label="Buscar viajes"
               disabled={!consulta.trim() || buscando}
             >
-              🔍
+              <i className="bi bi-search" aria-hidden="true" />
             </button>
             <input
               type="text"
@@ -184,6 +225,23 @@ export default function PanelInicio({ onNavigate }) {
             indiceActivo={indiceActivo}
             onElegir={elegirDestino}
           />
+          {!hayBusqueda && destinosPopulares.length > 0 && (
+            <div className="chips-destinos" aria-label="Destinos populares">
+              <span className="chips-titulo">
+                <i className="bi bi-fire" aria-hidden="true" /> Populares
+              </span>
+              {destinosPopulares.map((destino) => (
+                <button
+                  key={destino}
+                  type="button"
+                  className="chip-destino"
+                  onClick={() => elegirDestino(destino)}
+                >
+                  <i className="bi bi-geo-alt-fill" aria-hidden="true" /> {destino}
+                </button>
+              ))}
+            </div>
+          )}
           {aviso && (
             <p className="texto-secundario small mt-2" role="status">
               {aviso}
@@ -191,10 +249,28 @@ export default function PanelInicio({ onNavigate }) {
           )}
         </section>
 
+        {!hayBusqueda && <AccionesRapidasInicio onNavigate={onNavigate} />}
+        {!hayBusqueda && (
+          <ActividadInicio
+            idUsuario={idUsuario}
+            viajeReservado={viajeReservado}
+            viajePublicado={viajePublicado}
+            cargando={cargando}
+            onNavigate={onNavigate}
+          />
+        )}
+
         {hayBusqueda && (
           <div aria-live="polite">
             {buscando ? (
-              <p role="status">Buscando viajes a {destinoElegido}...</p>
+              <div className="buscando-viajes" role="status">
+                <div className="buscando-carretera" aria-hidden="true">
+                  <i className="bi bi-car-front-fill buscando-auto" />
+                </div>
+                <p className="mb-0">Buscando viajes a {destinoElegido}...</p>
+                <div className="esqueleto esqueleto-tarjeta" aria-hidden="true" />
+                <div className="esqueleto esqueleto-tarjeta" aria-hidden="true" />
+              </div>
             ) : errorBusqueda ? (
               <div className="alert alert-danger" role="alert">
                 <p className="mb-2">{errorBusqueda}</p>
@@ -240,16 +316,38 @@ export default function PanelInicio({ onNavigate }) {
                       ))}
                     </div>
                   </section>
+                ) : null}
+
+                {resultados.length === 0 ? (
+                  <>
+                    <p className="letra-contenido fw-semibold">
+                      No se encontraron viajes disponibles a {destinoElegido}.
+                    </p>
+                    {!pedirViajeAbierto && (
+                      <SolicitarViajeInicio
+                        key={destinoElegido}
+                        destinoInicial={destinoElegido}
+                        sinViajes
+                        onVerSolicitudes={() => onNavigate("buscar")}
+                      />
+                    )}
+                  </>
+                ) : pedirViajeAbierto ? null : solicitudAbierta ? (
+                  <div className="mt-3">
+                    <SolicitarViajeInicio
+                      key={destinoElegido}
+                      destinoInicial={destinoElegido}
+                      onVerSolicitudes={() => onNavigate("buscar")}
+                    />
+                  </div>
                 ) : (
-                  <FormularioSolicitudInicio
-                    key={destinoElegido}
-                    destino={destinoElegido}
-                    rutas={rutasDelDestino}
-                    enviando={enviandoSolicitud}
-                    error={errorSolicitud}
-                    creada={solicitudCreada}
-                    onEnviar={enviarSolicitud}
-                  />
+                  <button
+                    type="button"
+                    className="btn btn-outline-primary mt-3"
+                    onClick={() => setSolicitudAbierta(true)}
+                  >
+                    Ninguno me sirve: solicitar un viaje
+                  </button>
                 )}
               </>
             )}

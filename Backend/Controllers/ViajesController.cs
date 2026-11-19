@@ -52,12 +52,20 @@ namespace Backend.Controllers
             var consulta = _context.Viajes
                 .AsNoTracking()
                 .Include(v => v.Usuario)
-                .Include(v => v.Vehiculo)
-                    .ThenInclude(vehiculo => vehiculo!.Automovil)
-                .Include(v => v.Vehiculo)
-                    .ThenInclude(vehiculo => vehiculo!.Moto)
+                    .ThenInclude(usuario => usuario.Vehiculos)
+                        .ThenInclude(vehiculo => vehiculo.Automovil)
+                .Include(v => v.Usuario)
+                    .ThenInclude(usuario => usuario.Vehiculos)
+                        .ThenInclude(vehiculo => vehiculo.Moto)
                 .Include(v => v.Ruta)
-                .Where(v => v.Estado.ToLower() == "activo" && v.CuposDisponibles > 0);
+                .Where(v => v.Estado.ToLower() == "activo");
+
+            // La búsqueda pública solo muestra viajes con cupos. Al consultar los viajes de un
+            // usuario se incluyen también los llenos: siguen siendo su viaje publicado.
+            if (!idUsuario.HasValue)
+            {
+                consulta = consulta.Where(v => v.CuposDisponibles > 0);
+            }
 
             if (!string.IsNullOrWhiteSpace(origen))
             {
@@ -100,13 +108,12 @@ namespace Backend.Controllers
 
             return viajes.Select(v =>
             {
-                var vehiculo = v.Vehiculo;
+                // El viaje no guarda el vehículo: se muestra el primer vehículo del conductor.
+                var vehiculo = v.Usuario.Vehiculos.OrderBy(x => x.IdVehiculo).FirstOrDefault();
                 return new ViajePublicoDTO(
                     v.IdViaje,
-                    v.IdConductor,
                     v.IdUsuario,
                     v.IdRuta,
-                    vehiculo?.IdVehiculo,
                     v.Origen ?? v.Ruta?.Origen,
                     v.Destino ?? v.Ruta?.Destino,
                     v.PuntoEncuentro,
@@ -145,10 +152,8 @@ namespace Backend.Controllers
                 .Select(v => new ViajeDTO
                 {
                     IdViaje = v.IdViaje,
-                    IdConductor = v.IdConductor,
                     IdUsuario = v.IdUsuario,
                     IdRuta = v.IdRuta,
-                    IdVehiculo = v.IdVehiculo,
                     Origen = v.Origen ?? (v.Ruta == null ? null : v.Ruta.Origen),
                     Destino = v.Destino ?? (v.Ruta == null ? null : v.Ruta.Destino),
                     PuntoEncuentro = v.PuntoEncuentro,
@@ -193,6 +198,19 @@ namespace Backend.Controllers
             int id_pasajero,
             CancellationToken cancellationToken)
         {
+            // Llegada la hora de salida el viaje está en trayecto: el pasajero ya no puede
+            // salirse; solo puede finalizarlo al llegar.
+            var ahora = AhoraColombia();
+            if (await _context.ReservasViaje.AnyAsync(
+                    r => r.IdPasajero == id_pasajero &&
+                         r.Estado == "activa" &&
+                         r.Viaje.FechaHoraSalida <= ahora,
+                    cancellationToken))
+            {
+                return Conflict(
+                    "El viaje ya está en trayecto: no puedes salirte. Finalízalo cuando llegues a tu destino.");
+            }
+
             await using var transaccion =
                 await _context.Database.BeginTransactionAsync(cancellationToken);
             var reserva = await _context.ReservasViaje
@@ -239,6 +257,107 @@ namespace Backend.Controllers
             await _context.SaveChangesAsync(cancellationToken);
 
             return Ok(new { finalizada = true, id_reserva = reserva.IdReserva, id_viaje = reserva.IdViaje });
+        }
+
+        // Viaje privado que el conductor atiende tras aceptar una solicitud: existe la
+        // reserva activa del pasajero pero el viaje no es público, así que no sale en la búsqueda.
+        [HttpGet("viaje-conductor-activo/{id_conductor:int}")]
+        public async Task<ActionResult<ViajeConductorActivoDTO?>> GetViajeConductorActivo(
+            int id_conductor,
+            CancellationToken cancellationToken)
+        {
+            var reserva = await _context.ReservasViaje
+                .AsNoTracking()
+                .Include(r => r.Pasajero)
+                .Include(r => r.Viaje)
+                    .ThenInclude(v => v.Ruta)
+                .Where(r => r.Estado == "activa" && r.Viaje.IdUsuario == id_conductor)
+                .OrderByDescending(r => r.IdReserva)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (reserva is null)
+            {
+                return Ok(null);
+            }
+
+            return Ok(new ViajeConductorActivoDTO
+            {
+                IdViaje = reserva.IdViaje,
+                IdReserva = reserva.IdReserva,
+                IdPasajero = reserva.IdPasajero,
+                NombrePasajero = string.Join(" ",
+                    new[] { reserva.Pasajero.PrimerNombre, reserva.Pasajero.PrimerApellido }
+                        .Where(nombre => !string.IsNullOrWhiteSpace(nombre))),
+                Origen = reserva.Viaje.Origen ?? reserva.Viaje.Ruta?.Origen,
+                Destino = reserva.Viaje.Destino ?? reserva.Viaje.Ruta?.Destino,
+                FechaHoraSalida = reserva.Viaje.FechaHoraSalida,
+                Costo = reserva.Viaje.Costo
+            });
+        }
+
+        /// <summary>
+        /// El conductor cancela el viaje que atiende: el viaje queda "cancelado" y sus reservas
+        /// activas se cancelan. Si el viaje nació de una solicitud, ésta vuelve a "pendiente"
+        /// para que otro conductor pueda aceptarla y el pasajero no se quede sin viaje.
+        /// </summary>
+        // DELETE: api/Viajes/viaje-conductor-activo/5
+        [HttpDelete("viaje-conductor-activo/{id_conductor:int}")]
+        public async Task<IActionResult> CancelarViajeConductor(
+            int id_conductor,
+            CancellationToken cancellationToken)
+        {
+            await using var transaccion =
+                await _context.Database.BeginTransactionAsync(cancellationToken);
+
+            // Mismo criterio que GetViajeConductorActivo: la reserva activa más reciente.
+            var reservaActiva = await _context.ReservasViaje
+                .Include(r => r.Viaje)
+                .Where(r => r.Estado == "activa" && r.Viaje.IdUsuario == id_conductor)
+                .OrderByDescending(r => r.IdReserva)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (reservaActiva is null)
+            {
+                return NotFound("No tienes un viaje en curso para cancelar.");
+            }
+
+            var viaje = reservaActiva.Viaje;
+            var reservas = await _context.ReservasViaje
+                .Where(r => r.IdViaje == viaje.IdViaje && r.Estado == "activa")
+                .ToListAsync(cancellationToken);
+            foreach (var reserva in reservas)
+            {
+                reserva.Estado = "cancelada";
+            }
+
+            viaje.Estado = "cancelado";
+
+            var solicitudes = await _context.Solicitudes
+                .Where(s => s.IdViaje == viaje.IdViaje)
+                .ToListAsync(cancellationToken);
+            foreach (var solicitud in solicitudes)
+            {
+                solicitud.Estado = Solicitud.EstadoPendiente;
+                solicitud.IdViaje = null;
+            }
+
+            try
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+                await transaccion.CommitAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                await transaccion.RollbackAsync(cancellationToken);
+                return Conflict("El viaje cambió mientras lo cancelabas. Inténtalo de nuevo.");
+            }
+
+            return Ok(new
+            {
+                cancelado = true,
+                id_viaje = viaje.IdViaje,
+                solicitudes_reabiertas = solicitudes.Count
+            });
         }
 
         [HttpGet("reservas-completadas/{id_pasajero:int}")]
@@ -288,8 +407,7 @@ namespace Backend.Controllers
             {
                 return Conflict("El viaje ya no está disponible.");
             }
-            if (viaje.IdUsuario == solicitud.IdPasajero ||
-                string.Equals(viaje.IdConductor, solicitud.IdPasajero.ToString(), StringComparison.Ordinal))
+            if (viaje.IdUsuario == solicitud.IdPasajero)
             {
                 return BadRequest("No puedes aceptar tu propio viaje.");
             }
@@ -321,6 +439,10 @@ namespace Backend.Controllers
             };
             _context.ReservasViaje.Add(reserva);
 
+            // El pasajero ya tiene conductor: su solicitud pendiente deja de tener sentido y se
+            // elimina junto con la reserva (mismo guardado, en la misma transacción).
+            await RetirarSolicitudesPendientes(solicitud.IdPasajero, cancellationToken);
+
             try
             {
                 await _context.SaveChangesAsync(cancellationToken);
@@ -328,6 +450,8 @@ namespace Backend.Controllers
             }
             catch (DbUpdateException)
             {
+                // Incluye la concurrencia: si un conductor aceptó la solicitud en este instante,
+                // no se completa esta reserva.
                 await transaccion.RollbackAsync(cancellationToken);
                 return Conflict("No se pudo reservar el viaje porque ya no está disponible.");
             }
@@ -355,19 +479,8 @@ namespace Backend.Controllers
                 return BadRequest($"El usuario {viajeUpdate.IdUsuario} no existe.");
             }
 
-            if (viajeUpdate.IdVehiculo is not null &&
-                !await _context.Vehiculos.AnyAsync(
-                    v => v.IdVehiculo == viajeUpdate.IdVehiculo &&
-                         v.IdUsuario == viajeUpdate.IdUsuario,
-                    cancellationToken))
-            {
-                return BadRequest("El vehículo no pertenece al usuario.");
-            }
-
-            viaje.IdConductor = viajeUpdate.IdConductor;
             viaje.IdUsuario = viajeUpdate.IdUsuario;
             viaje.IdRuta = viajeUpdate.IdRuta;
-            viaje.IdVehiculo = viajeUpdate.IdVehiculo;
             if (viajeUpdate.Origen is not null)
             {
                 viaje.Origen = viajeUpdate.Origen.Trim();
@@ -417,13 +530,28 @@ namespace Backend.Controllers
                 return BadRequest("El origen y el destino son obligatorios.");
             }
 
-            if (viajeCreate.IdVehiculo is null ||
-                !await _context.Vehiculos.AnyAsync(
-                    v => v.IdVehiculo == viajeCreate.IdVehiculo &&
-                         v.IdUsuario == viajeCreate.IdUsuario,
+            // Quien espera conductor como pasajero no puede publicar un viaje como conductor.
+            if (await _context.Solicitudes.AnyAsync(
+                    s => s.IdUsuario == viajeCreate.IdUsuario &&
+                         s.Estado == Solicitud.EstadoPendiente,
                     cancellationToken))
             {
-                return BadRequest("El vehículo no pertenece al usuario.");
+                return Conflict(
+                    "No puedes publicar un viaje mientras tengas una solicitud de viaje pendiente. Elimínala o espera a que un conductor la acepte.");
+            }
+
+            // Un conductor tiene un solo viaje publicado: si ya lo tiene, solo puede actualizarlo.
+            if (await TieneViajePublicado(viajeCreate.IdUsuario, cancellationToken))
+            {
+                return Conflict(MensajeViajeYaPublicado);
+            }
+
+            // Para publicar hay que ser conductor: tener al menos un vehículo registrado.
+            if (!await _context.Vehiculos.AnyAsync(
+                    v => v.IdUsuario == viajeCreate.IdUsuario,
+                    cancellationToken))
+            {
+                return BadRequest("Debes registrar un vehículo antes de publicar un viaje.");
             }
 
             await using var transaccion =
@@ -439,12 +567,16 @@ namespace Backend.Controllers
                 return Conflict("No puedes publicar un viaje mientras tengas uno en curso.");
             }
 
+            // Se repite dentro del bloqueo por usuario: dos envíos simultáneos no publican dos viajes.
+            if (await TieneViajePublicado(viajeCreate.IdUsuario, cancellationToken))
+            {
+                return Conflict(MensajeViajeYaPublicado);
+            }
+
             var viaje = new Viaje
             {
-                IdConductor = viajeCreate.IdConductor,
                 IdUsuario = viajeCreate.IdUsuario,
                 IdRuta = viajeCreate.IdRuta,
-                IdVehiculo = viajeCreate.IdVehiculo,
                 Origen = viajeCreate.Origen.Trim(),
                 Destino = viajeCreate.Destino.Trim(),
                 PuntoEncuentro = viajeCreate.PuntoEncuentro?.Trim(),
@@ -462,10 +594,8 @@ namespace Backend.Controllers
             var viajeDto = new ViajeDTO
             {
                 IdViaje = viaje.IdViaje,
-                IdConductor = viaje.IdConductor,
                 IdUsuario = viaje.IdUsuario,
                 IdRuta = viaje.IdRuta,
-                IdVehiculo = viaje.IdVehiculo,
                 Origen = viaje.Origen,
                 Destino = viaje.Destino,
                 PuntoEncuentro = viaje.PuntoEncuentro,
@@ -497,6 +627,36 @@ namespace Backend.Controllers
             return NoContent();
         }
 
+        /// <summary>
+        /// Las salidas se guardan en hora local de Colombia (UTC-5, sin horario de verano) como
+        /// "timestamp without time zone"; así se compara sin depender de la zona del servidor.
+        /// </summary>
+        private static DateTime AhoraColombia() =>
+            DateTime.SpecifyKind(DateTime.UtcNow.AddHours(-5), DateTimeKind.Unspecified);
+
+        private const string MensajeViajeYaPublicado =
+            "Ya tienes un viaje publicado. Solo puedes actualizarlo; no puedes publicar otro.";
+
+        /// <summary>
+        /// Elimina las solicitudes de viaje que el pasajero tiene esperando conductor. Las ya
+        /// aceptadas no se tocan: son el historial de un viaje. No guarda cambios.
+        /// </summary>
+        private async Task RetirarSolicitudesPendientes(int idPasajero, CancellationToken cancellationToken)
+        {
+            var pendientes = await _context.Solicitudes
+                .Where(s => s.IdUsuario == idPasajero && s.Estado == Solicitud.EstadoPendiente)
+                .ToListAsync(cancellationToken);
+            _context.Solicitudes.RemoveRange(pendientes);
+        }
+
+        /// <summary>Viaje publicado = estado "activo" (con o sin cupos); los privados no cuentan.</summary>
+        private Task<bool> TieneViajePublicado(int idUsuario, CancellationToken cancellationToken)
+        {
+            return _context.Viajes.AnyAsync(
+                v => v.IdUsuario == idUsuario && v.Estado.ToLower() == "activo",
+                cancellationToken);
+        }
+
         private Task<bool> ViajeExists(long id_viaje, CancellationToken cancellationToken)
         {
             return _context.Viajes.AnyAsync(e => e.IdViaje == id_viaje, cancellationToken);
@@ -513,7 +673,6 @@ namespace Backend.Controllers
                 Destino = viaje.Destino ?? viaje.Ruta?.Destino,
                 FechaHoraSalida = viaje.FechaHoraSalida,
                 Costo = viaje.Costo,
-                IdConductor = viaje.IdConductor,
                 IdUsuarioConductor = viaje.IdUsuario,
                 NombreConductor = string.Join(" ",
                     new[] { viaje.Usuario.PrimerNombre, viaje.Usuario.PrimerApellido }

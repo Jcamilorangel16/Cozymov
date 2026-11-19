@@ -3,9 +3,9 @@ import {
   validarCredencialesUsuario,
 } from "../../../src/features/login/validations/autenticacion";
 import {
-  DURACION_SESION_SEGUNDOS,
   firmarSesion,
   NOMBRE_COOKIE_SESION,
+  opcionesCookieSesion,
 } from "../../../src/lib/auth";
 import { cabecerasIpCliente, getBackendApiConfig } from "../../../src/lib/backendApi";
 
@@ -183,13 +183,7 @@ export async function POST(request: Request) {
       },
     });
 
-    respuesta.cookies.set(NOMBRE_COOKIE_SESION, token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: DURACION_SESION_SEGUNDOS,
-    });
+    respuesta.cookies.set(NOMBRE_COOKIE_SESION, token, opcionesCookieSesion());
 
     return respuesta;
   } catch (error) {

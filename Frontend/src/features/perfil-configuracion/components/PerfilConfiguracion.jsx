@@ -3,6 +3,7 @@
 // Renderiza el avatar del perfil con acceso a configuración y cierre de sesión.
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { CLAVE_ID_USUARIO } from "../../../hooks/useSessionUserId";
 import { usePerfil } from "../../configuracion/context/PerfilContext";
 
 /**
@@ -19,6 +20,7 @@ export default function PerfilConfiguracion({ onConfiguracion }) {
     try {
       await fetch("/api/logout", { method: "POST" });
     } finally {
+      window.sessionStorage.removeItem(CLAVE_ID_USUARIO);
       router.replace("/");
       router.refresh();
     }

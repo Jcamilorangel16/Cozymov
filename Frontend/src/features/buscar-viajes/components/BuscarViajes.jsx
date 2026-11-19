@@ -4,13 +4,15 @@
 import { puedeAceptarViaje } from "../../viajes/validations/viajes";
 import { useBuscarViajes } from "../hooks/useBuscarViajes";
 import { formatearFecha, formatearPrecio } from "../utils/viajes";
+import MisSolicitudes from "./MisSolicitudes";
+import SolicitudesPendientes from "./SolicitudesPendientes";
 
 /**
  * Muestra filtros de viaje y resultados de búsqueda.
  * @param {{onEnviarMensaje?: (contacto: {id: string, nombre: string}) => void, onNavigate?: (id: string) => void}} props Acciones para el chat y la navegación.
  * @returns Interfaz de búsqueda de viajes.
  */
-export default function BuscarViajes({ onEnviarMensaje, onNavigate }) {
+export default function BuscarViajes({ onEnviarMensaje, onNavigate, usuarioActualId = "" }) {
   const {
     origen,
     setOrigen,
@@ -31,13 +33,24 @@ export default function BuscarViajes({ onEnviarMensaje, onNavigate }) {
     handleBuscar,
     handleEliminarViaje,
     handleAceptarViaje,
-  } = useBuscarViajes();
+    solicitudes,
+    totalSolicitudes,
+    cargandoSolicitudes,
+    errorSolicitudes,
+    tieneVehiculo,
+    aceptandoSolicitudId,
+    handleAceptarSolicitud,
+    misSolicitudes,
+    errorMisSolicitudes,
+    eliminandoSolicitudId,
+    handleEliminarSolicitud,
+  } = useBuscarViajes(usuarioActualId);
 
   return (
     <div className="container py-4">
       <div className="card shadow-lg border-0 rounded-4">
         <div className="card-body p-4">
-          <h2 className="text-center mb-4"> Buscar Viajes</h2>
+          <h2 className="text-center mb-4 titulo-icono"><i className="bi bi-compass-fill" aria-hidden="true" /> Buscar Viajes</h2>
 
           <form onSubmit={handleBuscar}>
             <div className="row g-3">
@@ -87,6 +100,29 @@ export default function BuscarViajes({ onEnviarMensaje, onNavigate }) {
           </form>
         </div>
       </div>
+
+      {idUsuario && (
+        <MisSolicitudes
+          solicitudes={misSolicitudes}
+          error={errorMisSolicitudes}
+          eliminandoId={eliminandoSolicitudId}
+          onEliminar={handleEliminarSolicitud}
+        />
+      )}
+
+      <SolicitudesPendientes
+        solicitudes={solicitudes}
+        totalSolicitudes={totalSolicitudes}
+        cargando={cargandoSolicitudes}
+        error={errorSolicitudes}
+        idUsuario={idUsuario}
+        tieneVehiculo={tieneVehiculo}
+        tieneViajeEnCurso={tieneViajeEnCurso}
+        aceptandoSolicitudId={aceptandoSolicitudId}
+        onAceptar={(solicitud) =>
+          handleAceptarSolicitud(solicitud, () => onNavigate?.("en-curso"))
+        }
+      />
 
       <section className="mt-4" aria-live="polite">
         {buscando && <p className="text-center" role="status">Consultando viajes...</p>}

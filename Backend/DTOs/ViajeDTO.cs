@@ -5,10 +5,8 @@ namespace Backend.DTOs
     /// <summary>Datos públicos de un viaje y del vehículo asociado.</summary>
     public sealed record ViajePublicoDTO(
         long IdViaje,
-        string IdConductor,
         int IdUsuario,
         long? IdRuta,
-        long? IdVehiculo,
         string? Origen,
         string? Destino,
         string? PuntoEncuentro,
@@ -31,10 +29,8 @@ namespace Backend.DTOs
     public class ViajeDTO
     {
         public long IdViaje { get; set; }
-        public string IdConductor { get; set; } = string.Empty;
         public int IdUsuario { get; set; }
         public long? IdRuta { get; set; }
-        public long? IdVehiculo { get; set; }
         public string? Origen { get; set; }
         public string? Destino { get; set; }
         public string? PuntoEncuentro { get; set; }
@@ -47,16 +43,10 @@ namespace Backend.DTOs
 
     public class ViajeCreateDTO
     {
-        [Required, StringLength(20)]
-        public string IdConductor { get; set; } = string.Empty;
-
         [Range(1, int.MaxValue)]
         public int IdUsuario { get; set; }
 
         public long? IdRuta { get; set; }
-
-        [Range(1, long.MaxValue)]
-        public long? IdVehiculo { get; set; }
 
         [StringLength(200)]
         public string? Origen { get; set; }
@@ -99,8 +89,23 @@ namespace Backend.DTOs
         public string? Destino { get; set; }
         public DateTime FechaHoraSalida { get; set; }
         public decimal Costo { get; set; }
-        public string IdConductor { get; set; } = string.Empty;
         public string NombreConductor { get; set; } = string.Empty;
         public int IdUsuarioConductor { get; set; }
+    }
+
+    /// <summary>
+    /// Viaje privado que un conductor atiende tras aceptar una solicitud, con los datos
+    /// del pasajero que la pidió. Alimenta «En curso» del lado del conductor.
+    /// </summary>
+    public class ViajeConductorActivoDTO
+    {
+        public long IdViaje { get; set; }
+        public long IdReserva { get; set; }
+        public int IdPasajero { get; set; }
+        public string NombrePasajero { get; set; } = string.Empty;
+        public string? Origen { get; set; }
+        public string? Destino { get; set; }
+        public DateTime FechaHoraSalida { get; set; }
+        public decimal Costo { get; set; }
     }
 }

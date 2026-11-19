@@ -1,8 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import {
-  DURACION_SESION_SEGUNDOS,
   firmarSesion,
   NOMBRE_COOKIE_SESION,
+  opcionesCookieSesion,
 } from "../../../../../src/lib/auth";
 import { getBackendApiConfig } from "../../../../../src/lib/backendApi";
 import {
@@ -125,13 +125,7 @@ export async function GET(request: NextRequest) {
     const token = await firmarSesion({ id: String(id), correo, nombre });
     // La página intermedia copia el id al sessionStorage, como hace el login normal.
     const respuesta = NextResponse.redirect(new URL("/auth/google", origen));
-    respuesta.cookies.set(NOMBRE_COOKIE_SESION, token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: DURACION_SESION_SEGUNDOS,
-    });
+    respuesta.cookies.set(NOMBRE_COOKIE_SESION, token, opcionesCookieSesion());
     respuesta.cookies.delete({ name: COOKIE_OAUTH_GOOGLE, path: "/api/auth/google" });
     return respuesta;
   } catch (error) {

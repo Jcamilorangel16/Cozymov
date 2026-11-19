@@ -17,7 +17,7 @@ Vehiculo
 
 `Automovil` se utiliza como equivalente de `Carro`; no existe una entidad separada llamada `Carro`.
 
-Cada `Viaje` puede referenciar el vehículo utilizado mediante `id_vehiculo`. La clave foránea es opcional; si se elimina un vehículo, el viaje se conserva y su referencia queda en `NULL`.
+`Viaje` no referencia un vehículo: la migración `QuitarConductorVehiculoViaje` eliminó `viaje.id_vehiculo` (y `viaje.id_conductor`). El conductor es `viaje.IdUsuario` y el vehículo que se muestra en un viaje público es el primero (menor `id_vehiculo`) registrado por ese usuario.
 
 ## Entidades
 
@@ -62,7 +62,7 @@ Cuando se elimina un registro de `Vehiculo`, Entity Framework Core elimina autom
 - `moto`.
 - `bicicleta_electrica`.
 
-Los detalles especializados usan `DeleteBehavior.Cascade`; los viajes que referencian al vehículo no se eliminan y su `id_vehiculo` queda en `NULL` (`DeleteBehavior.SetNull`).
+Los detalles especializados usan `DeleteBehavior.Cascade`. Los viajes no dependen del vehículo, así que borrar un vehículo no los afecta.
 
 ## Tablas de PostgreSQL
 
@@ -228,7 +228,7 @@ Backend/Migrations/20261109224507_AddVehiculosRelacionados.Designer.cs
 Backend/Migrations/20261115000000_ViajeVehiculo.cs
 ```
 
-`ViajeVehiculo` agrega la clave foránea opcional entre `viaje.id_vehiculo` y `vehiculo.id_vehiculo`, y limpia referencias huérfanas antiguas antes de crearla.
+`ViajeVehiculo` agregó la clave foránea opcional entre `viaje.id_vehiculo` y `vehiculo.id_vehiculo`. La migración posterior `QuitarConductorVehiculoViaje` la eliminó junto con `viaje.id_conductor`; su `Down` repuebla ambas columnas (el conductor desde `IdUsuario` y el vehículo como el primero del conductor).
 
 Para aplicarla, configura primero las credenciales correctas de PostgreSQL y ejecuta desde la raíz del repositorio:
 

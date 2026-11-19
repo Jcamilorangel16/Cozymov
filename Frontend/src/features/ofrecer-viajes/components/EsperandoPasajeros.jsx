@@ -2,13 +2,12 @@
 
 /**
  * Presenta los detalles de un viaje publicado y sus acciones disponibles.
- * @param {object} props Viaje y controladores de edición o nueva publicación.
+ * @param {object} props Viaje publicado y controlador de edición.
  * @returns Resumen visual del viaje activo.
  */
 export default function EsperandoPasajeros({
   viaje,
   onEditarViaje,
-  onPublicarOtro,
 }) {
   return (
     <section className="card color-card mx-auto w-100" style={{ maxWidth: 680 }}>
@@ -16,7 +15,7 @@ export default function EsperandoPasajeros({
         <div className="d-flex align-items-center gap-3 mb-4">
           <span className="fs-2" aria-hidden="true">🚗</span>
           <div>
-            <h3 className="h4 letra-contenido mb-1">Viaje publicado</h3>
+            <h3 className="h4 letra-contenido mb-1 titulo-icono"><i className="bi bi-check-circle-fill" aria-hidden="true" /> Viaje publicado</h3>
             <span className="badge rounded-pill bg-warning-subtle text-warning-emphasis">
               Esperando pasajeros
             </span>
@@ -85,7 +84,8 @@ export default function EsperandoPasajeros({
         )}
 
         <p className="texto-secundario mb-4" role="status">
-          Tu viaje queda en estado de espera mientras los pasajeros revisan el recorrido.
+          Tu viaje queda en estado de espera mientras los pasajeros revisan el recorrido. Solo
+          puedes tener un viaje publicado: si algo cambia, edítalo para actualizarlo.
         </p>
         <div className="d-flex flex-wrap justify-content-end gap-2">
           <button
@@ -94,13 +94,6 @@ export default function EsperandoPasajeros({
             onClick={onEditarViaje}
           >
             Editar viaje
-          </button>
-          <button
-            type="button"
-            className="btn btn-outline-primary"
-            onClick={onPublicarOtro}
-          >
-            Publicar otro viaje
           </button>
         </div>
       </div>

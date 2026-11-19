@@ -1,12 +1,16 @@
 ﻿// Compone el cabezal de navegaciÃ³n y las vistas del menÃº principal.
 "use client";
 
+import { useEffect } from "react";
+import { sincronizarIdSesion } from "../../../hooks/useSessionUserId";
 import OfrecerViajes from "../../ofrecer-viajes/components/OfrecerViajes";
 import MensajesView from "../../mensajes/components/MensajesView";
 import "../styles/menu-principal.css";
 import BuscarViajes from "../../buscar-viajes/components/BuscarViajes";
+import AvisoSolicitudes from "./AvisoSolicitudes";
 import PanelInicio from "./PanelInicio";
 import SidebarMenu from "./SidebarMenu";
+import { useAvisosSolicitudes } from "../hooks/useAvisosSolicitudes";
 import { useMenuPrincipal } from "../hooks/useMenuPrincipal";
 import ViajeEnCurso from "../../viaje-en-curso/components/ViajeEnCurso";
 import ConfiguracionGeneral from "../../configuracion/components/ConfiguracionGeneral";
@@ -20,7 +24,15 @@ import CalificacionesView from "../../calificaciones/components/CalificacionesVi
  * @returns Vista principal de la aplicaciÃ³n.
  */
 export default function MenuPrincipal({ usuarioActualId }) {
-  
+  // La sesión es permanente: sessionStorage puede estar vacío aunque la cookie sea válida.
+  // Se alinea antes de que los hijos lean el id con useSessionUserId.
+  sincronizarIdSesion(usuarioActualId);
+
+  // Renueva la cookie de sesión para que no caduque mientras se use la aplicación.
+  useEffect(() => {
+    void fetch("/api/sesion", { method: "POST" }).catch(() => {});
+  }, []);
+
   const {
     vistaActiva,
     contactoInicial,
@@ -36,14 +48,31 @@ export default function MenuPrincipal({ usuarioActualId }) {
     irAVista,
   } = useMenuPrincipal();
 
+  // Los conductores reciben aviso de las solicitudes de viaje nuevas.
+  const { pendientes, aviso, cerrarAviso } = useAvisosSolicitudes(usuarioActualId, () =>
+    irAVista("buscar"),
+  );
+
   return (
     <PerfilProvider>
       <div className="app-shell">
         <div className="menu-fondo" aria-hidden="true" />
-        <SidebarMenu vistaActiva={vistaActiva} onNavigate={irAVista} />
+        <SidebarMenu
+          vistaActiva={vistaActiva}
+          onNavigate={irAVista}
+          solicitudesPendientes={pendientes}
+        />
+        <AvisoSolicitudes
+          aviso={aviso}
+          onCerrar={cerrarAviso}
+          onVer={() => {
+            cerrarAviso();
+            irAVista("buscar");
+          }}
+        />
 
         <main className="main-content flex-grow-1 p-4">
-          <div className="border rounded-3 p-4 bloque_contenido" style={{ minHeight: 400 }}>
+          <div className="bloque_contenido" style={{ minHeight: 400 }}>
             {vistaActiva === "inicio" && <PanelInicio onNavigate={irAVista} />}
 
             {vistaActiva === "buscar" && (
@@ -54,6 +83,7 @@ export default function MenuPrincipal({ usuarioActualId }) {
                   mensajeAccion={mensajeBusqueda}
                   setMensajeAccion={setMensajeBusqueda}
                   onNavigate={irAVista}
+                  usuarioActualId={usuarioActualId}
                 />
               </div>
             )}
@@ -63,6 +93,7 @@ export default function MenuPrincipal({ usuarioActualId }) {
                 setPasajeroSeleccionado={setPasajeroSeleccionado}
                 mensajeAccion={mensajePasajero}
                 setMensajeAccion={setMensajePasajero}
+                onNavigate={irAVista}
               />
             )}
 

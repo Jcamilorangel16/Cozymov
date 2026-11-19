@@ -22,5 +22,19 @@ public sealed class SolicitudConfiguration : IEntityTypeConfiguration<Solicitud>
             .WithMany(r => r.Solicitudes)
             .HasForeignKey(s => s.IdRuta)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // Token de concurrencia: si dos conductores aceptan a la vez, el segundo recibe conflicto.
+        entity.Property(s => s.Estado)
+            .HasMaxLength(20)
+            .HasDefaultValue(Solicitud.EstadoPendiente)
+            .IsConcurrencyToken();
+
+        // Al borrar el viaje privado la solicitud se conserva y queda sin viaje asociado.
+        entity.HasOne(s => s.Viaje)
+            .WithMany()
+            .HasForeignKey(s => s.IdViaje)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        entity.HasIndex(s => s.Estado);
     }
 }

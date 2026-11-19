@@ -22,26 +22,26 @@ export default function ViajeEncontradoInicio({
   return (
     <section className="viaje-item inicio-destacado" aria-labelledby="inicio-viaje-titulo">
       <h2 className="h5 letra-contenido" id="inicio-viaje-titulo">
-        ¡Viaje encontrado a {viaje.destino}!
+        <i className="bi bi-emoji-smile-fill me-2" aria-hidden="true" />¡Viaje encontrado a {viaje.destino}!
       </h2>
       <dl className="inicio-datos">
         <div>
-          <dt>Precio</dt>
+          <dt><i className="bi bi-cash-coin" aria-hidden="true" /> Precio</dt>
           <dd>{formatearPrecio(viaje.precio_pasaje)}</dd>
         </div>
         <div>
-          <dt>Salida</dt>
+          <dt><i className="bi bi-clock-fill" aria-hidden="true" /> Salida</dt>
           <dd>{fechaHoraSalida(viaje)}</dd>
         </div>
         <div>
-          <dt>Conductor</dt>
+          <dt><i className="bi bi-person-circle" aria-hidden="true" /> Conductor</dt>
           <dd>
             {viaje.nombre_conductor || "Conductor sin nombre"}{" "}
             <span className="inicio-calificacion">{etiquetaCalificacion(calificacion)}</span>
           </dd>
         </div>
         <div>
-          <dt>Vehículo</dt>
+          <dt><i className="bi bi-car-front-fill" aria-hidden="true" /> Vehículo</dt>
           <dd>{descripcionVehiculo(viaje)}</dd>
         </div>
       </dl>

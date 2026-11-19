@@ -26,7 +26,7 @@ export default function ConfiguracionGeneral() {
 
   return (
     <div>
-      <h3 className="letra-contenido mb-3">Configuración</h3>
+      <h3 className="letra-contenido mb-3 titulo-icono"><i className="bi bi-gear-fill" aria-hidden="true" /> Configuración</h3>
 
       <div className="config-layout">
         <nav className="config-menu" aria-label="Secciones de configuración">

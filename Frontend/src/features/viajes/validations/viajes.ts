@@ -23,21 +23,35 @@ function esTextoValido(valor: unknown): valor is string {
   return typeof valor === "string" && valor.trim().length > 0;
 }
 
+/** Opciones de la validación de publicación; solo existen para poder probarla. */
+export interface OpcionesValidacionViaje {
+  /** Momento de referencia (por defecto, ahora). */
+  ahora?: Date;
+  /**
+   * Días de margen antes de «hoy». El navegador valida con su hora local (0). El servidor
+   * puede estar en otra zona horaria y usa 1 para no rechazar «hoy» por la diferencia horaria.
+   */
+  toleranciaDias?: number;
+}
+
 /**
  * Valida y normaliza los datos de publicación de un viaje.
+ * La fecha de salida puede ser hoy a cualquier hora; solo se rechazan días anteriores.
  * @param body Cuerpo desconocido de la solicitud.
+ * @param idUsuarioAutenticado Usuario de la sesión.
+ * @param opciones Momento de referencia y margen de días.
  * @returns Datos del viaje o error de validación.
  */
 export function validarDatosNuevoViaje(
   body: unknown,
   idUsuarioAutenticado: string,
+  { ahora = new Date(), toleranciaDias = 0 }: OpcionesValidacionViaje = {},
 ): ResultadoValidacion<DatosNuevoViaje> {
   if (!esRegistro(body)) {
     return { valido: false, error: "El cuerpo de la solicitud es inválido." };
   }
 
   const {
-    id_vehiculo,
     origen,
     destino,
     punto_encuentro,
@@ -54,11 +68,6 @@ export function validarDatosNuevoViaje(
       valido: false,
       error: "La sesión no contiene un identificador de usuario válido.",
     };
-  }
-
-  const idVehiculo = Number(id_vehiculo);
-  if (!Number.isInteger(idVehiculo) || idVehiculo <= 0) {
-    return { valido: false, error: "id_vehiculo debe ser un identificador válido." };
   }
 
   if (!esTextoValido(origen) || !esTextoValido(destino)) {
@@ -98,12 +107,20 @@ export function validarDatosNuevoViaje(
   }
 
   const salida = new Date(`${fecha_salida}T${hora_salida}`);
-  const ahora = new Date();
-  ahora.setSeconds(0, 0);
-  if (Number.isNaN(salida.getTime()) || salida < ahora) {
+  if (Number.isNaN(salida.getTime())) {
     return {
       valido: false,
-      error: "La fecha y hora de salida no pueden estar en el pasado.",
+      error: "La fecha y la hora de salida no son válidas.",
+    };
+  }
+  // Inicio del día de hoy (menos el margen): cualquier hora de hoy es válida.
+  const inicioDeHoy = new Date(ahora);
+  inicioDeHoy.setHours(0, 0, 0, 0);
+  inicioDeHoy.setDate(inicioDeHoy.getDate() - toleranciaDias);
+  if (salida < inicioDeHoy) {
+    return {
+      valido: false,
+      error: "La fecha de salida no puede ser anterior a hoy.",
     };
   }
 
@@ -122,7 +139,6 @@ export function validarDatosNuevoViaje(
     valido: true,
     datos: {
       id_usuario: idUsuario,
-      id_vehiculo: idVehiculo,
       origen: origen.trim(),
       destino: destino.trim(),
       punto_encuentro: punto_encuentro.trim(),
@@ -208,6 +224,41 @@ export function puedeAceptarViaje(
     tieneViajePublicado === false &&
     !tieneViajeEnCurso
   );
+}
+
+/**
+ * Determina si el usuario puede aceptar una solicitud de viaje: necesita sesión,
+ * un vehículo registrado y no estar en un viaje en curso.
+ * @param idUsuario Identificador del usuario activo.
+ * @param tieneVehiculo Si tiene vehículo registrado (null si no se pudo comprobar).
+ * @param tieneViajeEnCurso Si ya está en un viaje.
+ * @returns Si la acción de aceptar la solicitud debe estar habilitada.
+ */
+export function puedeAceptarSolicitud(
+  idUsuario: string,
+  tieneVehiculo: boolean | null,
+  tieneViajeEnCurso = false,
+) {
+  return Boolean(idUsuario) && tieneVehiculo === true && !tieneViajeEnCurso;
+}
+
+/**
+ * Explica por qué no se puede aceptar una solicitud.
+ * @param idUsuario Identificador del usuario activo.
+ * @param tieneVehiculo Si tiene vehículo registrado (null si no se pudo comprobar).
+ * @param tieneViajeEnCurso Si ya está en un viaje.
+ * @returns Mensaje para la interfaz, o null si sí puede aceptar.
+ */
+export function motivoNoAceptarSolicitud(
+  idUsuario: string,
+  tieneVehiculo: boolean | null,
+  tieneViajeEnCurso = false,
+): string | null {
+  if (!idUsuario) return "Inicia sesión para aceptar solicitudes.";
+  if (tieneViajeEnCurso) return "Ya tienes un viaje en curso.";
+  if (tieneVehiculo === null) return "No pudimos comprobar tu vehículo registrado.";
+  if (!tieneVehiculo) return "Registra un vehículo para aceptar solicitudes.";
+  return null;
 }
 
 /**

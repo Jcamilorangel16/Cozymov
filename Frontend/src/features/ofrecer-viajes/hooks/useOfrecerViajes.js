@@ -13,6 +13,7 @@ import {
   validarPermisoPublicarViaje,
 } from "../../viajes/validations/viajes";
 import { useSessionUserId } from "../../../hooks/useSessionUserId";
+import { solicitudesPropiasPendientes } from "../../buscar-viajes/utils/solicitudes";
 
 /**
  * Gestiona el vehículo del usuario y el ciclo de publicación de viajes.
@@ -65,16 +66,33 @@ export function useOfrecerViajes({ pasajeroSeleccionado, setMensajeAccion }) {
     if (!idUsuario) return;
     const controlador = new AbortController();
 
-    fetch("/api/viajes/en-curso", { signal: controlador.signal })
-      .then(async (respuesta) => {
-        const resultado = await respuesta.json();
-        if (!respuesta.ok) {
+    // Para publicar como conductor no hay que tener un viaje en curso ni una solicitud
+    // de viaje pendiente (esperar conductor como pasajero).
+    Promise.all([
+      fetch("/api/viajes/en-curso", { signal: controlador.signal }),
+      fetch("/api/solicitudes", { cache: "no-store", signal: controlador.signal }),
+    ])
+      .then(async ([respuestaEnCurso, respuestaSolicitudes]) => {
+        const [resultado, solicitudes] = await Promise.all([
+          respuestaEnCurso.json(),
+          respuestaSolicitudes.json(),
+        ]);
+        if (!respuestaEnCurso.ok) {
           throw new Error(resultado.error || "No se pudo validar tu viaje en curso.");
         }
         if (!("viaje" in resultado)) {
           throw new Error("No se pudo validar tu viaje en curso.");
         }
-        setEstadoViajeEnCurso(resultado.viaje ? "en-curso" : "sin-viaje");
+        if (!respuestaSolicitudes.ok) {
+          throw new Error(solicitudes.error || "No se pudieron validar tus solicitudes.");
+        }
+        if (resultado.viaje) {
+          setEstadoViajeEnCurso("en-curso");
+        } else if (solicitudesPropiasPendientes(solicitudes).length > 0) {
+          setEstadoViajeEnCurso("solicitud-pendiente");
+        } else {
+          setEstadoViajeEnCurso("sin-viaje");
+        }
       })
       .catch((error) => {
         if (error.name !== "AbortError") {
@@ -259,7 +277,9 @@ export function useOfrecerViajes({ pasajeroSeleccionado, setMensajeAccion }) {
       setErrorPublicacion(
         estadoViajeEnCurso === "en-curso"
           ? "No puedes publicar un viaje mientras tengas uno en curso."
-          : "Espera a que se valide si tienes un viaje en curso.",
+          : estadoViajeEnCurso === "solicitud-pendiente"
+            ? "No puedes publicar un viaje mientras tengas una solicitud de viaje pendiente."
+            : "Espera a que se valide si tienes un viaje en curso.",
       );
       return;
     }
@@ -276,7 +296,6 @@ export function useOfrecerViajes({ pasajeroSeleccionado, setMensajeAccion }) {
     const validacion = validarDatosNuevoViaje(
       {
         id_usuario: idUsuario,
-        id_vehiculo: vehiculoGuardado.id_vehiculo,
         origen,
         destino,
         punto_encuentro: puntoEncuentro,
@@ -410,30 +429,6 @@ export function useOfrecerViajes({ pasajeroSeleccionado, setMensajeAccion }) {
   }
 
   /**
-   * Reinicia el formulario para iniciar la publicación de otro viaje.
-   * @returns {void}
-   */
-  function prepararOtroViaje() {
-    viajeEnEdicionRef.current = null;
-    setViajeEnEdicion(null);
-    setViajePublicado(null);
-    setOrigen(UNIVERSIDAD_POPULAR_CESAR);
-    setDestino(UNIVERSIDAD_POPULAR_CESAR);
-    setPuntoEncuentro("");
-    setPrecioPasaje("");
-    setCuposDisponibles("1");
-    setInformacionAdicional("");
-    const salidaPredeterminada = new Date(
-      Date.now() + MINUTOS_POR_DEFECTO_SALIDA * 60 * 1000,
-    );
-    const partesSalida = obtenerPartesFechaHora(salidaPredeterminada);
-    setFechaSalida(partesSalida.fecha);
-    setHoraSalida(partesSalida.hora);
-    setAtajoSalida(String(MINUTOS_POR_DEFECTO_SALIDA));
-    setErrorPublicacion("");
-  }
-
-  /**
    * Actualiza el mensaje local tras aceptar una solicitud de pasajero.
    * @returns {void}
    */
@@ -478,7 +473,6 @@ export function useOfrecerViajes({ pasajeroSeleccionado, setMensajeAccion }) {
     reintentarConsulta,
     reintentarValidacionViajeEnCurso,
     editarViajePublicado,
-    prepararOtroViaje,
     aceptarPasajero,
   };
 }

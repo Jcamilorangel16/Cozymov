@@ -29,7 +29,7 @@ export async function consultarViajes(filtros, signal) {
  * @param {unknown} valor Texto de origen o destino.
  * @returns {string} Texto normalizado.
  */
-function normalizarTexto(valor) {
+export function normalizarTexto(valor) {
   return String(valor || "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")

@@ -16,11 +16,9 @@
 
 .register-page {
   min-height: 100vh;
-  background-color: #85d8e3;
-  background-image: url("/fondoRegister.jpg");
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(56, 103, 169, 0.10), transparent 26rem),
+    #f7f8fa;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -29,7 +27,10 @@
 .register-card {
   width: min(850px, calc(100% - 2rem));
   min-height: 600px;
-  background-color: #fbfaf8;
+  background-color: #ffffff;
+  border: 1px solid rgba(23, 33, 43, 0.10);
+  border-radius: 20px;
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.04), 0 20px 50px rgba(15, 23, 42, 0.10);
 }
 
 .register-card h1 {

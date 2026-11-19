@@ -1,17 +1,21 @@
 /* Estilos del menú principal y su distribución en pantalla. */
 body {
     margin: 0px;
-    display: flex;
-    flex-direction: column; /* cabezal arriba, contenido debajo */
     min-height: 100vh;
-    background-color: #0b1922;
+    background: #f7f8fa;
 }
 
 .bloque_contenido {
     flex: 1;
-    padding: 20px;
-    /* Semitransparente para dejar ver el fondo animado sin perder legibilidad */
-    background-color: rgba(251, 250, 248, 0.88);
+    width: min(1180px, 100%);
+    margin: 0 auto;
+    padding: 24px;
+    background: #ffffff;
+    border: 1px solid rgba(23, 33, 43, 0.09) !important;
+    border-radius: 18px;
+    box-shadow:
+        0 1px 2px rgba(15, 23, 42, 0.03),
+        0 14px 38px rgba(15, 23, 42, 0.06);
 }
 
 /* Fondo animado decorativo del menú: detrás de todas las secciones */
@@ -20,11 +24,9 @@ body {
     inset: 0;
     z-index: -1;
     pointer-events: none;
-    background-color: #0b1922; /* respaldo si el GIF no carga */
-    background-image: url("/car-animation.gif");
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
+    background:
+        radial-gradient(circle at 85% 10%, rgba(56, 103, 169, 0.06), transparent 22rem),
+        #f7f8fa;
 }
 
 /* Sin animación para quien prefiere movimiento reducido */
@@ -67,16 +69,21 @@ body {
     display: flex;
     align-items: center;
     gap: 24px;
-    padding: 10px 24px;
-    background-color: #88D2F0;
+    height: 72px;
+    padding: 12px 32px;
+    background: rgba(255, 255, 255, 0.94);
+    border-bottom: 1px solid rgba(23, 33, 43, 0.08);
+    backdrop-filter: blur(14px);
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.03);
     flex-shrink: 0;
 }
 
 .brand-logo h2 {
-    color: #0B1922;
-    font-weight: 700;
+    color: #3867a9;
+    font-weight: 800;
     margin: 0;
-    font-size: 1.5rem;
+    font-size: 1.35rem;
+    letter-spacing: -0.02em;
 }
 
 .topbar-nav {
@@ -99,23 +106,22 @@ body {
 /* Enlaces del menú */
 .topbar-nav .nav-link {
     display: block;
-    color: #0B1922;
-    padding: 8px 14px;
-    border-radius: 8px;
+    color: #596779;
+    padding: 9px 13px;
+    border-radius: 9px;
     text-decoration: none;
     white-space: nowrap;
     border: 2px solid transparent;
-    transition: outline-color 0.15s ease,
-                background-color 0.15s ease,
-                color 0.15s ease;
+    transition: background-color 180ms ease,
+                color 180ms ease,
+                transform 180ms ease;
 }
 
 /* Contorno al pasar el cursor */
 .topbar-nav .nav-link:hover {
-    outline: 2px solid #3867a9;
-    outline-offset: -2px;
-    background-color: rgba(79, 232, 224, 0.10);
+    background-color: #edf4fb;
     color: #3867a9;
+    transform: translateY(-1px);
 }
 
 /* Contorno al navegar con teclado */
@@ -126,9 +132,10 @@ body {
 
 /* Enlace de la sección activa */
 .topbar-nav .nav-link.active {
-    background-color: #040A0E;
-    color: #FBFAF8;
-    font-weight: 600;
+    background-color: #3867a9;
+    color: #ffffff;
+    font-weight: 700;
+    box-shadow: 0 5px 14px rgba(56, 103, 169, 0.16);
 }
 
 /* Usuario y configuración (derecha del cabezal) */
@@ -138,7 +145,8 @@ body {
     gap: 10px;
     padding: 4px 8px;
     border-radius: 8px;
-    background-color: rgba(0, 70, 132, 0.87);
+    background-color: #f8fafc;
+    border: 1px solid rgba(23, 33, 43, 0.08);
     flex-shrink: 0;
 }
 
@@ -167,6 +175,7 @@ body {
 .main-content {
     display: flex;
     flex-direction: column;
+    padding: 24px 32px 32px;
 }
 
 /* ───────── Pantallas pequeñas ───────── */
@@ -174,10 +183,20 @@ body {
     .topbar {
         gap: 12px;
         padding: 8px 12px;
+        height: 64px;
     }
 
     .brand-logo h2 {
         font-size: 1.2rem;
+    }
+
+    .main-content {
+        padding: 16px 12px 20px;
+    }
+
+    .bloque_contenido {
+        padding: 16px;
+        border-radius: 14px;
     }
 }
 
@@ -397,4 +416,318 @@ body {
 .inicio-datos dd {
     margin: 0;
     color: #0B1922;
+}
+
+/* ───────── Inicio: hero, chips y acciones rápidas ───────── */
+.hero-inicio {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 24px;
+    padding: 32px 20px 26px;
+    text-align: center;
+    border-radius: 20px;
+    color: #fff;
+    background: linear-gradient(135deg, #4fb4ee 0%, #3867a9 100%);
+    box-shadow: 0 10px 26px rgba(56, 103, 169, 0.28);
+}
+
+.hero-titulo {
+    margin: 0;
+    color: #fff;
+    font-size: clamp(1.5rem, 4vw, 2.2rem);
+    font-weight: 800;
+}
+
+.hero-sub {
+    margin: 4px 0 0;
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 1.05rem;
+}
+
+
+.btn-conductor {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 20px;
+    border: 0;
+    border-radius: 999px;
+    font-weight: 700;
+    color: #244b7a;
+    background: #ffe08a;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+.btn-conductor:hover { transform: translateY(-2px); background: #ffd25e; }
+
+/* Botones del hero: «Pedir viaje» a la izquierda y «Quiero ser conductor» a la derecha. */
+.hero-acciones {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+}
+.btn-pedir-viaje {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 20px;
+    border: 0;
+    border-radius: 999px;
+    font-weight: 700;
+    color: #fff;
+    background: #198754;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+.btn-pedir-viaje:hover { transform: translateY(-2px); background: #157347; }
+
+.buscador-grande {
+    box-shadow: 0 8px 22px rgba(56, 120, 180, 0.22);
+    border-radius: 14px;
+}
+.buscador-grande .form-control,
+.buscador-grande .input-group-text {
+    min-height: 54px;
+    font-size: 1.05rem;
+    background: #fff;
+}
+.buscador-grande .input-group-text {
+    border-radius: 14px 0 0 14px;
+    color: #3867a9;
+    font-size: 1.2rem;
+}
+.buscador-grande .form-control { border-radius: 0 14px 14px 0; }
+
+.chips-destinos {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
+}
+.chips-titulo { font-weight: 700; color: #244b7a; }
+.chips-titulo .bi { color: #ff7a45; }
+.chip-destino {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border: 1px solid rgba(79, 180, 238, 0.5);
+    border-radius: 999px;
+    color: #244b7a;
+    background: #fff;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+.chip-destino .bi { color: #4fb4ee; }
+.chip-destino:hover { background: #e3f3ff; transform: translateY(-1px); }
+
+
+/* ───────── Inicio: actividad, carga, vacío y hora ───────── */
+.actividad-panel { margin-top: 30px; }
+.actividad-rejilla {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+}
+.actividad-tarjeta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 14px 16px;
+    border-radius: 16px;
+    border: 1px solid rgba(79, 180, 238, 0.35);
+    border-top: 4px solid #4fb4ee;
+    background: #fff;
+}
+.actividad-tarjeta small { color: #6b7683; }
+.actividad-etiqueta { font-size: 0.8rem; font-weight: 700; color: #3867a9; text-transform: uppercase; letter-spacing: 0.03em; }
+.actividad-promedio { font-size: 1.6rem; color: #0b1922; }
+.actividad-estrellas { color: #f5b301; font-size: 1.05rem; margin-left: 6px; }
+.actividad-enlace {
+    align-self: flex-start;
+    margin-top: 6px;
+    padding: 0;
+    border: 0;
+    background: none;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #3867a9;
+}
+.actividad-enlace:hover { text-decoration: underline; }
+
+/* Esqueletos de carga (sin animación continua pesada) */
+.esqueleto {
+    border-radius: 14px;
+    background: linear-gradient(90deg, #e6f3fc, #f4faff, #e6f3fc);
+    background-size: 200% 100%;
+    animation: brillo 1.4s linear infinite;
+}
+.esqueleto-actividad { height: 96px; margin-bottom: 12px; }
+.esqueleto-tarjeta { height: 72px; }
+@keyframes brillo { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+.buscando-viajes { display: flex; flex-direction: column; gap: 12px; }
+.buscando-carretera {
+    position: relative;
+    height: 34px;
+    overflow: hidden;
+    border-bottom: 3px dashed #4fb4ee;
+}
+.buscando-auto {
+    position: absolute;
+    bottom: 2px;
+    left: 0;
+    font-size: 1.6rem;
+    color: #3867a9;
+    animation: conducir 2.2s ease-in-out infinite;
+}
+@keyframes conducir { from { transform: translateX(-10%); } to { transform: translateX(520%); } }
+
+.vacio-ilustracion {
+    display: flex;
+    justify-content: center;
+    gap: 18px;
+    margin-bottom: 8px;
+    font-size: 2rem;
+    color: #4fb4ee;
+}
+.vacio-ilustracion .bi-emoji-neutral-fill { color: #f5b301; }
+
+.tarjeta-hora {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    width: 64px;
+    flex-shrink: 0;
+    align-self: center;
+    padding: 8px 4px;
+    border-radius: 14px;
+    color: #fff;
+    background: linear-gradient(135deg, #4fb4ee, #3867a9);
+}
+.inicio-tarjeta .tarjeta-hora .bi { color: #fff; font-size: 0.8rem; }
+.tarjeta-hora strong { font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+
+@media (prefers-reduced-motion: reduce) {
+    .esqueleto, .buscando-auto { animation: none; }
+}
+
+/* ───────── Inicio: nubes, ruta y accesos rápidos ───────── */
+.hero-nube {
+    position: absolute;
+    color: rgba(255, 255, 255, 0.22);
+    pointer-events: none;
+}
+.hero-nube-1 { top: 10px; left: 6%; font-size: 64px; }
+.hero-nube-2 { bottom: 8px; right: 7%; font-size: 84px; }
+
+.hero-ruta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: min(360px, 80%);
+    font-size: 1.3rem;
+    color: #fff;
+}
+.hero-ruta-linea {
+    flex: 1;
+    border-top: 3px dotted rgba(255, 255, 255, 0.8);
+}
+.hero-auto { color: #ffe08a; }
+
+.acciones-rapidas {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 14px;
+    margin-top: 26px;
+}
+.accion-tarjeta {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    text-align: left;
+    border: 1px solid rgba(79, 180, 238, 0.35);
+    border-radius: 16px;
+    background: #fff;
+    color: #0b1922;
+}
+.accion-tarjeta:hover { transform: translateY(-3px); border-color: #4fb4ee; }
+.accion-icono {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+    border-radius: 14px;
+    font-size: 1.4rem;
+    color: #fff;
+}
+.accion-texto { display: flex; flex-direction: column; line-height: 1.25; }
+.accion-texto small { color: #6b7683; }
+.accion-celeste .accion-icono { background: linear-gradient(135deg, #4fb4ee, #3867a9); }
+.accion-verde .accion-icono { background: linear-gradient(135deg, #5fd3a0, #2aa7a1); }
+.accion-rosa .accion-icono { background: linear-gradient(135deg, #ff9db5, #e0547e); }
+.accion-ambar .accion-icono { background: linear-gradient(135deg, #ffd25e, #f08a24); }
+
+/* ───────── Barra desplegable en pantallas pequeñas ───────── */
+.topbar-toggle {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+    border: 1px solid rgba(79, 180, 238, 0.5);
+    border-radius: 12px;
+    font-size: 1.4rem;
+    color: #3867a9;
+    background: #e3f3ff;
+}
+.topbar-toggle:hover { background: #d3ecff; }
+.topbar-toggle:focus-visible { outline: 2px solid #3867a9; outline-offset: 2px; }
+
+@media (max-width: 991px) {
+    .topbar-toggle { display: inline-flex; }
+
+    .topbar { gap: 12px; padding: 8px 14px; }
+    .brand-logo { flex: 1; min-width: 0; }
+
+    /* El menú pasa a ser un panel que se despliega bajo la barra */
+    .topbar-nav {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        display: none;
+        padding: 10px 14px 14px;
+        background: #ffffff;
+        border-bottom: 3px solid #7cc7f0;
+        box-shadow: 0 14px 24px rgba(56, 120, 180, 0.22);
+        max-height: calc(100vh - 72px);
+        overflow-y: auto;
+    }
+    .topbar-nav.abierto { display: block; }
+
+    .topbar-nav .nav {
+        flex-direction: column;
+        flex-wrap: nowrap;
+        gap: 4px;
+        overflow: visible;
+    }
+    .topbar .topbar-nav .nav-link {
+        display: flex !important;
+        width: 100%;
+        padding: 12px 14px;
+        font-size: 1.02rem;
+    }
 }

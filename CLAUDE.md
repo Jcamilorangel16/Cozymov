@@ -92,12 +92,14 @@ Las entidades principales (más las cuatro del PDF descritas abajo) son `Usuario
 
 - Un usuario puede tener varios vehículos y publicar varios viajes. La
   eliminación del usuario se restringe cuando existen estos registros.
-- Cada viaje pertenece a un usuario; `IdConductor` es texto, no una clave
-  foránea.
+- Cada viaje pertenece a un usuario, que es su conductor (`viaje.IdUsuario`).
+  `viaje` ya no tiene `id_conductor` ni `id_vehiculo`: el vehículo que se
+  muestra en un viaje es el primero del conductor en la tabla `vehiculo`.
 - `viaje.IdRuta` es opcional; al borrar una ruta con viajes relacionados, la
   eliminación se restringe.
-- `viaje.IdVehiculo` es opcional y referencia `vehiculo.id_vehiculo`. Al borrar
-  un vehículo, el viaje se conserva y la referencia queda en `NULL`.
+- Al borrar un vehículo, los viajes de su dueño no se ven afectados (no hay FK
+  entre `viaje` y `vehiculo`; la migración `QuitarConductorVehiculoViaje` la
+  eliminó junto con las columnas).
 - Una reserva vincula un viaje con el usuario pasajero. Al borrar un viaje, sus
   reservas se eliminan en cascada. Los índices únicos parciales evitan reservas
   activas repetidas del mismo pasajero.
@@ -202,7 +204,7 @@ hacia evaluador y evaluado, CHECK de puntuación 1–5). Sus controladores son
 `/api/telefonos`, `/api/preferencias/{idUsuario}`, `/api/solicitudes` (con
 `{id}/coincidencias`) y `/api/calificaciones` (con `resumen/{idEvaluado}`);
 los DTOs están en `Backend/DTOs/`. Diferencias deliberadas con el PDF: un usuario puede
-tener varios vehículos y `viaje.IdConductor` sigue siendo texto. La regla de
+tener varios vehículos y `viaje` no guarda conductor en texto ni vehículo. La regla de
 cupos ≤ capacidad del vehículo (trigger) y la exclusividad automóvil/moto
 siguen pendientes.
 
@@ -226,6 +228,14 @@ clave.
   añade un recurso externo (script, fuente, API llamada desde el navegador),
   hay que permitirlo en la CSP.
 - `SESSION_SECRET` debe tener al menos 32 caracteres (`src/lib/auth.ts`).
+- La sesión queda iniciada en el dispositivo: la cookie `sesion` (httpOnly,
+  SameSite=Lax, `secure` en producción) dura un año y `POST /api/sesion` la
+  renueva cada vez que se abre el menú. Cerrar sesión solo borra la cookie de
+  ese dispositivo: el JWT es sin estado y no se puede revocar antes de que
+  venza, así que si se roba una cookie sirve hasta entonces (ver
+  `INFORME_SEGURIDAD.md`). `MenuPrincipal` alinea `sessionStorage` con el id
+  verificado por el servidor porque la sesión sobrevive al reinicio del
+  navegador y `sessionStorage` no.
 - Inicio de sesión y cambio de contraseña se bloquean 15 min tras 8 fallos por
   cuenta (`Backend/Services/LimitadorIntentos.cs`, en memoria) y el login tiene
   además un límite por IP. Los límites por IP usan la cabecera `X-Cliente-Ip`
@@ -247,3 +257,12 @@ calificaciones, que lista las reservas completadas aún sin calificar. El backen
 exige `reserva.Estado == "completada"` para aceptar una calificación. Hoy solo
 el pasajero califica al conductor desde la UI; el backend admite también la
 dirección inversa.
+
+### Calificaciones anónimas
+
+Las calificaciones recibidas son anónimas. El proxy `Frontend/app/api/calificaciones`
+(GET sin `emitidas`) devuelve solo `idCalificacion`, `puntuacion` y `comentario`;
+omite `idEvaluador` e `idReserva`, que permitirían identificar a quien calificó.
+El evaluador sí ve sus calificaciones enviadas completas (para borrarlas). El
+backend conserva el evaluador en la base por integridad; el anonimato se aplica
+en el proxy, así que no expongas esos campos desde otra ruta.

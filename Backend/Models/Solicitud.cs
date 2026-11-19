@@ -29,4 +29,17 @@ public class Solicitud
 
     [Column("compartir")]
     public bool Compartir { get; set; }
+
+    /// <summary>"pendiente" mientras ningún conductor la acepta; "aceptada" cuando ya tiene viaje.</summary>
+    [Column("estado")]
+    [StringLength(20)]
+    public string Estado { get; set; } = EstadoPendiente;
+
+    /// <summary>Viaje privado creado al aceptar la solicitud; null mientras está pendiente.</summary>
+    [Column("id_viaje")]
+    public long? IdViaje { get; set; }
+    public Viaje? Viaje { get; set; }
+
+    public const string EstadoPendiente = "pendiente";
+    public const string EstadoAceptada = "aceptada";
 }

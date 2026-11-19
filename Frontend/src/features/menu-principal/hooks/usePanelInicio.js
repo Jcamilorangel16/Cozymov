@@ -6,11 +6,8 @@ import { useSessionUserId } from "../../../hooks/useSessionUserId";
 import barriosRutaCotidiana from "../../ofrecer-viajes/constants/barriosRutaCotidiana";
 import { consultarViajes } from "../../buscar-viajes/utils/viajes";
 import {
-  combinarFechaHora,
   construirCatalogoDestinos,
   filtrarSugerencias,
-  rutasCompatibles,
-  validarSolicitud,
 } from "../utils/destinosInicio";
 
 async function leerJson(respuesta, mensaje) {
@@ -48,9 +45,6 @@ export function usePanelInicio() {
   const [calificaciones, setCalificaciones] = useState({});
   const [aceptandoId, setAceptandoId] = useState(null);
   const [errorAccion, setErrorAccion] = useState("");
-  const [enviandoSolicitud, setEnviandoSolicitud] = useState(false);
-  const [errorSolicitud, setErrorSolicitud] = useState("");
-  const [solicitudCreada, setSolicitudCreada] = useState(false);
   const busquedaRef = useRef(null);
   const calificacionesPedidas = useRef(new Set());
 
@@ -157,15 +151,22 @@ export function usePanelInicio() {
     () => construirCatalogoDestinos(barriosRutaCotidiana, rutas),
     [rutas],
   );
+  // Destinos más frecuentes en las rutas; si no hay rutas, los primeros del catálogo.
+  const destinosPopulares = useMemo(() => {
+    const conteo = new Map();
+    for (const ruta of Array.isArray(rutas) ? rutas : []) {
+      const destino = String(ruta?.destino ?? "").trim();
+      if (destino) conteo.set(destino, (conteo.get(destino) ?? 0) + 1);
+    }
+    const ordenados = [...conteo.entries()]
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "es"))
+      .map(([destino]) => destino);
+    return (ordenados.length ? ordenados : catalogoDestinos).slice(0, 6);
+  }, [rutas, catalogoDestinos]);
   const sugerencias = useMemo(
     () => (destinoElegido === null ? filtrarSugerencias(catalogoDestinos, consulta) : []),
     [catalogoDestinos, consulta, destinoElegido],
   );
-  const rutasDelDestino = useMemo(
-    () => (destinoElegido ? rutasCompatibles(rutas, destinoElegido) : []),
-    [rutas, destinoElegido],
-  );
-
   function reiniciarResultados() {
     busquedaRef.current?.abort();
     setBuscando(false);
@@ -173,8 +174,6 @@ export function usePanelInicio() {
     setViajeSeleccionado(null);
     setErrorBusqueda("");
     setErrorAccion("");
-    setErrorSolicitud("");
-    setSolicitudCreada(false);
   }
 
   function cambiarConsulta(texto) {
@@ -226,8 +225,6 @@ export function usePanelInicio() {
     setViajeSeleccionado(null);
     setErrorBusqueda("");
     setErrorAccion("");
-    setErrorSolicitud("");
-    setSolicitudCreada(false);
     setBuscando(true);
     try {
       const viajes = await consultarViajes({ destino }, controlador.signal);
@@ -315,39 +312,6 @@ export function usePanelInicio() {
     }
   }
 
-  async function enviarSolicitud({ precio, fecha, hora, idRuta }) {
-    setErrorSolicitud("");
-    const invalido = validarSolicitud({ precio, fecha, hora, idRuta });
-    if (invalido) {
-      setErrorSolicitud(invalido);
-      return false;
-    }
-    setEnviandoSolicitud(true);
-    try {
-      await leerJson(
-        await fetch("/api/solicitudes", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            idRuta: Number(idRuta),
-            fechaHora: combinarFechaHora(fecha, hora),
-            horaLimite: null,
-            presupuesto: Number(precio),
-            compartir: false,
-          }),
-        }),
-        "No se pudo registrar la solicitud.",
-      );
-      setSolicitudCreada(true);
-      return true;
-    } catch (errorEnvio) {
-      setErrorSolicitud(errorEnvio.message || "No se pudo registrar la solicitud.");
-      return false;
-    } finally {
-      setEnviandoSolicitud(false);
-    }
-  }
-
   function reintentar() {
     setCargando(true);
     setError("");
@@ -367,6 +331,7 @@ export function usePanelInicio() {
     consulta,
     cambiarConsulta,
     sugerencias,
+    destinosPopulares,
     destinoElegido,
     buscarPorDestino,
     reintentarBusqueda,
@@ -380,10 +345,5 @@ export function usePanelInicio() {
     aceptarViaje,
     aceptandoId,
     errorAccion,
-    rutasDelDestino,
-    enviarSolicitud,
-    enviandoSolicitud,
-    errorSolicitud,
-    solicitudCreada,
   };
 }

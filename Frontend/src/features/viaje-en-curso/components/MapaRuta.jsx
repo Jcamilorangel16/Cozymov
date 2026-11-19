@@ -12,8 +12,12 @@ import {
   indicePuntoCercano,
   obtenerRutaPrecargada,
 } from "../../../lib/mapa";
-
-const METROS_LLEGADA = 100;
+import {
+  METROS_LLEGADA,
+  contarLecturasEnDestino,
+  esLecturaDeLlegada,
+  llegadaConfirmada,
+} from "../utils/llegada";
 
 // divIcon evita el problema de los íconos por defecto de Leaflet en Next.js.
 const crearIcono = (clase, texto) =>
@@ -59,15 +63,24 @@ const formatearDistancia = (metros) =>
 
 /**
  * Calcula la ruta de la reserva (barrios de Valledupar) y la sigue hasta el destino.
- * @param {{origen: string, destino: string}} props
+ * @param {{origen: string, destino: string, onLlegada?: () => void}} props Si se indica
+ * `onLlegada`, se llama una sola vez cuando el GPS confirma que el usuario llegó al destino.
  * @returns Mapa interactivo con ruta y seguimiento de ubicación.
  */
-export default function MapaRuta({ origen, destino }) {
+export default function MapaRuta({ origen, destino, onLlegada }) {
   const [ruta, setRuta] = useState(null);
   const [error, setError] = useState("");
   const [posicion, setPosicion] = useState(null);
   const [avisoGps, setAvisoGps] = useState("");
   const [seguir, setSeguir] = useState(false);
+  // Precisión (metros) de la última lectura del GPS y estado de la detección de llegada.
+  const precisionRef = useRef(null);
+  const lecturasEnDestinoRef = useRef(0);
+  const llegadaAvisadaRef = useRef(false);
+  const onLlegadaRef = useRef(onLlegada);
+  useEffect(() => {
+    onLlegadaRef.current = onLlegada;
+  });
 
   // 1. Usa la ruta precargada barrio ⇄ universidad; si no existe, geocodifica (MapTiler) y calcula (OSRM).
   useEffect(() => {
@@ -116,6 +129,7 @@ export default function MapaRuta({ origen, destino }) {
     const id = navigator.geolocation.watchPosition(
       ({ coords }) => {
         setAvisoGps("");
+        precisionRef.current = coords.accuracy;
         setPosicion([coords.latitude, coords.longitude]);
       },
       () => setAvisoGps("Activa la ubicación para seguir tu recorrido en el mapa."),
@@ -136,6 +150,20 @@ export default function MapaRuta({ origen, destino }) {
   }, [ruta, posicion]);
 
   const llego = progreso !== null && progreso.metrosAlDestino <= METROS_LLEGADA;
+
+  // Cada lectura del GPS: tras varias seguidas dentro del destino se avisa la llegada (una vez).
+  useEffect(() => {
+    if (!progreso || !onLlegadaRef.current || llegadaAvisadaRef.current) return;
+    const enDestino = esLecturaDeLlegada({
+      metrosAlDestino: progreso.metrosAlDestino,
+      precision: precisionRef.current,
+    });
+    lecturasEnDestinoRef.current = contarLecturasEnDestino(lecturasEnDestinoRef.current, enDestino);
+    if (llegadaConfirmada(lecturasEnDestinoRef.current)) {
+      llegadaAvisadaRef.current = true;
+      onLlegadaRef.current();
+    }
+  }, [progreso]);
 
   if (error) {
     return (
@@ -175,7 +203,9 @@ export default function MapaRuta({ origen, destino }) {
       </div>
       {llego && (
         <p className="alert alert-success py-2" role="status">
-          Llegaste a tu destino. Ya puedes finalizar el viaje.
+          {onLlegada
+            ? "Llegaste a tu destino. Finaliza tu viaje; si no lo haces, se finalizará solo en 1 hora."
+            : "Llegaste a tu destino. Ya puedes finalizar el viaje."}
         </p>
       )}
       {avisoGps && <p className="small texto-secundario mb-2">{avisoGps}</p>}

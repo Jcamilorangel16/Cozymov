@@ -2,24 +2,390 @@
 @import "tailwindcss";
 
 :root {
-  --background: #382b7d;
-  --foreground: #171717;
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --brand: #3867a9;
+  --brand-dark: #244b7a;
+  --brand-soft: #edf4fb;
+  --accent: #2aa7a1;
+  --background: #f7f8fa;
+  --surface: #ffffff;
+  --surface-muted: #fafbfc;
+  --foreground: #17212b;
+  --muted: #6b7683;
+  --border: rgba(23, 33, 43, 0.11);
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 12px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 2px 4px rgba(15, 23, 42, 0.04), 0 12px 32px rgba(15, 23, 42, 0.08);
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
 }
 
 body {
+  margin: 0;
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
+
+* {
+  box-sizing: border-box;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+a,
+.card,
+.config-card,
+.panel-lateral,
+.viaje-item,
+.actividad-item {
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--foreground);
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+p {
+  color: var(--muted);
+}
+
+.form-control,
+.form-select {
+  min-height: 44px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--foreground);
+  font-size: 15px;
+}
+
+.form-control::placeholder {
+  color: #98a1ac;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: rgba(56, 103, 169, 0.55);
+  box-shadow: 0 0 0 3px rgba(56, 103, 169, 0.12);
+}
+
+.btn {
+  min-height: 44px;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: 15px;
+  transition: 180ms ease;
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn-primary,
+.btn-success {
+  border: 1px solid var(--brand);
+  background: var(--brand);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(56, 103, 169, 0.18);
+}
+
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-success:hover,
+.btn-success:focus {
+  border-color: var(--brand-dark);
+  background: var(--brand-dark);
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(56, 103, 169, 0.22);
+}
+
+.btn-outline-primary,
+.btn-outline-danger,
+.btn-outline-secondary {
+  border-width: 1px;
+  background: var(--surface);
+}
+
+.card,
+.config-card,
+.panel-lateral,
+.viaje-item,
+.actividad-item {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.alert {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.text-muted,
+.texto-secundario,
+.config-ayuda {
+  color: var(--muted) !important;
+}
+
+.tabular,
+[data-numeric="true"],
+.viaje-hora-valor,
+.inicio-calificacion {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 767px) {
+  body {
+    font-size: 15px;
+  }
+
+  .card,
+  .config-card,
+  .panel-lateral,
+  .viaje-item,
+  .actividad-item {
+    border-radius: var(--radius-sm);
+  }
+}
+
+/* ───────── Tema celeste con iconos ───────── */
+:root {
+  --cielo-1: #d6f0ff;
+  --cielo-2: #a9dcf8;
+  --cielo-3: #7cc7f0;
+  --brand-soft: #e3f3ff;
+}
+
+html body {
+  background:
+    radial-gradient(circle at 12% 8%, rgba(255, 255, 255, 0.85), transparent 20rem),
+    radial-gradient(circle at 90% 90%, rgba(255, 255, 255, 0.5), transparent 24rem),
+    linear-gradient(160deg, var(--cielo-1) 0%, var(--cielo-2) 55%, var(--cielo-3) 100%) fixed;
+}
+
+/* Iconos decorativos que flotan suavemente detrás del contenido */
+body::before,
+body::after {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: -2;
+  pointer-events: none;
+  font-family: "bootstrap-icons";
+  font-style: normal;
+  white-space: nowrap;
+  overflow: hidden;
+  color: #ffffff;
+  opacity: 0.5;
+}
+
+body::before {
+  content: "\f7e0\a0\a0\a0\a0\f29e\a0\a0\a0\a0\f3e7\a0\a0\a0\a0\f18d\a0\a0\a0\a0\f29e\a0\a0\a0\a0\f7e0\a0\a0\a0\a0\f5a1";
+  top: 14vh;
+  font-size: 54px;
+  letter-spacing: 6vw;
+  animation: deriva 40s linear infinite alternate;
+}
+
+body::after {
+  content: "\f415\a0\a0\a0\a0\f586\a0\a0\a0\a0\f87e\a0\a0\a0\a0\f249\a0\a0\a0\a0\f47e\a0\a0\a0\a0\f548\a0\a0\a0\a0\f586";
+  bottom: 10vh;
+  font-size: 44px;
+  letter-spacing: 7vw;
+  animation: deriva 55s linear infinite alternate-reverse;
+}
+
+@keyframes deriva {
+  from { transform: translateX(-6vw); }
+  to { transform: translateX(6vw); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::before,
+  body::after { animation: none; }
+}
+
+/* Fondos propios de cada pantalla pasan a transparente para ver el cielo */
+.menu-fondo,
+.register-page {
+  background: transparent !important;
+}
+
+/* Iconos en títulos y navegación */
+.titulo-icono > i.bi {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9em;
+  height: 1.9em;
+  margin-right: 0.35em;
+  border-radius: 50%;
+  font-size: 0.7em;
+  color: #fff;
+  background: linear-gradient(135deg, #4fb4ee, var(--brand));
+  box-shadow: 0 4px 10px rgba(56, 103, 169, 0.28);
+  vertical-align: middle;
+}
+
+.topbar {
+  background: rgba(255, 255, 255, 0.78) !important;
+  border-bottom: 3px solid var(--cielo-3) !important;
+}
+
+.logo-icono {
+  margin-right: 6px;
+  color: #ff6b6b;
+  display: inline-block;
+  animation: rebote 2.4s ease-in-out infinite;
+}
+
+@keyframes rebote {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+.topbar-nav .nav-link {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 7px;
+}
+
+.nav-icono {
+  font-size: 1.05rem;
+  transition: transform 200ms ease;
+}
+
+.topbar-nav .nav-link:hover .nav-icono {
+  transform: scale(1.25) rotate(-8deg);
+}
+
+.topbar-nav .nav-link:not(.active) .nav-icono {
+  color: #4fb4ee;
+}
+
+/* Contenedor principal y tarjetas con aire de nube */
+.bloque_contenido {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border: 2px solid rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 18px 50px rgba(56, 120, 180, 0.22) !important;
+}
+
+.viaje-item,
+.panel-lateral,
+.actividad-item,
+.card,
+.config-card {
+  background: #ffffff !important;
+  border: 1px solid rgba(79, 180, 238, 0.35) !important;
+  border-left: 4px solid #4fb4ee !important;
+}
+
+.viaje-item:hover,
+.actividad-item:hover,
+.card:hover,
+.config-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(56, 120, 180, 0.2);
+}
+
+/* Botones con icono automático */
+.btn-reservar::before,
+.btn-primary[type="submit"]::before,
+.btn-outline-danger.btn-sm::before {
+  font-family: "bootstrap-icons";
+  margin-right: 7px;
+  font-weight: 400;
+  vertical-align: -1px;
+}
+
+.btn-reservar::before { content: "\f26a"; } /* check-circle-fill */
+.btn-primary[type="submit"]::before { content: "\f844"; } /* rocket-takeoff-fill */
+.btn-outline-danger.btn-sm::before { content: "\f5dd"; } /* trash-fill */
+
+.form-control:focus,
+.form-select:focus {
+  border-color: #4fb4ee;
+  box-shadow: 0 0 0 4px rgba(79, 180, 238, 0.25);
+}
+
+/* ───────── Rendimiento: sin blur ni fondo fijo; animaciones mínimas ───────── */
+html { background: var(--cielo-2); }
+
+html body {
+  background:
+    radial-gradient(circle at 12% 8%, rgba(255, 255, 255, 0.85), transparent 20rem),
+    linear-gradient(160deg, var(--cielo-1) 0%, var(--cielo-2) 55%, var(--cielo-3) 100%);
+  background-attachment: scroll;
+}
+
+body::before,
+body::after {
+  animation: none !important;
+  contain: strict;
+  height: 70px;
+}
+
+.topbar {
+  backdrop-filter: none !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+}
+
+.bloque_contenido {
+  backdrop-filter: none !important;
+  background: #ffffff !important;
+  box-shadow: 0 6px 20px rgba(56, 120, 180, 0.18) !important;
+}
+
+/* Solo transiciones baratas en tarjetas */
+.card, .config-card, .panel-lateral, .viaje-item, .actividad-item {
+  transition: transform 160ms ease, border-color 160ms ease;
+}
+.viaje-item:hover, .actividad-item:hover, .card:hover, .config-card:hover {
+  box-shadow: var(--shadow-sm);
+}
+
+/* Tarjetas de viaje */
+.tarjeta-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  align-self: center;
+  border-radius: 14px;
+  font-size: 1.3rem;
+  color: #fff;
+  background: linear-gradient(135deg, #4fb4ee, var(--brand));
+}
+.inicio-tarjeta .bi { color: #4fb4ee; }
+.inicio-tarjeta .inicio-calificacion .bi { color: #f5b301; }
+.inicio-datos dt .bi { color: #4fb4ee; margin-right: 4px; }
+.inicio-destacado h2 .bi { color: #f5b301; }

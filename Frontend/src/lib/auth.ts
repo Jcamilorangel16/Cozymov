@@ -4,7 +4,12 @@ import { validarDatosSesion } from "../features/login/validations/autenticacion"
 import { cookies } from "next/headers";
 
 export const NOMBRE_COOKIE_SESION = "sesion";
-export const DURACION_SESION_SEGUNDOS = 60 * 60 * 2;
+/**
+ * La sesión queda iniciada en el dispositivo: un año, que es lo máximo que los navegadores
+ * conservan una cookie. Cada vez que se abre el menú se renueva (`/api/sesion`), así que
+ * quien usa la aplicación no vuelve a ver el inicio de sesión salvo que cierre sesión.
+ */
+export const DURACION_SESION_SEGUNDOS = 60 * 60 * 24 * 365;
 
 const LONGITUD_MINIMA_SECRETO = 32;
 const ALGORITMO_SESION = "HS256";
@@ -52,6 +57,20 @@ export async function firmarSesion(datos: DatosSesion) {
     .setIssuedAt()
     .setExpirationTime(`${DURACION_SESION_SEGUNDOS}s`)
     .sign(obtenerSecretoSesion());
+}
+
+/**
+ * Atributos de la cookie de sesión: inaccesible desde JavaScript, solo por HTTPS en
+ * producción y con la duración de la sesión (cookie persistente, no de navegador).
+ */
+export function opcionesCookieSesion() {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    path: "/",
+    maxAge: DURACION_SESION_SEGUNDOS,
+  };
 }
 
 /**
