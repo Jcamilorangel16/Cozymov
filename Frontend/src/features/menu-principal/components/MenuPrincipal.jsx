@@ -13,6 +13,7 @@ import SidebarMenu from "./SidebarMenu";
 import { useAvisosSolicitudes } from "../hooks/useAvisosSolicitudes";
 import { useMenuPrincipal } from "../hooks/useMenuPrincipal";
 import { useConfirmarSalida } from "../hooks/useConfirmarSalida";
+import { etiquetaDeVista } from "../constants/menuPrincipal";
 import ViajeEnCurso from "../../viaje-en-curso/components/ViajeEnCurso";
 import ConfiguracionGeneral from "../../configuracion/components/ConfiguracionGeneral";
 import { PerfilProvider } from "../../configuracion/context/PerfilContext";
@@ -50,6 +51,8 @@ export default function MenuPrincipal({ usuarioActualId }) {
     mensajePasajero,
     setMensajePasajero,
     irAVista,
+    volver,
+    vistaAnterior,
   } = useMenuPrincipal();
 
   // Los conductores reciben aviso de las solicitudes de viaje nuevas.
@@ -76,6 +79,19 @@ export default function MenuPrincipal({ usuarioActualId }) {
         />
 
         <main className="main-content flex-grow-1 p-4">
+          {vistaAnterior && (
+            <div className="volver-vista-barra">
+              <button
+                type="button"
+                className="btn-volver-vista"
+                onClick={volver}
+                aria-label={`Volver a ${etiquetaDeVista(vistaAnterior)}`}
+              >
+                <i className="bi bi-arrow-left" aria-hidden="true" />
+                <span>Volver a {etiquetaDeVista(vistaAnterior)}</span>
+              </button>
+            </div>
+          )}
           <div className="bloque_contenido" style={{ minHeight: 400 }}>
             {vistaActiva === "inicio" && <PanelInicio onNavigate={irAVista} />}
 

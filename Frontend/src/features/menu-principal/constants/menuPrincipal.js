@@ -8,3 +8,13 @@ export const enlacesMenu = [
   { id: "en-curso", label: "En Curso", icono: "bi-signpost-split-fill" },
   { id: "calificaciones", label: "Calificaciones", icono: "bi-star-fill" },
 ];
+
+/**
+ * Nombre visible de una sección del menú (incluye las que no están en la barra lateral).
+ * @param {string} id Identificador de la sección.
+ * @returns {string} Etiqueta legible.
+ */
+export function etiquetaDeVista(id) {
+  if (id === "configuracion") return "Configuración";
+  return enlacesMenu.find((enlace) => enlace.id === id)?.label ?? id;
+}

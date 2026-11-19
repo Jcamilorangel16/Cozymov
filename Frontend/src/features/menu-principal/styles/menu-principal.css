@@ -731,3 +731,38 @@ body {
         font-size: 1.02rem;
     }
 }
+
+/* ───────── Flecha para volver a la sección anterior ───────── */
+.volver-vista-barra {
+    width: min(1180px, 100%);
+    margin: 0 auto 12px;
+}
+
+.btn-volver-vista {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px 6px 10px;
+    border: 1px solid rgba(23, 33, 43, 0.14);
+    border-radius: 999px;
+    background: #ffffff;
+    color: inherit;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background-color 0.15s ease, transform 0.15s ease;
+}
+
+.btn-volver-vista:hover {
+    background: rgba(23, 33, 43, 0.05);
+    transform: translateX(-2px);
+}
+
+.btn-volver-vista:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+}
+
+.btn-volver-vista .bi {
+    font-size: 1.1rem;
+}
