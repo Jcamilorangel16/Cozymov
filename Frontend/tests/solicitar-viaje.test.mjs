@@ -11,6 +11,11 @@ import {
   validarSolicitudViaje,
 } from "../src/features/menu-principal/utils/destinosInicio.js";
 import {
+  esModoColaboracion,
+  formatearPresupuestoSolicitud,
+  formatearPrecioViaje,
+} from "../src/features/buscar-viajes/utils/viajes.js";
+import {
   UNIVERSIDAD_COORDENADA,
   barrioMasCercano,
   coordenadaDeBarrio,
@@ -51,9 +56,13 @@ test("origen y destino son obligatorios y deben ser distintos", () => {
   );
 });
 
-test("el precio debe ser un número positivo y razonable", () => {
+test("modo colaboración: una solicitud con precio 0 es válida", () => {
+  assert.equal(validarSolicitudViaje({ ...base, precio: "0" }, ahora), "");
+  assert.equal(validarSolicitudViaje({ ...base, precio: 0 }, ahora), "");
+});
+
+test("el precio debe ser un número no negativo y razonable", () => {
   assert.match(validarSolicitudViaje({ ...base, precio: "" }, ahora), /precio/);
-  assert.match(validarSolicitudViaje({ ...base, precio: "0" }, ahora), /precio/);
   assert.match(validarSolicitudViaje({ ...base, precio: "-100" }, ahora), /precio/);
   assert.match(validarSolicitudViaje({ ...base, precio: "abc" }, ahora), /precio/);
   assert.match(validarSolicitudViaje({ ...base, precio: "100000000" }, ahora), /alto/);
@@ -160,4 +169,17 @@ test("el motivo explica por qué no se puede aceptar la solicitud", () => {
   assert.match(motivoNoAceptarSolicitud("7", true, true), /en curso/);
   assert.match(motivoNoAceptarSolicitud("7", false, false), /vehículo/);
   assert.match(motivoNoAceptarSolicitud("7", null, false), /comprobar/);
+});
+
+test("modo colaboración: 0 pesos se muestra como «Modo colaboración» y null como sin presupuesto", () => {
+  assert.equal(esModoColaboracion(0), true);
+  assert.equal(esModoColaboracion("0"), true);
+  assert.equal(esModoColaboracion(""), false);
+  assert.equal(esModoColaboracion(null), false);
+  assert.equal(esModoColaboracion(3500), false);
+  assert.equal(formatearPrecioViaje(0), "Modo colaboración");
+  assert.equal(formatearPresupuestoSolicitud(0), "Modo colaboración");
+  assert.equal(formatearPresupuestoSolicitud(null), "Sin presupuesto");
+  assert.equal(formatearPresupuestoSolicitud(undefined, "Sin límite"), "Sin límite");
+  assert.match(formatearPresupuestoSolicitud(3500), /3\.500/);
 });

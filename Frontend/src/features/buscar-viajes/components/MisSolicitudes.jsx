@@ -1,7 +1,7 @@
 // Muestra al pasajero sus solicitudes de viaje pendientes y le deja eliminarlas.
 "use client";
 
-import { formatearFecha, formatearPrecio } from "../utils/viajes";
+import { formatearFecha, formatearPresupuestoSolicitud } from "../utils/viajes";
 
 /**
  * Lista en verde las solicitudes propias que ningún conductor ha aceptado todavía.
@@ -42,9 +42,7 @@ export default function MisSolicitudes({ solicitudes, error, eliminandoId, onEli
                   </h4>
                 </div>
                 <strong className="text-success-emphasis">
-                  {solicitud.presupuesto == null
-                    ? "Sin presupuesto"
-                    : formatearPrecio(solicitud.presupuesto)}
+                  {formatearPresupuestoSolicitud(solicitud.presupuesto)}
                 </strong>
               </div>
 

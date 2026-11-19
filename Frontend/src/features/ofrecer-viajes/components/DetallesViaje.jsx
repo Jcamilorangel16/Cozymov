@@ -20,12 +20,36 @@ export default function DetallesViaje({
   setInformacionAdicional,
   setErrorPublicacion,
 }) {
+  // Un campo vacío no es «0»: solo cuenta como colaboración si el valor es "0".
+  const modoColaboracion = String(precioPasaje).trim() !== "" && Number(precioPasaje) === 0;
+
   return (
     <>
       <div className="rounded-3 bg-light p-3 mb-4">
         <label className="form-label fw-semibold" htmlFor="precio-pasaje">
           Precio del pasaje
         </label>
+        <div className="form-check form-switch mb-3">
+          <input
+            className="form-check-input"
+            type="checkbox"
+            role="switch"
+            id="modo-colaboracion"
+            checked={modoColaboracion}
+            onChange={(evento) => {
+              setPrecioPasaje(evento.target.checked ? "0" : "");
+              setErrorPublicacion("");
+            }}
+            aria-describedby="modo-colaboracion-ayuda"
+          />
+          <label className="form-check-label fw-semibold" htmlFor="modo-colaboracion">
+            Modo colaboración (pasaje de $0)
+          </label>
+          <small className="d-block text-secondary" id="modo-colaboracion-ayuda">
+            Llevas a tus pasajeros sin cobrarles. En la búsqueda aparecerá como «Modo
+            colaboración».
+          </small>
+        </div>
         <div className="input-group mb-3">
           <span className="input-group-text">$</span>
           <input
@@ -42,18 +66,22 @@ export default function DetallesViaje({
               setErrorPublicacion("");
             }}
             aria-describedby="precio-pasaje-ayuda"
+            disabled={modoColaboracion}
             required
           />
           <span className="input-group-text">COP</span>
         </div>
         <small className="d-block text-secondary mb-2" id="precio-pasaje-ayuda">
-          Escribe el precio que cobrarás o selecciona una sugerencia:
+          {modoColaboracion
+            ? "Modo colaboración activo: el pasaje no tendrá costo."
+            : "Escribe el precio que cobrarás o selecciona una sugerencia:"}
         </small>
         <div className="d-flex flex-wrap gap-2" aria-label="Precios sugeridos">
           {PRECIOS_SUGERIDOS.map((precio) => (
             <button
               key={precio}
               type="button"
+              disabled={modoColaboracion}
               className={`btn btn-sm ${Number(precioPasaje) === precio ? "btn-primary" : "btn-outline-primary"}`}
               aria-pressed={Number(precioPasaje) === precio}
               onClick={() => {

@@ -3,7 +3,7 @@
 
 import { puedeAceptarViaje } from "../../viajes/validations/viajes";
 import { useBuscarViajes } from "../hooks/useBuscarViajes";
-import { formatearFecha, formatearPrecio } from "../utils/viajes";
+import { esModoColaboracion, formatearFecha, formatearPrecio } from "../utils/viajes";
 import MisSolicitudes from "./MisSolicitudes";
 import SolicitudesPendientes from "./SolicitudesPendientes";
 
@@ -143,7 +143,13 @@ export default function BuscarViajes({ onEnviarMensaje, onNavigate, usuarioActua
                         <h4 className="h5 mb-1">
                           {viaje.origen} <span aria-hidden="true">→</span> {viaje.destino}
                         </h4>
-                        <strong>{formatearPrecio(viaje.precio_pasaje)}</strong>
+                        {esModoColaboracion(viaje.precio_pasaje) ? (
+                          <span className="badge text-bg-success align-self-start fs-6">
+                            Modo colaboración
+                          </span>
+                        ) : (
+                          <strong>{formatearPrecio(viaje.precio_pasaje)}</strong>
+                        )}
                       </div>
                       <section
                         className="border rounded-3 p-3 my-3"

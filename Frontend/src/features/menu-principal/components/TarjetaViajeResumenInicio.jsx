@@ -1,6 +1,6 @@
 "use client";
 
-import { formatearPrecio } from "../../buscar-viajes/utils/viajes";
+import { formatearPrecioViaje } from "../../buscar-viajes/utils/viajes";
 import {
   descripcionVehiculo,
   etiquetaCalificacion,
@@ -36,7 +36,7 @@ export default function TarjetaViajeResumenInicio({
         <span className="fw-semibold letra-contenido d-block"><i className="bi bi-person-fill me-1" aria-hidden="true" />{conductor}</span>
         <span className="d-block texto-secundario"><i className="bi bi-speedometer2 me-1" aria-hidden="true" />{descripcionVehiculo(viaje)}</span>
         <span className="d-block letra-contenido"><i className="bi bi-cash-coin me-1" aria-hidden="true" />
-          {formatearPrecio(viaje.precio_pasaje)} · {fechaHoraSalida(viaje)}
+          {formatearPrecioViaje(viaje.precio_pasaje)} · {fechaHoraSalida(viaje)}
         </span>
         <span className="inicio-calificacion"><i className="bi bi-star-fill me-1" aria-hidden="true" />{etiquetaCalificacion(calificacion)}</span>
       </button>
