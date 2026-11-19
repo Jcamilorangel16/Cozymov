@@ -439,6 +439,10 @@ namespace Backend.Controllers
             };
             _context.ReservasViaje.Add(reserva);
 
+            // El pasajero ya tiene conductor: su solicitud pendiente deja de tener sentido y se
+            // elimina junto con la reserva (mismo guardado, en la misma transacción).
+            await RetirarSolicitudesPendientes(solicitud.IdPasajero, cancellationToken);
+
             try
             {
                 await _context.SaveChangesAsync(cancellationToken);
@@ -446,6 +450,8 @@ namespace Backend.Controllers
             }
             catch (DbUpdateException)
             {
+                // Incluye la concurrencia: si un conductor aceptó la solicitud en este instante,
+                // no se completa esta reserva.
                 await transaccion.RollbackAsync(cancellationToken);
                 return Conflict("No se pudo reservar el viaje porque ya no está disponible.");
             }
@@ -630,6 +636,18 @@ namespace Backend.Controllers
 
         private const string MensajeViajeYaPublicado =
             "Ya tienes un viaje publicado. Solo puedes actualizarlo; no puedes publicar otro.";
+
+        /// <summary>
+        /// Elimina las solicitudes de viaje que el pasajero tiene esperando conductor. Las ya
+        /// aceptadas no se tocan: son el historial de un viaje. No guarda cambios.
+        /// </summary>
+        private async Task RetirarSolicitudesPendientes(int idPasajero, CancellationToken cancellationToken)
+        {
+            var pendientes = await _context.Solicitudes
+                .Where(s => s.IdUsuario == idPasajero && s.Estado == Solicitud.EstadoPendiente)
+                .ToListAsync(cancellationToken);
+            _context.Solicitudes.RemoveRange(pendientes);
+        }
 
         /// <summary>Viaje publicado = estado "activo" (con o sin cupos); los privados no cuentan.</summary>
         private Task<bool> TieneViajePublicado(int idUsuario, CancellationToken cancellationToken)

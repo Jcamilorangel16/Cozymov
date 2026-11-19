@@ -15,7 +15,7 @@ export default function EsperandoPasajeros({
         <div className="d-flex align-items-center gap-3 mb-4">
           <span className="fs-2" aria-hidden="true">🚗</span>
           <div>
-            <h3 className="h4 letra-contenido mb-1">Viaje publicado</h3>
+            <h3 className="h4 letra-contenido mb-1 titulo-icono"><i className="bi bi-check-circle-fill" aria-hidden="true" /> Viaje publicado</h3>
             <span className="badge rounded-pill bg-warning-subtle text-warning-emphasis">
               Esperando pasajeros
             </span>

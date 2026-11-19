@@ -108,7 +108,7 @@ export default function RecuperarContrasenaView() {
   return (
     <div className="container min-vh-100 d-flex justify-content-center align-items-center">
       <div className="card shadow p-4 color-card" style={{ maxWidth: "450px", width: "100%" }}>
-        <h3 className="text-center mb-3 fw-bold">Recuperar Contraseña</h3>
+        <h3 className="text-center mb-3 fw-bold titulo-icono"><i className="bi bi-key-fill" aria-hidden="true" /> Recuperar Contraseña</h3>
 
         {error && <div className="alert alert-danger py-2 small">{error}</div>}
 

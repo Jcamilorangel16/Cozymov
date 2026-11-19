@@ -286,7 +286,11 @@ export function useBuscarViajes(idUsuarioServidor = "") {
     const confirmacion = await Swal.fire({
       icon: "question",
       title: "¿Aceptar este viaje?",
-      text: `${viaje.origen} → ${viaje.destino}`,
+      text:
+        `${viaje.origen} → ${viaje.destino}` +
+        (misSolicitudes.length > 0
+          ? "\n\nTu solicitud de viaje pendiente se eliminará al aceptarlo."
+          : ""),
       showCancelButton: true,
       confirmButtonText: "Sí, aceptar viaje",
       cancelButtonText: "Cancelar",
@@ -312,6 +316,8 @@ export function useBuscarViajes(idUsuarioServidor = "") {
       }
 
       setTieneViajeEnCurso(true);
+      // El backend elimina las solicitudes pendientes del pasajero al reservar.
+      setMisSolicitudes([]);
       setViajes((viajesActuales) =>
         viajesActuales.map((viajeActual) =>
           viajeActual.id_viaje === viaje.id_viaje

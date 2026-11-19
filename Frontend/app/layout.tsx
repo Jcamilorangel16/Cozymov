@@ -2,6 +2,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "bootstrap/dist/css/bootstrap.min.css";
+import "bootstrap-icons/font/bootstrap-icons.css";
 import LoadingScreen from "../src/components/LoadingScreen";
 import "./globals.css";
 import CustomCursor from "../src/components/CustomCursor";

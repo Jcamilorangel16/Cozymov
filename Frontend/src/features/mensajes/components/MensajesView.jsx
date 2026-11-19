@@ -4,6 +4,16 @@
 import ListaMensajes from "./ListaMensajes";
 import FormularioMensaje from "./FormularioMensaje";
 import { useMensajes } from "../hooks/useMensajes";
+import "../styles/mensajes.css";
+
+/**
+ * Devuelve la inicial del nombre para el avatar.
+ * @param {string} nombre Nombre del contacto.
+ * @returns {string} Inicial en mayúscula.
+ */
+function inicialDe(nombre) {
+  return String(nombre ?? "").trim().charAt(0).toUpperCase() || "?";
+}
 
 /**
  * Muestra los chats del usuario, el buscador de usuarios o la conversación abierta.
@@ -28,67 +38,76 @@ export default function MensajesView({ usuarioActualId, contactoInicial = null }
 
   if (contactoSeleccionado) {
     return (
-      <div className="card p-3 color-card border-0">
-        <div className="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
-          <button
-            type="button"
-            className="btn btn-sm btn-outline-secondary"
-            onClick={volverALista}
-          >
-            ← Volver
+      <div className="card msj-panel">
+        <div className="msj-cabecera">
+          <button type="button" className="btn btn-sm" onClick={volverALista}>
+            <i className="bi bi-arrow-left" aria-hidden="true" /> Volver
           </button>
-          <h5 className="mb-0 letra-contenido fw-bold">
-            Chat con {contactoSeleccionado.nombre}
+          <h5 className="d-flex align-items-center gap-2">
+            <span className="msj-avatar msj-avatar-chico" aria-hidden="true">
+              {inicialDe(contactoSeleccionado.nombre)}
+            </span>
+            {contactoSeleccionado.nombre}
           </h5>
-          <div style={{ width: "80px" }}></div>
+          <span style={{ width: 80 }} aria-hidden="true" />
         </div>
 
-        <ListaMensajes mensajes={mensajes} usuarioActualId={usuarioActualId} />
-        <FormularioMensaje onEnviarMensaje={manejarEnvio} />
-        {error && <p className="text-danger mt-2 mb-0">{error}</p>}
+        <div className="msj-cuerpo">
+          <ListaMensajes
+            mensajes={mensajes}
+            usuarioActualId={usuarioActualId}
+            nombreContacto={contactoSeleccionado.nombre}
+          />
+          <FormularioMensaje onEnviarMensaje={manejarEnvio} />
+          {error && <p className="text-danger mt-2 mb-0">{error}</p>}
+        </div>
       </div>
     );
   }
 
   if (vista === "nuevo") {
     return (
-      <div className="card p-3 color-card border-0">
-        <div className="d-flex justify-content-between align-items-center mb-3">
-          <h4 className="letra-contenido mb-0">Nuevo chat</h4>
-          <button
-            type="button"
-            className="btn btn-sm btn-outline-secondary"
-            onClick={() => setVista("chats")}
-          >
-            ← Volver
+      <div className="card msj-panel">
+        <div className="msj-cabecera">
+          <h4 className="d-flex align-items-center gap-2">
+            <i className="bi bi-person-plus-fill" aria-hidden="true" /> Nuevo chat
+          </h4>
+          <button type="button" className="btn btn-sm" onClick={() => setVista("chats")}>
+            <i className="bi bi-arrow-left" aria-hidden="true" /> Volver
           </button>
         </div>
 
-        <input
-          type="text"
-          className="form-control mb-3"
-          placeholder="Buscar usuario por nombre..."
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-        />
+        <div className="msj-cuerpo">
+          <div className="msj-buscador">
+            <i className="bi bi-search" aria-hidden="true" />
+            <input
+              type="text"
+              className="form-control"
+              placeholder="Buscar usuario por nombre..."
+              aria-label="Buscar usuario por nombre"
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+            />
+          </div>
 
-        {error && <p className="text-danger">{error}</p>}
+          {error && <p className="text-danger">{error}</p>}
 
-        <div className="list-group">
           {contactos.length === 0 && (
-            <p className="text-muted">No se encontraron usuarios.</p>
+            <div className="msj-vacio">
+              <i className="bi bi-person-x" aria-hidden="true" />
+              <span>No se encontraron usuarios.</span>
+            </div>
           )}
           {contactos.map((c) => (
-            <button
-              key={c.id}
-              className="list-group-item list-group-item-action d-flex justify-content-between align-items-center p-3 mb-2 rounded shadow-sm border"
-              onClick={() => abrirChat(c)}
-            >
-              <div>
-                <h5 className="mb-1 fw-bold text-dark">{c.nombre}</h5>
-                <small className="text-muted">{c.rol}</small>
-              </div>
-              <span className="badge bg-primary rounded-pill">Abrir chat ›</span>
+            <button key={c.id} type="button" className="msj-item" onClick={() => abrirChat(c)}>
+              <span className="msj-avatar" aria-hidden="true">{inicialDe(c.nombre)}</span>
+              <span className="msj-item-texto">
+                <span className="msj-item-nombre">{c.nombre}</span>
+                <span className="msj-item-sub">{c.rol}</span>
+              </span>
+              <span className="msj-chip-abrir">
+                Abrir chat <i className="bi bi-chevron-right" aria-hidden="true" />
+              </span>
             </button>
           ))}
         </div>
@@ -97,41 +116,42 @@ export default function MensajesView({ usuarioActualId, contactoInicial = null }
   }
 
   return (
-    <div className="card p-3 color-card border-0">
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <h4 className="letra-contenido mb-0">Mensajes y Conversaciones</h4>
-        <button
-          type="button"
-          className="btn btn-sm btn-primary"
-          onClick={() => setVista("nuevo")}
-        >
-          + Nuevo chat
+    <div className="card msj-panel">
+      <div className="msj-cabecera">
+        <h4 className="d-flex align-items-center gap-2">
+          <i className="bi bi-chat-heart-fill" aria-hidden="true" /> Mensajes
+        </h4>
+        <button type="button" className="btn btn-sm btn-nuevo" onClick={() => setVista("nuevo")}>
+          <i className="bi bi-plus-circle-fill" aria-hidden="true" /> Nuevo chat
         </button>
       </div>
 
-      {error && <p className="text-danger">{error}</p>}
+      <div className="msj-cuerpo">
+        {error && <p className="text-danger">{error}</p>}
 
-      {chats.length === 0 ? (
-        <p className="text-muted mb-0">Aún no tienes conversaciones.</p>
-      ) : (
-        <div className="list-group">
-          {chats.map((c) => (
-            <button
-              key={c.id}
-              className="list-group-item list-group-item-action d-flex justify-content-between align-items-center p-3 mb-2 rounded shadow-sm border"
-              onClick={() => abrirChat(c)}
-            >
-              <div>
-                <h5 className="mb-1 fw-bold text-dark">{c.nombre}</h5>
-                <small className="text-muted">{c.ultimoMensaje}</small>
-              </div>
+        {chats.length === 0 ? (
+          <div className="msj-vacio">
+            <i className="bi bi-chat-square-heart" aria-hidden="true" />
+            <strong>Aún no tienes conversaciones</strong>
+            <span>Pulsa «Nuevo chat» para escribirle a un compañero.</span>
+          </div>
+        ) : (
+          chats.map((c) => (
+            <button key={c.id} type="button" className="msj-item" onClick={() => abrirChat(c)}>
+              <span className="msj-avatar" aria-hidden="true">{inicialDe(c.nombre)}</span>
+              <span className="msj-item-texto">
+                <span className="msj-item-nombre">{c.nombre}</span>
+                <span className="msj-item-sub">{c.ultimoMensaje}</span>
+              </span>
               {c.noLeidos > 0 && (
-                <span className="badge bg-danger rounded-pill">{c.noLeidos}</span>
+                <span className="msj-insignia" aria-label={`${c.noLeidos} sin leer`}>
+                  {c.noLeidos}
+                </span>
               )}
             </button>
-          ))}
-        </div>
-      )}
+          ))
+        )}
+      </div>
     </div>
   );
 }

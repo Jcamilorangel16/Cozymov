@@ -151,6 +151,18 @@ export function usePanelInicio() {
     () => construirCatalogoDestinos(barriosRutaCotidiana, rutas),
     [rutas],
   );
+  // Destinos más frecuentes en las rutas; si no hay rutas, los primeros del catálogo.
+  const destinosPopulares = useMemo(() => {
+    const conteo = new Map();
+    for (const ruta of Array.isArray(rutas) ? rutas : []) {
+      const destino = String(ruta?.destino ?? "").trim();
+      if (destino) conteo.set(destino, (conteo.get(destino) ?? 0) + 1);
+    }
+    const ordenados = [...conteo.entries()]
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "es"))
+      .map(([destino]) => destino);
+    return (ordenados.length ? ordenados : catalogoDestinos).slice(0, 6);
+  }, [rutas, catalogoDestinos]);
   const sugerencias = useMemo(
     () => (destinoElegido === null ? filtrarSugerencias(catalogoDestinos, consulta) : []),
     [catalogoDestinos, consulta, destinoElegido],
@@ -319,6 +331,7 @@ export function usePanelInicio() {
     consulta,
     cambiarConsulta,
     sugerencias,
+    destinosPopulares,
     destinoElegido,
     buscarPorDestino,
     reintentarBusqueda,

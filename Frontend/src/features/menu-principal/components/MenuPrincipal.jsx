@@ -72,7 +72,7 @@ export default function MenuPrincipal({ usuarioActualId }) {
         />
 
         <main className="main-content flex-grow-1 p-4">
-          <div className="border rounded-3 p-4 bloque_contenido" style={{ minHeight: 400 }}>
+          <div className="bloque_contenido" style={{ minHeight: 400 }}>
             {vistaActiva === "inicio" && <PanelInicio onNavigate={irAVista} />}
 
             {vistaActiva === "buscar" && (

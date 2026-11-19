@@ -1,4 +1,5 @@
 // Presenta el cabezal de navegación y el acceso a la configuración del perfil.
+import { useEffect, useId, useState } from "react";
 import PerfilConfiguracion from "../../perfil-configuracion/components/PerfilConfiguracion";
 import { enlacesMenu } from "../constants/menuPrincipal";
 import Swal from "sweetalert2";
@@ -10,8 +11,22 @@ import Swal from "sweetalert2";
  * @returns Cabezal de navegación principal.
  */
 export default function SidebarMenu({ vistaActiva, onNavigate, solicitudesPendientes = 0 }) {
+  const [abierto, setAbierto] = useState(false);
+  const idNavegacion = useId();
+
+  // Escape cierra el menú desplegable en móvil.
+  useEffect(() => {
+    if (!abierto) return;
+    const alTeclear = (evento) => {
+      if (evento.key === "Escape") setAbierto(false);
+    };
+    document.addEventListener("keydown", alTeclear);
+    return () => document.removeEventListener("keydown", alTeclear);
+  }, [abierto]);
+
   async function manejarNavegacion(evento, idVista) {
     evento.preventDefault();
+    setAbierto(false);
 
     if (idVista !== "ofrecer") {
       onNavigate(idVista);
@@ -62,11 +77,29 @@ export default function SidebarMenu({ vistaActiva, onNavigate, solicitudesPendie
 
   return (
     <header className="topbar">
+      <button
+        type="button"
+        className="topbar-toggle"
+        aria-label={abierto ? "Cerrar menú" : "Abrir menú"}
+        aria-expanded={abierto}
+        aria-controls={idNavegacion}
+        onClick={() => setAbierto((valor) => !valor)}
+      >
+        <i className={`bi ${abierto ? "bi-x-lg" : "bi-list"}`} aria-hidden="true" />
+      </button>
+
       <div className="brand-logo">
-        <h2>Cozymov</h2>
+        <h2>
+          <i className="bi bi-geo-alt-fill logo-icono" aria-hidden="true" />
+          Cozymov
+        </h2>
       </div>
 
-      <nav className="topbar-nav" aria-label="Navegación principal">
+      <nav
+        id={idNavegacion}
+        className={"topbar-nav" + (abierto ? " abierto" : "")}
+        aria-label="Navegación principal"
+      >
         <ul className="nav">
           {enlacesMenu.map((enlace) => (
             <li className="nav-item" key={enlace.id}>
@@ -76,6 +109,7 @@ export default function SidebarMenu({ vistaActiva, onNavigate, solicitudesPendie
                 aria-current={vistaActiva === enlace.id ? "page" : undefined}
                 onClick={(evento) => manejarNavegacion(evento, enlace.id)}
               >
+                <i className={`bi ${enlace.icono} nav-icono`} aria-hidden="true" />
                 {enlace.label}
                 {enlace.id === "buscar" && solicitudesPendientes > 0 && vistaActiva !== "buscar" && (
                   <span className="badge rounded-pill text-bg-success ms-1">

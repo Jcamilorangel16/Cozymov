@@ -20,7 +20,7 @@ export default function RegistroVehiculo({
         <div className="d-flex align-items-center gap-3 mb-4">
           <span className="registro-vehiculo__icon d-flex align-items-center justify-content-center flex-shrink-0 rounded-4" aria-hidden="true">🚘</span>
           <div>
-            <h3 className="h4 fw-bold mb-1">Registra tu vehículo</h3>
+            <h3 className="h4 fw-bold mb-1 titulo-icono"><i className="bi bi-car-front-fill" aria-hidden="true" /> Registra tu vehículo</h3>
             <p className="text-secondary mb-0">
               Completa los datos para empezar a ofrecer viajes.
             </p>

@@ -57,7 +57,7 @@ export default function Register() {
           />
         ) : (
           <>
-            <h1 className="text-center mb-3">Crear cuenta</h1>
+            <h1 className="text-center mb-3 titulo-icono"><i className="bi bi-person-heart" aria-hidden="true" /> Crear cuenta</h1>
             <h5 className="text-center text-muted mb-4">Únete a nosotros y empieza tu viaje</h5>
 
             <div className="row g-3">

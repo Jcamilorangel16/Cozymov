@@ -15,11 +15,12 @@ const MENSAJE_UBICACION = {
 
 /**
  * Permite registrar una solicitud de viaje con origen, destino, precio, fecha y hora.
- * @param {{destinoInicial?: string, onVerSolicitudes?: () => void, onCerrar?: () => void}} props Destino preseleccionado, navegación opcional y cierre opcional del formulario.
+ * @param {{destinoInicial?: string, sinViajes?: boolean, onVerSolicitudes?: () => void, onCerrar?: () => void}} props Destino preseleccionado, si aparece porque la búsqueda no encontró viajes, navegación opcional y cierre opcional del formulario.
  * @returns Formulario de solicitud de viaje.
  */
 export default function SolicitarViajeInicio({
   destinoInicial = "",
+  sinViajes = false,
   onVerSolicitudes,
   onCerrar,
 }) {
@@ -114,9 +115,23 @@ export default function SolicitarViajeInicio({
 
   return (
     <section className="viaje-item inicio-destacado" aria-labelledby={`${id}-titulo`}>
-      <h2 className="h5 letra-contenido" id={`${id}-titulo`}>
-        Solicitar un viaje
-      </h2>
+      {sinViajes && destinoInicial ? (
+        <>
+          <div className="vacio-ilustracion" aria-hidden="true">
+            <i className="bi bi-signpost-2-fill" />
+            <i className="bi bi-emoji-neutral-fill" />
+            <i className="bi bi-car-front" />
+          </div>
+          <h2 className="h5 letra-contenido titulo-icono" id={`${id}-titulo`}>
+            <i className="bi bi-megaphone-fill" aria-hidden="true" />
+            Nadie va a {destinoInicial} todavía
+          </h2>
+        </>
+      ) : (
+        <h2 className="h5 letra-contenido" id={`${id}-titulo`}>
+          Solicitar un viaje
+        </h2>
+      )}
       <p className="texto-secundario">
         Dinos desde dónde sales, a dónde vas y cuánto puedes pagar. Los conductores verán tu
         solicitud en «Buscar».
