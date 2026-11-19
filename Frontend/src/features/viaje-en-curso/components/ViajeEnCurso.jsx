@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Swal from "sweetalert2";
 import { formatearFecha, formatearPrecio } from "../../buscar-viajes/utils/viajes";
@@ -27,6 +27,8 @@ export default function ViajeEnCurso({ onNavigate, onMensajeConductor }) {
   const [intento, setIntento] = useState(0);
   const [cancelando, setCancelando] = useState(false);
   const [finalizando, setFinalizando] = useState(false);
+  // Evita dos finalizaciones a la vez (botón y GPS) mientras llega la respuesta de la primera.
+  const finalizandoRef = useRef(false);
   // Se actualiza cada medio minuto: al llegar la hora de salida el viaje pasa a estar en trayecto.
   const [ahora, setAhora] = useState(() => Date.now());
 
@@ -182,7 +184,44 @@ export default function ViajeEnCurso({ onNavigate, onMensajeConductor }) {
     }
   }
 
+  /** Registra en la API que el pasajero terminó su viaje y lo quita de la vista. */
+  async function registrarFinalizacion() {
+    const respuesta = await fetch("/api/viajes/en-curso", { method: "POST" });
+    const resultado = await respuesta.json();
+    if (!respuesta.ok) {
+      throw new Error(resultado.error || "No se pudo finalizar el viaje.");
+    }
+    setViaje(null);
+  }
+
+  /** El GPS confirmó que el pasajero llegó al destino: finaliza el viaje sin pedir confirmación. */
+  async function finalizarPorLlegada() {
+    if (finalizandoRef.current) return;
+    finalizandoRef.current = true;
+    setFinalizando(true);
+    setError("");
+    try {
+      await registrarFinalizacion();
+      const siguiente = await Swal.fire({
+        icon: "success",
+        title: "Llegaste a tu destino",
+        text: "Finalizamos tu viaje automáticamente porque tu GPS marcó que llegaste. ¿Quieres calificar a tu conductor ahora?",
+        showCancelButton: true,
+        confirmButtonText: "Calificar",
+        cancelButtonText: "Más tarde",
+      });
+      if (siguiente.isConfirmed) onNavigate("calificaciones");
+    } catch (errorFinalizacion) {
+      // El botón «Finalizar viaje» sigue disponible como respaldo.
+      finalizandoRef.current = false;
+      setError(errorFinalizacion.message || "No se pudo finalizar el viaje.");
+    } finally {
+      setFinalizando(false);
+    }
+  }
+
   async function finalizarViaje() {
+    if (finalizandoRef.current) return;
     const confirmacion = await Swal.fire({
       icon: "question",
       title: "¿Finalizar el viaje?",
@@ -192,18 +231,13 @@ export default function ViajeEnCurso({ onNavigate, onMensajeConductor }) {
       cancelButtonText: "Todavía no",
       reverseButtons: true,
     });
-    if (!confirmacion.isConfirmed) return;
+    if (!confirmacion.isConfirmed || finalizandoRef.current) return;
 
+    finalizandoRef.current = true;
     setFinalizando(true);
     setError("");
     try {
-      const respuesta = await fetch("/api/viajes/en-curso", { method: "POST" });
-      const resultado = await respuesta.json();
-      if (!respuesta.ok) {
-        throw new Error(resultado.error || "No se pudo finalizar el viaje.");
-      }
-
-      setViaje(null);
+      await registrarFinalizacion();
       const siguiente = await Swal.fire({
         icon: "success",
         title: "Viaje finalizado",
@@ -214,6 +248,7 @@ export default function ViajeEnCurso({ onNavigate, onMensajeConductor }) {
       });
       if (siguiente.isConfirmed) onNavigate("calificaciones");
     } catch (errorFinalizacion) {
+      finalizandoRef.current = false;
       setError(errorFinalizacion.message || "No se pudo finalizar el viaje.");
     } finally {
       setFinalizando(false);
@@ -244,6 +279,8 @@ export default function ViajeEnCurso({ onNavigate, onMensajeConductor }) {
               key={`${viaje.origen}|${viaje.destino}`}
               origen={viaje.origen}
               destino={viaje.destino}
+              // En trayecto, el GPS finaliza el viaje solo al llegar al destino.
+              onLlegada={enTrayecto ? finalizarPorLlegada : undefined}
             />
           </div>
         </section>
@@ -289,10 +326,16 @@ export default function ViajeEnCurso({ onNavigate, onMensajeConductor }) {
                 {finalizando ? "Finalizando viaje..." : "Finalizar viaje"}
               </button>
               {enTrayecto ? (
-                <p className="texto-secundario small mt-3 mb-0" role="status">
-                  El viaje ya está en trayecto: no puedes salirte. Finalízalo cuando llegues a tu
-                  destino.
-                </p>
+                <>
+                  <p className="texto-secundario small mt-3 mb-0" role="status">
+                    El viaje ya está en trayecto: no puedes salirte.
+                  </p>
+                  <p className="texto-secundario small mt-2 mb-0">
+                    <i className="bi bi-geo-alt-fill" aria-hidden="true" /> Se finalizará solo
+                    cuando tu GPS marque que llegaste a {viaje.destino}. Si no lo detecta, puedes
+                    finalizarlo tú con el botón.
+                  </p>
+                </>
               ) : (
                 <button
                   type="button"
