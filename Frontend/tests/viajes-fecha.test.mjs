@@ -66,6 +66,22 @@ test("el servidor da un día de margen por si está en otra zona horaria", () =>
   );
 });
 
+test("modo colaboración: un pasaje de 0 pesos es válido", () => {
+  const resultado = validar({ precio_pasaje: 0 });
+  assert.equal(resultado.valido, true);
+  assert.equal(resultado.datos.precio_pasaje, 0);
+  assert.equal(validar({ precio_pasaje: "0" }).valido, true);
+});
+
+test("un precio vacío, negativo o decimal se rechaza (el vacío no cuenta como 0)", () => {
+  assert.equal(validar({ precio_pasaje: "" }).valido, false);
+  assert.equal(validar({ precio_pasaje: "  " }).valido, false);
+  assert.equal(validar({ precio_pasaje: null }).valido, false);
+  assert.equal(validar({ precio_pasaje: undefined }).valido, false);
+  assert.equal(validar({ precio_pasaje: -1 }).valido, false);
+  assert.equal(validar({ precio_pasaje: 10.5 }).valido, false);
+});
+
 test("fecha u hora sin sentido se rechazan", () => {
   assert.equal(validar({ fecha_salida: "no-es-fecha" }).valido, false);
   assert.equal(validar({ hora_salida: "" }).valido, false);

@@ -144,6 +144,36 @@ export function formatearPrecio(precio) {
 }
 
 /**
+ * Indica si un viaje no cobra pasaje (0 pesos), es decir, está en modo colaboración.
+ * @param {number|string|null|undefined} precio Valor del pasaje.
+ * @returns {boolean} Verdadero solo cuando el precio es exactamente 0.
+ */
+export function esModoColaboracion(precio) {
+  return precio !== null && precio !== undefined && String(precio).trim() !== "" && Number(precio) === 0;
+}
+
+/**
+ * Formatea el precio de un viaje; con 0 pesos muestra «Modo colaboración».
+ * @param {number|string} precio Valor del pasaje.
+ * @returns {string} Precio con formato COP o la etiqueta de colaboración.
+ */
+export function formatearPrecioViaje(precio) {
+  return esModoColaboracion(precio) ? "Modo colaboración" : formatearPrecio(precio);
+}
+
+/**
+ * Texto del presupuesto de una solicitud: «Modo colaboración» con 0 pesos,
+ * `textoSinPresupuesto` cuando no hay presupuesto (null) y el valor en COP en los demás casos.
+ * @param {number|string|null|undefined} presupuesto Presupuesto de la solicitud.
+ * @param {string} textoSinPresupuesto Texto cuando la solicitud no tiene presupuesto.
+ * @returns {string} Texto listo para mostrar.
+ */
+export function formatearPresupuestoSolicitud(presupuesto, textoSinPresupuesto = "Sin presupuesto") {
+  if (presupuesto == null) return textoSinPresupuesto;
+  return formatearPrecioViaje(presupuesto);
+}
+
+/**
  * Presenta una fecha de salida en el formato local de Colombia.
  * @param {string|Date} fecha Fecha recibida desde la API.
  * @returns {string} Fecha formateada o su valor original si no es válida.

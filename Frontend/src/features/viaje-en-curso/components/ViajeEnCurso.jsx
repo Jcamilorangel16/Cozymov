@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Swal from "sweetalert2";
-import { formatearFecha, formatearPrecio } from "../../buscar-viajes/utils/viajes";
+import { formatearFecha, formatearPrecioViaje } from "../../buscar-viajes/utils/viajes";
 import { viajeEnTrayecto } from "../utils/trayecto";
 import {
   borrarLlegada,
@@ -449,7 +449,7 @@ export default function ViajeEnCurso({ onNavigate, onMensajeConductor }) {
             <dt>Salida</dt>
             <dd>{fechaSalida}</dd>
             <dt>Precio</dt>
-            <dd>{formatearPrecio(viaje.precio_pasaje)}</dd>
+            <dd>{formatearPrecioViaje(viaje.precio_pasaje)}</dd>
           </dl>
         </section>
       </div>

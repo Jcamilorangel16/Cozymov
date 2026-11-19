@@ -5,7 +5,9 @@ import { useId } from "react";
 import BarrioDropdown from "../../ofrecer-viajes/components/BarrioDropdown";
 import barriosRutaCotidiana from "../../ofrecer-viajes/constants/barriosRutaCotidiana";
 import { LUGARES_ADICIONALES } from "../../ofrecer-viajes/constants/ofrecerViajes";
+import { esModoColaboracion } from "../../buscar-viajes/utils/viajes";
 import { useSolicitarViaje } from "../hooks/useSolicitarViaje";
+import { PRESUPUESTO_PREDETERMINADO } from "../utils/destinosInicio";
 
 const MENSAJE_UBICACION = {
   cargando: "Buscando tu ubicación para proponerte el origen...",
@@ -49,6 +51,7 @@ export default function SolicitarViajeInicio({
     enviar,
     minimoFecha,
   } = useSolicitarViaje({ destinoInicial });
+  const modoColaboracion = esModoColaboracion(precio);
 
   function manejarEnvio(evento) {
     evento.preventDefault();
@@ -213,12 +216,28 @@ export default function SolicitarViajeInicio({
             type="number"
             className="form-control"
             inputMode="numeric"
-            min="1"
+            min="0"
             step="100"
             value={precio}
             onChange={(evento) => setPrecio(evento.target.value)}
+            disabled={modoColaboracion}
             required
           />
+          <div className="form-check form-switch mt-2">
+            <input
+              id={`${id}-colaboracion`}
+              type="checkbox"
+              role="switch"
+              className="form-check-input"
+              checked={modoColaboracion}
+              onChange={(evento) =>
+                setPrecio(evento.target.checked ? "0" : String(PRESUPUESTO_PREDETERMINADO))
+              }
+            />
+            <label className="form-check-label letra-contenido" htmlFor={`${id}-colaboracion`}>
+              Modo colaboración (no pagaré, $0)
+            </label>
+          </div>
         </div>
 
         <div className="row g-2 mb-3">

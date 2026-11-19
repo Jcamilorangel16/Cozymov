@@ -83,11 +83,18 @@ export function validarDatosNuevoViaje(
     return { valido: false, error: "El punto de encuentro es obligatorio." };
   }
 
+  // 0 pesos es válido: es el «modo colaboración» (viaje sin cobro). Un valor
+  // vacío no debe contarse como 0, por eso se rechaza explícitamente.
+  const precioVacio =
+    precio_pasaje === null ||
+    precio_pasaje === undefined ||
+    (typeof precio_pasaje === "string" && precio_pasaje.trim() === "");
   const precio = Number(precio_pasaje);
-  if (!Number.isSafeInteger(precio) || precio <= 0) {
+  if (precioVacio || !Number.isSafeInteger(precio) || precio < 0) {
     return {
       valido: false,
-      error: "El precio del pasaje debe ser un número entero mayor a 0 pesos.",
+      error:
+        "El precio del pasaje debe ser un número entero de 0 pesos o más (0 = modo colaboración).",
     };
   }
 
