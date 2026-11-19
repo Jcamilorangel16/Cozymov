@@ -55,7 +55,9 @@ Tablas_ccozy/ Bóveda Obsidian local opcional, ignorada por Git
 ## Funcionalidades implementadas
 
 - Registro con verificación de correo: código de seis dígitos, expiración,
-  comprobante firmado por HMAC, límite de solicitudes y envío mediante Brevo.
+  comprobante firmado por HMAC, límite de solicitudes y envío por SMTP
+  (MailKit, `SmtpEnviadorCorreo`) o por la API de Brevo; el mecanismo se elige
+  con `Correo:Smtp:Host` / `Correo:Proveedor` (variables en el README).
   La implementación y configuración detalladas están en
   [`Frontend/CLAUDE.md`](Frontend/CLAUDE.md) y
   `Backend/Controllers/RegistroController.cs`.
@@ -158,7 +160,7 @@ npm --prefix Frontend run dev
 npm --prefix Frontend run lint
 npm --prefix Frontend run test
 npm --prefix Frontend run build
-dotnet test Backend/Tests/Backend.Tests.csproj
+dotnet test Backend.Tests/Backend.Tests.csproj
 dotnet build Backend/Backend.csproj
 ```
 

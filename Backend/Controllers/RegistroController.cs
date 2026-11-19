@@ -68,7 +68,7 @@ public class RegistroController(
         }
         catch (CorreoNoConfiguradoException errorConfiguracion)
         {
-            logger.LogError(errorConfiguracion, "Brevo no está configurado.");
+            logger.LogError(errorConfiguracion, "El envío de correos no está configurado.");
             return StatusCode(StatusCodes.Status503ServiceUnavailable, new
             {
                 error = "El envío de correos no está configurado."

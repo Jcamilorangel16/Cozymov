@@ -73,10 +73,20 @@ builder.Services.AddScoped<IPasswordHasher<Usuarios>,PasswordHasher<Usuarios>>()
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<IVerificadorCorreo, VerificadorCorreoHmac>();
 builder.Services.AddSingleton<LimitadorIntentos>();
-builder.Services.AddHttpClient<IEnviadorCorreo, BrevoEnviadorCorreo>(client =>
+// Mecanismo de envío: SMTP cuando hay Correo:Smtp:Host (o Correo:Proveedor=smtp);
+// en otro caso, la API HTTP de Brevo. Todo se configura por variables de entorno.
+if (ProveedorCorreo.UsaSmtp(builder.Configuration))
 {
-    client.Timeout = TimeSpan.FromSeconds(15);
-});
+    builder.Services.AddSingleton<ITransporteSmtp, TransporteSmtpMailKit>();
+    builder.Services.AddSingleton<IEnviadorCorreo, SmtpEnviadorCorreo>();
+}
+else
+{
+    builder.Services.AddHttpClient<IEnviadorCorreo, BrevoEnviadorCorreo>(client =>
+    {
+        client.Timeout = TimeSpan.FromSeconds(15);
+    });
+}
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
