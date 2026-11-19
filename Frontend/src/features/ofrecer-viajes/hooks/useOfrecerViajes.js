@@ -27,12 +27,16 @@ export function useOfrecerViajes({ pasajeroSeleccionado, setMensajeAccion }) {
   const [cargandoVehiculo, setCargandoVehiculo] = useState(true);
   const [consultaFallida, setConsultaFallida] = useState(false);
   const [intentoConsulta, setIntentoConsulta] = useState(0);
+  /** @type {import("../types/vehiculos").EstadoFormularioVehiculo} */
   const [vehiculo, setVehiculo] = useState({
     tipo: "",
+    marca: "",
     modelo: "",
     capacidad: "",
     rutaCotidiana: "",
-    numeroPuertas: "",
+    fotoFrontal: null,
+    fotoLateral: null,
+    fotoPerfil: null,
   });
   const [errorVehiculo, setErrorVehiculo] = useState("");
   const [guardandoVehiculo, setGuardandoVehiculo] = useState(false);
@@ -187,18 +191,58 @@ export function useOfrecerViajes({ pasajeroSeleccionado, setMensajeAccion }) {
   /**
    * Actualiza un campo del formulario del vehículo.
    * @param {string} campo Nombre del campo que se modificará.
-   * @param {string} valor Nuevo valor del campo.
+   * @param {string|boolean|File|null} valor Nuevo valor del campo.
    * @returns {void}
    */
   function cambiarCampoVehiculo(campo, valor) {
     setVehiculo((anterior) => {
       if (campo === "tipo") {
+        const {
+          fotoPlaca,
+          fotoLicencia,
+          docTecnomecanica,
+          docSoat,
+        } = anterior;
+        const camposCondicionales = [
+          "numeroPuertas",
+          "modalidad",
+          "numeroSerie",
+          "velocidadMaxima",
+          "capacidadPeso",
+          "capacidadVehicular",
+          "casco",
+          "chaleco",
+          "luces",
+          "fotoPlaca",
+          "fotoLicencia",
+          "docTecnomecanica",
+          "docSoat",
+        ];
+        const camposBase = Object.fromEntries(
+          Object.entries(anterior).filter(([nombre]) => !camposCondicionales.includes(nombre)),
+        );
+        const aplicaDocumentos = valor === "Automovil" || valor === "Moto";
+
         return {
-          ...anterior,
+          ...camposBase,
           tipo: valor,
-          capacidad: "",
-          numeroPuertas: "",
-          modalidad: "",
+          ...(valor === "Automovil" && { numeroPuertas: "" }),
+          ...(valor === "Moto" && { modalidad: "" }),
+          ...(valor === "Bicicleta electrica" && {
+            numeroSerie: "",
+            velocidadMaxima: "",
+            capacidadPeso: "",
+            capacidadVehicular: false,
+            casco: false,
+            chaleco: false,
+            luces: false,
+          }),
+          ...(aplicaDocumentos && {
+            fotoPlaca: fotoPlaca ?? null,
+            fotoLicencia: fotoLicencia ?? null,
+            docTecnomecanica: docTecnomecanica ?? null,
+            docSoat: docSoat ?? null,
+          }),
         };
       }
 
@@ -234,6 +278,7 @@ export function useOfrecerViajes({ pasajeroSeleccionado, setMensajeAccion }) {
           modalidad: vehiculo.modalidad.trim(),
         }),
       };
+      // TODO: enviar archivos (multipart/form-data) cuando el backend lo soporte
       const respuesta = await fetch("/api/vehiculo", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
