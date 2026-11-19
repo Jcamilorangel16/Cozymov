@@ -178,6 +178,8 @@ export default function PanelInicio({ onNavigate }) {
           <div className="mb-4">
             <SolicitarViajeInicio
               key={`pedir-${destinoElegido ?? ""}`}
+              tieneViajePublicado={Boolean(viajePublicado)}
+              onVerViajePublicado={() => onNavigate("ofrecer")}
               destinoInicial={destinoElegido ?? ""}
               onVerSolicitudes={() => onNavigate("buscar")}
               onCerrar={() => setPedirViajeAbierto(false)}
@@ -326,6 +328,8 @@ export default function PanelInicio({ onNavigate }) {
                     {!pedirViajeAbierto && (
                       <SolicitarViajeInicio
                         key={destinoElegido}
+                        tieneViajePublicado={Boolean(viajePublicado)}
+                        onVerViajePublicado={() => onNavigate("ofrecer")}
                         destinoInicial={destinoElegido}
                         sinViajes
                         onVerSolicitudes={() => onNavigate("buscar")}
@@ -336,6 +340,8 @@ export default function PanelInicio({ onNavigate }) {
                   <div className="mt-3">
                     <SolicitarViajeInicio
                       key={destinoElegido}
+                      tieneViajePublicado={Boolean(viajePublicado)}
+                      onVerViajePublicado={() => onNavigate("ofrecer")}
                       destinoInicial={destinoElegido}
                       onVerSolicitudes={() => onNavigate("buscar")}
                     />
