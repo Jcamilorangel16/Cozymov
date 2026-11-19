@@ -15,12 +15,13 @@ const MENSAJE_UBICACION = {
 
 /**
  * Permite registrar una solicitud de viaje con origen, destino, precio, fecha y hora.
- * @param {{destinoInicial?: string, sinViajes?: boolean, onVerSolicitudes?: () => void, onCerrar?: () => void}} props Destino preseleccionado, si aparece porque la búsqueda no encontró viajes, navegación opcional y cierre opcional del formulario.
+ * @param {{destinoInicial?: string, sinViajes?: boolean, tieneViajePublicado?: boolean, onVerSolicitudes?: () => void, onCerrar?: () => void}} props Destino preseleccionado, si aparece porque la búsqueda no encontró viajes, si el usuario tiene un viaje publicado (no puede solicitar otro), navegación opcional y cierre opcional del formulario.
  * @returns Formulario de solicitud de viaje.
  */
 export default function SolicitarViajeInicio({
   destinoInicial = "",
   sinViajes = false,
+  tieneViajePublicado = false,
   onVerSolicitudes,
   onCerrar,
 }) {
@@ -74,6 +75,26 @@ export default function SolicitarViajeInicio({
             </button>
           )}
         </div>
+      </section>
+    );
+  }
+
+  // Un conductor con un viaje publicado no pide viaje como pasajero (el backend también lo rechaza).
+  if (tieneViajePublicado) {
+    return (
+      <section className="viaje-item inicio-destacado" aria-labelledby={`${id}-titulo`}>
+        <h2 className="h5 letra-contenido" id={`${id}-titulo`}>
+          Tienes un viaje publicado
+        </h2>
+        <div className="alert alert-warning" role="status">
+          No puedes solicitar un viaje mientras tengas uno publicado. Cancélalo o espera a que
+          termine para pedir uno como pasajero.
+        </div>
+        {onCerrar && (
+          <button type="button" className="btn btn-outline-secondary" onClick={onCerrar}>
+            Cerrar
+          </button>
+        )}
       </section>
     );
   }

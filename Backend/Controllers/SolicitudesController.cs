@@ -128,6 +128,13 @@ public class SolicitudesController(AppDbContext context) : ControllerBase
         if (!await context.Usuarios.AnyAsync(u => u.IdPersonas == dto.IdUsuario))
             return BadRequest("El usuario no existe.");
 
+        // Un conductor con un viaje publicado no pide viaje como pasajero: primero debe
+        // retirar o completar el suyo (es la misma regla que impide publicar con una solicitud).
+        if (await context.Viajes.AnyAsync(
+                v => v.IdUsuario == dto.IdUsuario && v.Estado.ToLower() == "activo"))
+            return Conflict(
+                "No puedes solicitar un viaje mientras tengas un viaje publicado. Cancélalo o espera a que termine para pedir uno.");
+
         // Un pasajero solo puede tener una solicitud esperando conductor a la vez.
         if (await context.Solicitudes.AnyAsync(
                 s => s.IdUsuario == dto.IdUsuario && s.Estado == Solicitud.EstadoPendiente))
