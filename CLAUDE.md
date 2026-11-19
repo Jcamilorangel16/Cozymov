@@ -47,18 +47,20 @@ Tablas_ccozy/ Bóveda Obsidian local opcional, ignorada por Git
   `Backend/Data/Configurations/` define las relaciones y restricciones. Las
   migraciones están en `Backend/Migrations/`.
 - En los flujos migrados, el frontend valida la sesión y reenvía solicitudes a
-  la API, incluida la recuperación de contraseña.
+  la API.
 - `Tablas_ccozy/` es una bóveda local opcional de Obsidian y está ignorada por
   Git. No presupongas que existe después de clonar el repositorio ni uses sus
   notas como única fuente de información.
 
 ## Funcionalidades implementadas
 
-- Registro con verificación de correo: código de seis dígitos, expiración,
-  comprobante firmado por HMAC, límite de solicitudes y envío mediante Brevo.
-  La implementación y configuración detalladas están en
-  [`Frontend/CLAUDE.md`](Frontend/CLAUDE.md) y
-  `Backend/Controllers/RegistroController.cs`.
+- Registro sin verificación de correo: `POST /api/registro` en
+  `UsuariosController` crea la cuenta directamente; fuera de Development exige
+  un correo `.edu.co` y limita los intentos por IP. No hay confirmación de
+  correo ni recuperación de contraseña por correo: ambos flujos, Brevo y las
+  columnas `EmailVerificado` y `CodigoRecuperacion*` se eliminaron (migración
+  `QuitarVerificacionYRecuperacionCorreo`). La contraseña solo se cambia desde
+  Configuración conociendo la actual.
 - Inicio y cierre de sesión, sesión firmada en el servidor y rutas protegidas.
 - Perfil y configuración de usuario.
 - Publicación, búsqueda, consulta y edición de viajes; aceptación y cancelación
@@ -71,12 +73,6 @@ Tablas_ccozy/ Bóveda Obsidian local opcional, ignorada por Git
   viajes coincidentes por ruta, día, presupuesto y hora límite.
 - Calificaciones: consulta de recibidas y enviadas, promedio, creación para
   una reserva propia completada y eliminación de calificaciones propias.
-- Recuperación de contraseña: el proxy `Frontend/app/api/recuperar-contrasena`
-  reenvía a `Backend/Controllers/RecuperacionController.cs`
-  (`/api/recuperacion/solicitar` y `/restablecer`). Código de 6 dígitos
-  enviado por Brevo, guardado como HMAC en `Usuarios` (migración
-  `RecuperacionContrasena`), vigencia de 10 min, un solo uso, 5 intentos,
-  espera de 60 s entre envíos y respuestas que no revelan si el correo existe.
 
 Rutas de API de backend destacadas: `/api/Usuarios`, `/api/registro`,
 `/api/Viajes`, `/api/rutas`, `/api/vehiculos`, `/api/automoviles`,

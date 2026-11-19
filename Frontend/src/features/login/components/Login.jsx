@@ -92,13 +92,6 @@ function Login({ errorGoogle = '' }) {
                                 disabled={cargando}
                             />
                         </div>
-
-                        {/* Enlace de recuperación de contraseña */}
-                        <div className="text-end mt-1">
-                            <Link href="/recuperar-contrasena" className="small text-muted text-decoration-none">
-                                ¿Olvidaste tu contraseña?
-                            </Link>
-                        </div>
                     </div>
 
                     {(errorLogin || errorGoogle) && (

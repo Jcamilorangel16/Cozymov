@@ -14,21 +14,22 @@ public class UsuariosController : ControllerBase
 {
     private readonly AppDbContext _context;
     private readonly IPasswordHasher<Usuarios> _passwordHasher;
-    private readonly IVerificadorCorreo _verificadorCorreo;
     private readonly LimitadorIntentos _limitadorIntentos;
 
     private const string ErrorDemasiadosIntentos =
         "Demasiados intentos fallidos. Espera unos minutos antes de volver a intentarlo.";
 
+    private static readonly System.Text.RegularExpressions.Regex FormatoCorreo = new(
+        @"^[^\s@]+@[^\s@]+\.[^\s@]+$",
+        System.Text.RegularExpressions.RegexOptions.Compiled);
+
     public UsuariosController(
         AppDbContext context,
         IPasswordHasher<Usuarios> passwordHasher,
-        IVerificadorCorreo verificadorCorreo,
         LimitadorIntentos limitadorIntentos)
     {
         _context = context;
         _passwordHasher = passwordHasher;
-        _verificadorCorreo = verificadorCorreo;
         _limitadorIntentos = limitadorIntentos;
     }
 
@@ -98,14 +99,13 @@ public class UsuariosController : ControllerBase
         usuario.PrimerApellido = datos.PrimerApellido;
         usuario.SegundoApellido = datos.SegundoApellido;
         usuario.Edad = datos.Edad;
-        // Cambiar el correo exigiría verificarlo de nuevo; mientras no exista ese
-        // flujo, esta ruta no puede asignar una dirección sin confirmar.
+        // El correo identifica la cuenta y no se puede cambiar desde el perfil.
         if (!string.Equals(
                 NormalizarCorreo(datos.Correo),
                 NormalizarCorreo(usuario.Correo),
                 StringComparison.Ordinal))
         {
-            return BadRequest("El correo no se puede cambiar sin verificarlo.");
+            return BadRequest("El correo no se puede cambiar.");
         }
 
         usuario.ocupacion = datos.ocupacion;
@@ -116,7 +116,6 @@ public class UsuariosController : ControllerBase
     }
 
     // POST: api/Usuarios and api/registro
-    // El comprobante se valida de nuevo en el servidor justo antes de crear la cuenta.
     [HttpPost]
     [HttpPost("/api/registro")]
     [EnableRateLimiting("registro")]
@@ -131,14 +130,18 @@ public class UsuariosController : ControllerBase
             return BadRequest("El correo es obligatorio.");
         }
 
+        // Fuera de Development solo se admiten correos institucionales .edu.co.
+        var entorno = HttpContext.RequestServices.GetRequiredService<IHostEnvironment>();
+        if (correo.Length > 150 ||
+            !FormatoCorreo.IsMatch(correo) ||
+            (!entorno.IsDevelopment() && !correo.EndsWith(".edu.co", StringComparison.Ordinal)))
+        {
+            return BadRequest("Ingresa un correo institucional válido que termine en .edu.co.");
+        }
+
         if (string.IsNullOrWhiteSpace(usuarios.Contrasena))
         {
             return BadRequest("La contraseña es obligatoria.");
-        }
-
-        if (usuarios.Verificacion is null)
-        {
-            return BadRequest("Debes confirmar tu correo antes de crear la cuenta.");
         }
 
         if (await _context.Usuarios.AnyAsync(
@@ -156,25 +159,6 @@ public class UsuariosController : ControllerBase
             return Conflict("Esa cédula ya está registrada.");
         }
 
-        ResultadoVerificacionCorreo resultadoVerificacion;
-        try
-        {
-            resultadoVerificacion = _verificadorCorreo.Verificar(
-                correo,
-                usuarios.Verificacion.Comprobante,
-                usuarios.Verificacion.Codigo);
-        }
-        catch (VerificacionCorreoNoConfiguradaException)
-        {
-            return StatusCode(
-                StatusCodes.Status503ServiceUnavailable,
-                "La verificación del correo no está configurada.");
-        }
-        if (!resultadoVerificacion.EsValido)
-        {
-            return BadRequest(resultadoVerificacion.Error);
-        }
-
         var usuario = new Usuarios
         {
             Cedula = usuarios.Cedula,
@@ -185,8 +169,7 @@ public class UsuariosController : ControllerBase
             Edad = usuarios.Edad,
             Correo = correo,
             rol = usuarios.rol,
-            ocupacion = usuarios.ocupacion,
-            EmailVerificado = true
+            ocupacion = usuarios.ocupacion
         };
         usuario.Contrasena = _passwordHasher.HashPassword(usuario, usuarios.Contrasena);
 
@@ -261,14 +244,6 @@ public class UsuariosController : ControllerBase
 
         _limitadorIntentos.Reiniciar(claveIntentos);
 
-        // Sin correo confirmado no se permite iniciar sesión.
-        if (!usuario.EmailVerificado)
-        {
-            return StatusCode(
-                StatusCodes.Status403Forbidden,
-                "Debes confirmar tu correo electrónico antes de iniciar sesión.");
-        }
-
         var respuesta = new UsuariosDTO
         {
             IdPersonas = usuario.IdPersonas,
@@ -336,7 +311,7 @@ public class UsuariosController : ControllerBase
     //POST: api/Usuarios/LoginGoogle
     // Solo lo invoca el servidor de Next.js (X-Internal-Api-Key) después de
     // validar el ID token de Google. No crea cuentas: únicamente identifica o
-    // vincula una cuenta Cozymov existente y verificada.
+    // vincula una cuenta Cozymov existente.
     [HttpPost("LoginGoogle")]
     public async Task<ActionResult<UsuariosDTO>> LoginGoogle(
         UsuariosLoginGoogleDTO datos,
@@ -382,13 +357,6 @@ public class UsuariosController : ControllerBase
                 return NotFound("No existe una cuenta de Cozymov con ese correo. Regístrate primero.");
             }
 
-            if (!usuario.EmailVerificado)
-            {
-                return StatusCode(
-                    StatusCodes.Status403Forbidden,
-                    "Debes confirmar tu correo electrónico antes de iniciar sesión.");
-            }
-
             _context.IdentidadesExternas.Add(new IdentidadExterna
             {
                 IdUsuario = usuario.IdPersonas,
@@ -413,13 +381,6 @@ public class UsuariosController : ControllerBase
                     return Conflict("Esta cuenta de Google ya está vinculada a otro usuario.");
                 }
             }
-        }
-
-        if (!usuario.EmailVerificado)
-        {
-            return StatusCode(
-                StatusCodes.Status403Forbidden,
-                "Debes confirmar tu correo electrónico antes de iniciar sesión.");
         }
 
         return Ok(new UsuariosDTO

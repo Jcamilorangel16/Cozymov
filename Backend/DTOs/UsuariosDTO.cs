@@ -54,8 +54,6 @@ namespace Backend.DTOs
         public string rol { get; set; }
         [StringLength(50)]
         public string ocupacion { get; set; }
-
-        public VerificacionCorreoRegistroDTO? Verificacion { get; set; }
     }
 }
 

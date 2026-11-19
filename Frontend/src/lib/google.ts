@@ -16,7 +16,7 @@ export const MENSAJES_ERROR_GOOGLE: Record<string, string> = {
   sin_cuenta:
     "No existe una cuenta de Cozymov con ese correo de Google. Regístrate primero.",
   restringido:
-    "Esa cuenta de Google no puede entrar. Usa tu correo institucional (.edu.co) y confirma tu correo en Cozymov.",
+    "Esa cuenta de Google no puede entrar. Usa tu correo institucional (.edu.co).",
   configuracion: "El inicio de sesión con Google no está disponible en este momento.",
   error: "No se pudo iniciar sesión con Google. Inténtalo de nuevo.",
 };

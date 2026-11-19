@@ -7,6 +7,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Hosting.Internal;
 
 namespace Backend.Tests;
 
@@ -42,7 +45,7 @@ public sealed class ConfiguracionControllersTests
         AppDbContext context,
         IPasswordHasher<Usuarios> hasher,
         LimitadorIntentos? limitador = null) =>
-        new(context, hasher, null!, limitador ?? new LimitadorIntentos(TimeProvider.System));
+        new(context, hasher, limitador ?? new LimitadorIntentos(TimeProvider.System));
 
     private static int? Estado<T>(ActionResult<T> respuesta) =>
         (respuesta.Result as ObjectResult)?.StatusCode;
@@ -195,6 +198,52 @@ public sealed class ConfiguracionControllersTests
         });
 
         Assert.IsType<NotFoundObjectResult>(result);
+    }
+
+    private static UsuariosController ControladorRegistro(AppDbContext context, string entorno)
+    {
+        var servicios = new ServiceCollection()
+            .AddSingleton<IHostEnvironment>(new HostingEnvironment { EnvironmentName = entorno })
+            .BuildServiceProvider();
+        var controlador = Controlador(context, new PasswordHasher<Usuarios>());
+        controlador.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext { RequestServices = servicios }
+        };
+        return controlador;
+    }
+
+    private static UsuariosCreateDTO NuevoRegistro(string correo) => new()
+    {
+        Cedula = "777", PrimerNombre = "Nueva", SegundoNombre = "", PrimerApellido = "Persona",
+        SegundoApellido = "", Edad = 20, Correo = correo, Contrasena = "ClaveSegura1",
+        rol = "usuario", ocupacion = "Estudiante"
+    };
+
+    [Fact]
+    public async Task RegistroCreaLaCuentaSinCodigoDeVerificacion()
+    {
+        await using var context = NewContext();
+
+        var result = await ControladorRegistro(context, "Production")
+            .PostUsuarios(NuevoRegistro(" Nueva@Uni.EDU.co "), CancellationToken.None);
+
+        Assert.IsType<CreatedAtActionResult>(result.Result);
+        var usuario = await context.Usuarios.SingleAsync();
+        Assert.Equal("nueva@uni.edu.co", usuario.Correo);
+        Assert.NotEqual("ClaveSegura1", usuario.Contrasena);
+    }
+
+    [Fact]
+    public async Task RegistroRechazaCorreoNoInstitucionalFueraDeDevelopment()
+    {
+        await using var context = NewContext();
+
+        var result = await ControladorRegistro(context, "Production")
+            .PostUsuarios(NuevoRegistro("nueva@gmail.com"), CancellationToken.None);
+
+        Assert.IsType<BadRequestObjectResult>(result.Result);
+        Assert.False(await context.Usuarios.AnyAsync());
     }
 
     private static async Task<AppDbContext> ContextoConVehiculo()

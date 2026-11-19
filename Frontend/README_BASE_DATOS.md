@@ -63,15 +63,6 @@ desde la raíz:
 dotnet ef database update --project Backend\Backend.csproj --startup-project Backend\Backend.csproj
 ```
 
-## Recuperación de contraseña
-
-La recuperación de contraseña quedó fuera de la migración actual: su endpoint
-de Next.js todavía consulta PostgreSQL directamente y la pantalla aún no está
-conectada a ese endpoint ni tiene configurado el envío de correo. Mientras se
-migre ese flujo, su endpoint puede seguir necesitando `DATABASE_URL` en el
-entorno del frontend. Por tanto, para quitar completamente esa variable de
-Vercel habrá que migrar o deshabilitar también la recuperación de contraseña.
-
 ## Comprobaciones locales
 
 Desde la raíz del repositorio:
