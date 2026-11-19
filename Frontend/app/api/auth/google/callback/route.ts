@@ -9,6 +9,7 @@ import {
   COOKIE_OAUTH_GOOGLE,
   intercambiarCodigo,
   obtenerConfigGoogle,
+  origenPublico,
   verificarIdTokenGoogle,
 } from "../../../../../src/lib/google";
 
@@ -37,7 +38,8 @@ function leerCookieOAuth(valor: string | undefined): DatosOAuth | null {
  * @returns Redirección a la app o al login con un código de error.
  */
 export async function GET(request: NextRequest) {
-  const origen = request.nextUrl.origin;
+  const config = obtenerConfigGoogle(request.nextUrl.origin);
+  const origen = origenPublico(request.nextUrl.origin, config);
   const fallar = (codigo: string) => {
     const respuesta = NextResponse.redirect(
       new URL(`/?google_error=${codigo}`, origen),
@@ -46,7 +48,6 @@ export async function GET(request: NextRequest) {
     return respuesta;
   };
 
-  const config = obtenerConfigGoogle(origen);
   const backend = getBackendApiConfig();
   if (!config || !backend || !process.env.SESSION_SECRET) {
     console.error("Falta configuración para el inicio de sesión con Google.");

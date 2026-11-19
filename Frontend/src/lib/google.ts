@@ -41,6 +41,23 @@ export function obtenerConfigGoogle(origen: string): ConfigGoogle | null {
   return { clientId, clientSecret, redirectUri };
 }
 
+/**
+ * Origen público de la app para las redirecciones del flujo. Si hay
+ * GOOGLE_REDIRECT_URI se usa su origen (p. ej. https://cozymov.com), porque
+ * detrás de un proxy el origen de la solicitud puede ser el interno.
+ * @param origen Origen de la solicitud, usado como respaldo.
+ * @param config Configuración de Google, si existe.
+ * @returns Origen al que se redirige al usuario.
+ */
+export function origenPublico(origen: string, config: ConfigGoogle | null): string {
+  if (!config) return origen;
+  try {
+    return new URL(config.redirectUri).origin;
+  } catch {
+    return origen;
+  }
+}
+
 export type ParametrosOAuth = {
   state: string;
   nonce: string;

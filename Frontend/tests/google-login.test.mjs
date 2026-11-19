@@ -5,8 +5,23 @@ import { exportJWK, generateKeyPair, SignJWT } from "jose";
 import {
   construirUrlAutorizacion,
   crearParametrosOAuth,
+  origenPublico,
   verificarIdTokenGoogle,
 } from "../src/lib/google.ts";
+
+test("origenPublico usa el dominio del callback configurado", () => {
+  const config = {
+    clientId: "id",
+    clientSecret: "secreto",
+    redirectUri: "https://cozymov.com/api/auth/google/callback",
+  };
+  assert.equal(origenPublico("http://localhost:3000", config), "https://cozymov.com");
+  assert.equal(origenPublico("http://localhost:3000", null), "http://localhost:3000");
+  assert.equal(
+    origenPublico("http://localhost:3000", { ...config, redirectUri: "no es url" }),
+    "http://localhost:3000",
+  );
+});
 
 const CLIENT_ID = "cliente-de-prueba.apps.googleusercontent.com";
 const NONCE = "nonce-esperado";
