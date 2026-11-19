@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import Swal from "sweetalert2";
 import { formatearFecha, formatearPrecio } from "../../buscar-viajes/utils/viajes";
+import { viajeEnTrayecto } from "../utils/trayecto";
 import "../styles/viaje-en-curso.css";
 
 // Leaflet necesita `window`, por eso el mapa solo se carga en el navegador.
@@ -26,6 +27,13 @@ export default function ViajeEnCurso({ onNavigate, onMensajeConductor }) {
   const [intento, setIntento] = useState(0);
   const [cancelando, setCancelando] = useState(false);
   const [finalizando, setFinalizando] = useState(false);
+  // Se actualiza cada medio minuto: al llegar la hora de salida el viaje pasa a estar en trayecto.
+  const [ahora, setAhora] = useState(() => Date.now());
+
+  useEffect(() => {
+    const temporizador = setInterval(() => setAhora(Date.now()), 30_000);
+    return () => clearInterval(temporizador);
+  }, []);
 
   useEffect(() => {
     const controlador = new AbortController();
@@ -89,6 +97,8 @@ export default function ViajeEnCurso({ onNavigate, onMensajeConductor }) {
   }
 
   const esConductor = rol === "conductor";
+  // En trayecto el pasajero ya no puede salirse del viaje; solo finalizarlo.
+  const enTrayecto = !esConductor && viajeEnTrayecto(viaje, new Date(ahora));
   const nombreConductor = viaje.nombre_conductor || "No disponible";
   const nombrePasajero = viaje.nombre_pasajero || "No disponible";
   // Como conductor la contraparte es el pasajero que hizo la solicitud.
@@ -218,7 +228,7 @@ export default function ViajeEnCurso({ onNavigate, onMensajeConductor }) {
             {esConductor ? "Viaje que estás atendiendo" : "Tu viaje en curso"}
           </h3>
           <span className="estado-viaje">
-            {esConductor ? "Solicitud aceptada" : "Reserva confirmada"}
+            {esConductor ? "Solicitud aceptada" : enTrayecto ? "En trayecto" : "Reserva confirmada"}
           </span>
         </div>
         <section className="panel-lateral viaje-resumen-ruta">
@@ -278,14 +288,21 @@ export default function ViajeEnCurso({ onNavigate, onMensajeConductor }) {
               >
                 {finalizando ? "Finalizando viaje..." : "Finalizar viaje"}
               </button>
-              <button
-                type="button"
-                className="btn btn-outline-danger w-100 mt-2"
-                onClick={salirDelViaje}
-                disabled={cancelando || finalizando}
-              >
-                {cancelando ? "Cancelando reserva..." : "Salir del viaje"}
-              </button>
+              {enTrayecto ? (
+                <p className="texto-secundario small mt-3 mb-0" role="status">
+                  El viaje ya está en trayecto: no puedes salirte. Finalízalo cuando llegues a tu
+                  destino.
+                </p>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-outline-danger w-100 mt-2"
+                  onClick={salirDelViaje}
+                  disabled={cancelando || finalizando}
+                >
+                  {cancelando ? "Cancelando reserva..." : "Salir del viaje"}
+                </button>
+              )}
             </>
           )}
           {error && <p className="alert alert-danger mt-3 mb-0" role="alert">{error}</p>}

@@ -198,6 +198,19 @@ namespace Backend.Controllers
             int id_pasajero,
             CancellationToken cancellationToken)
         {
+            // Llegada la hora de salida el viaje está en trayecto: el pasajero ya no puede
+            // salirse; solo puede finalizarlo al llegar.
+            var ahora = AhoraColombia();
+            if (await _context.ReservasViaje.AnyAsync(
+                    r => r.IdPasajero == id_pasajero &&
+                         r.Estado == "activa" &&
+                         r.Viaje.FechaHoraSalida <= ahora,
+                    cancellationToken))
+            {
+                return Conflict(
+                    "El viaje ya está en trayecto: no puedes salirte. Finalízalo cuando llegues a tu destino.");
+            }
+
             await using var transaccion =
                 await _context.Database.BeginTransactionAsync(cancellationToken);
             var reserva = await _context.ReservasViaje
@@ -607,6 +620,13 @@ namespace Backend.Controllers
 
             return NoContent();
         }
+
+        /// <summary>
+        /// Las salidas se guardan en hora local de Colombia (UTC-5, sin horario de verano) como
+        /// "timestamp without time zone"; así se compara sin depender de la zona del servidor.
+        /// </summary>
+        private static DateTime AhoraColombia() =>
+            DateTime.SpecifyKind(DateTime.UtcNow.AddHours(-5), DateTimeKind.Unspecified);
 
         private const string MensajeViajeYaPublicado =
             "Ya tienes un viaje publicado. Solo puedes actualizarlo; no puedes publicar otro.";

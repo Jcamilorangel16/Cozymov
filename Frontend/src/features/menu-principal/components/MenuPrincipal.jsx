@@ -1,6 +1,8 @@
 ﻿// Compone el cabezal de navegaciÃ³n y las vistas del menÃº principal.
 "use client";
 
+import { useEffect } from "react";
+import { sincronizarIdSesion } from "../../../hooks/useSessionUserId";
 import OfrecerViajes from "../../ofrecer-viajes/components/OfrecerViajes";
 import MensajesView from "../../mensajes/components/MensajesView";
 import "../styles/menu-principal.css";
@@ -22,7 +24,15 @@ import CalificacionesView from "../../calificaciones/components/CalificacionesVi
  * @returns Vista principal de la aplicaciÃ³n.
  */
 export default function MenuPrincipal({ usuarioActualId }) {
-  
+  // La sesión es permanente: sessionStorage puede estar vacío aunque la cookie sea válida.
+  // Se alinea antes de que los hijos lean el id con useSessionUserId.
+  sincronizarIdSesion(usuarioActualId);
+
+  // Renueva la cookie de sesión para que no caduque mientras se use la aplicación.
+  useEffect(() => {
+    void fetch("/api/sesion", { method: "POST" }).catch(() => {});
+  }, []);
+
   const {
     vistaActiva,
     contactoInicial,

@@ -228,6 +228,14 @@ clave.
   añade un recurso externo (script, fuente, API llamada desde el navegador),
   hay que permitirlo en la CSP.
 - `SESSION_SECRET` debe tener al menos 32 caracteres (`src/lib/auth.ts`).
+- La sesión queda iniciada en el dispositivo: la cookie `sesion` (httpOnly,
+  SameSite=Lax, `secure` en producción) dura un año y `POST /api/sesion` la
+  renueva cada vez que se abre el menú. Cerrar sesión solo borra la cookie de
+  ese dispositivo: el JWT es sin estado y no se puede revocar antes de que
+  venza, así que si se roba una cookie sirve hasta entonces (ver
+  `INFORME_SEGURIDAD.md`). `MenuPrincipal` alinea `sessionStorage` con el id
+  verificado por el servidor porque la sesión sobrevive al reinicio del
+  navegador y `sessionStorage` no.
 - Inicio de sesión y cambio de contraseña se bloquean 15 min tras 8 fallos por
   cuenta (`Backend/Services/LimitadorIntentos.cs`, en memoria) y el login tiene
   además un límite por IP. Los límites por IP usan la cabecera `X-Cliente-Ip`
