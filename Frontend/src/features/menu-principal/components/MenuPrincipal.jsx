@@ -12,6 +12,7 @@ import PanelInicio from "./PanelInicio";
 import SidebarMenu from "./SidebarMenu";
 import { useAvisosSolicitudes } from "../hooks/useAvisosSolicitudes";
 import { useMenuPrincipal } from "../hooks/useMenuPrincipal";
+import { useConfirmarSalida } from "../hooks/useConfirmarSalida";
 import ViajeEnCurso from "../../viaje-en-curso/components/ViajeEnCurso";
 import ConfiguracionGeneral from "../../configuracion/components/ConfiguracionGeneral";
 import { PerfilProvider } from "../../configuracion/context/PerfilContext";
@@ -32,6 +33,9 @@ export default function MenuPrincipal({ usuarioActualId }) {
   useEffect(() => {
     void fetch("/api/sesion", { method: "POST" }).catch(() => {});
   }, []);
+
+  // «Atrás» en el navegador no saca de la plataforma sin preguntar antes.
+  useConfirmarSalida();
 
   const {
     vistaActiva,
