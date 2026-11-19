@@ -13,6 +13,7 @@ import SidebarMenu from "./SidebarMenu";
 import { useAvisosSolicitudes } from "../hooks/useAvisosSolicitudes";
 import { useMenuPrincipal } from "../hooks/useMenuPrincipal";
 import { useConfirmarSalida } from "../hooks/useConfirmarSalida";
+import { useAvisosMensajes } from "../../mensajes/hooks/useAvisosMensajes";
 import { etiquetaDeVista } from "../constants/menuPrincipal";
 import ViajeEnCurso from "../../viaje-en-curso/components/ViajeEnCurso";
 import ConfiguracionGeneral from "../../configuracion/components/ConfiguracionGeneral";
@@ -60,6 +61,16 @@ export default function MenuPrincipal({ usuarioActualId }) {
     irAVista("buscar"),
   );
 
+  // Todos los usuarios reciben aviso de los mensajes nuevos. No hace falta avisar si ya están
+  // en Mensajes con la pestaña visible.
+  const { aviso: avisoMensaje, cerrarAviso: cerrarAvisoMensaje } = useAvisosMensajes(
+    usuarioActualId,
+    {
+      alAbrirChat: abrirChatConUsuario,
+      silenciar: () => vistaActiva === "mensajes" && document.visibilityState === "visible",
+    },
+  );
+
   return (
     <PerfilProvider>
       <div className="app-shell">
@@ -75,6 +86,18 @@ export default function MenuPrincipal({ usuarioActualId }) {
           onVer={() => {
             cerrarAviso();
             irAVista("buscar");
+          }}
+        />
+
+        <AvisoSolicitudes
+          aviso={avisoMensaje}
+          etiquetaVer="Ver mensaje"
+          desplazado={Boolean(aviso)}
+          onCerrar={cerrarAvisoMensaje}
+          onVer={() => {
+            const contacto = avisoMensaje?.contacto;
+            cerrarAvisoMensaje();
+            if (contacto) abrirChatConUsuario(contacto);
           }}
         />
 
@@ -119,7 +142,11 @@ export default function MenuPrincipal({ usuarioActualId }) {
 
             {vistaActiva === "mensajes" && (
               <div className="vista">
-                <MensajesView usuarioActualId={usuarioActualId} />
+                <MensajesView
+                  key={contactoInicial?.id ?? "lista"}
+                  usuarioActualId={usuarioActualId}
+                  contactoInicial={contactoInicial}
+                />
               </div>
             )}
 
