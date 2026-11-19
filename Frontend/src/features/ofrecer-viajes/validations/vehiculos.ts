@@ -1,10 +1,43 @@
 // Define tipos y reglas de validación para el registro de vehículos.
-import { TIPOS_VEHICULO } from "../constants/vehiculos";
-import type { DatosNuevoVehiculo } from "../types/vehiculos";
+import {
+  MAX_TAMANO_ARCHIVO_BYTES,
+  MAX_TAMANO_ARCHIVO_MB,
+  TIPOS_ARCHIVO_PERMITIDOS,
+  TIPOS_VEHICULO,
+} from "../constants/vehiculos";
+import type {
+  DatosNuevoVehiculo,
+  TipoArchivoVehiculo,
+} from "../types/vehiculos";
 
 type ResultadoValidacion<T> =
   | { valido: true; datos: T }
   | { valido: false; error: string };
+
+/**
+ * Valida el MIME y el tamaño de un archivo seleccionado para el vehículo.
+ * @param archivo Archivo seleccionado.
+ * @param tipoArchivo Tipo de contenido permitido para el campo.
+ * @returns Mensaje de error o null si el archivo es válido.
+ */
+export function validarArchivoVehiculo(
+  archivo: File,
+  tipoArchivo: TipoArchivoVehiculo,
+): string | null {
+  const tipoValido = tipoArchivo === "imagen"
+    ? archivo.type.startsWith(TIPOS_ARCHIVO_PERMITIDOS.imagen.mimePrefix)
+    : archivo.type === TIPOS_ARCHIVO_PERMITIDOS.pdf.mimeType;
+
+  if (!tipoValido) {
+    return tipoArchivo === "imagen"
+      ? "Selecciona un archivo de imagen."
+      : "Selecciona un archivo PDF.";
+  }
+  if (archivo.size > MAX_TAMANO_ARCHIVO_BYTES) {
+    return `El archivo no debe superar ${MAX_TAMANO_ARCHIVO_MB} MB.`;
+  }
+  return null;
+}
 
 /**
  * Comprueba que el valor sea un objeto JSON no nulo ni una lista.

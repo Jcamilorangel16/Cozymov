@@ -1,6 +1,12 @@
 // Presenta el formulario de registro de un vehículo del conductor.
+"use client";
+
+import { useState } from "react";
 import "../styles/RegistroVehiculo.css";
 import RutaCotidianaSelect from "./RutaCotidianaSelect";
+import CampoArchivo from "./CampoArchivo";
+import CamposBicicleta from "./CamposBicicleta";
+import CamposMotoAutomovil from "./CamposMotoAutomovil";
 
 /**
  * Renderiza los datos requeridos para guardar el vehículo.
@@ -14,9 +20,15 @@ export default function RegistroVehiculo({
   onFieldChange,
   onSubmit,
 }) {
+  const [mostrarErroresRequeridos, setMostrarErroresRequeridos] = useState(false);
+
   return (
     <div className="vista d-flex justify-content-center py-4">
-      <form className="registro-vehiculo__card w-100 p-4 p-md-5 border rounded-4 shadow" onSubmit={onSubmit}>
+      <form
+        className="registro-vehiculo__card w-100 p-4 p-md-5 border rounded-4 shadow"
+        onSubmit={onSubmit}
+        onInvalidCapture={() => setMostrarErroresRequeridos(true)}
+      >
         <div className="d-flex align-items-center gap-3 mb-4">
           <span className="registro-vehiculo__icon d-flex align-items-center justify-content-center flex-shrink-0 rounded-4" aria-hidden="true">🚘</span>
           <div>
@@ -39,10 +51,22 @@ export default function RegistroVehiculo({
             onChange={(evento) => onFieldChange("tipo", evento.target.value)}
           >
             <option value="" disabled>Selecciona un tipo</option>
-            <option value="Bicicleta electrica">Bicicleta eléctrica</option>
-            <option value="Moto">Moto</option>
             <option value="Automovil">Automóvil</option>
+            <option value="Moto">Moto</option>
+            <option value="Bicicleta electrica">Bicicleta eléctrica</option>
           </select>
+        </div>
+
+        <div className="registro-vehiculo__field">
+          <label className="form-label" htmlFor="marca-vehiculo">Marca</label>
+          <input
+            className="form-control"
+            id="marca-vehiculo"
+            type="text"
+            required
+            value={vehiculo.marca}
+            onChange={(evento) => onFieldChange("marca", evento.target.value)}
+          />
         </div>
 
         <div className="registro-vehiculo__field">
@@ -72,41 +96,45 @@ export default function RegistroVehiculo({
           />
         </div>
 
-        {vehiculo.tipo === "Automovil" && (
-          <div className="registro-vehiculo__field">
-            <label className="form-label" htmlFor="numero-puertas">Número de puertas</label>
-            <input
-              className="form-control"
-              id="numero-puertas"
-              type="number"
-              min="2"
-              max="5"
-              step="1"
-              required
-              value={vehiculo.numeroPuertas}
-              onChange={(evento) => onFieldChange("numeroPuertas", evento.target.value)}
-            />
-          </div>
+        {vehiculo.tipo === "Bicicleta electrica" && (
+          <CamposBicicleta vehiculo={vehiculo} onFieldChange={onFieldChange} />
         )}
 
-        {vehiculo.tipo === "Moto" && (
-          <div className="registro-vehiculo__field">
-            <label className="form-label" htmlFor="modalidad-moto">Modalidad de la moto</label>
-            <input
-              className="form-control"
-              id="modalidad-moto"
-              type="text"
-              maxLength={20}
-              required
-              value={vehiculo.modalidad}
-              onChange={(evento) => onFieldChange("modalidad", evento.target.value)}
-            />
-          </div>
+        {["Automovil", "Moto"].includes(vehiculo.tipo) && (
+          <CamposMotoAutomovil
+            tipo={vehiculo.tipo}
+            vehiculo={vehiculo}
+            onFieldChange={onFieldChange}
+            mostrarErroresRequeridos={mostrarErroresRequeridos}
+          />
         )}
 
-        <p className="small text-secondary">
-          La carga de fotos del vehículo todavía no está disponible.
-        </p>
+        <div className="registro-vehiculo__fotos">
+          <CampoArchivo
+            id="foto-frontal"
+            label="Foto frontal"
+            tipoArchivo="imagen"
+            archivo={vehiculo.fotoFrontal}
+            mostrarErrorRequerido={mostrarErroresRequeridos}
+            onChange={(archivo) => onFieldChange("fotoFrontal", archivo)}
+          />
+          <CampoArchivo
+            id="foto-lateral"
+            label="Foto lateral"
+            tipoArchivo="imagen"
+            archivo={vehiculo.fotoLateral}
+            mostrarErrorRequerido={mostrarErroresRequeridos}
+            onChange={(archivo) => onFieldChange("fotoLateral", archivo)}
+          />
+          <CampoArchivo
+            id="foto-perfil"
+            label="Foto de perfil"
+            tipoArchivo="imagen"
+            archivo={vehiculo.fotoPerfil}
+            mostrarErrorRequerido={mostrarErroresRequeridos}
+            onChange={(archivo) => onFieldChange("fotoPerfil", archivo)}
+          />
+        </div>
 
         <div className="mb-3">
           <label className="form-label fw-semibold" htmlFor="ruta-cotidiana">Ruta cotidiana</label>
