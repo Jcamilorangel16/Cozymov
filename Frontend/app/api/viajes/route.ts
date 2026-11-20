@@ -85,8 +85,6 @@ function normalizarViaje(viaje: Registro, respaldo: Registro = {}): Registro {
 			obtenerCampo(viaje, "modeloVehiculo", "ModeloVehiculo", "modelo_vehiculo"),
 		capacidad_vehiculo:
 			obtenerCampo(viaje, "capacidadVehiculo", "CapacidadVehiculo", "capacidad_vehiculo"),
-		foto_vehiculo:
-			obtenerCampo(viaje, "fotoVehiculo", "FotoVehiculo", "foto_vehiculo"),
 		numero_puertas:
 			obtenerCampo(viaje, "numeroPuertas", "NumeroPuertas", "numero_puertas"),
 		modalidad_moto:

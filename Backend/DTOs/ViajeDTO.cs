@@ -22,7 +22,6 @@ namespace Backend.DTOs
         string? TipoVehiculo,
         string? ModeloVehiculo,
         int? CapacidadVehiculo,
-        string? FotoVehiculo,
         short? NumeroPuertas,
         string? ModalidadMoto);
 

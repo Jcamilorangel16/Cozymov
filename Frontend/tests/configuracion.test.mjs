@@ -131,7 +131,7 @@ test("contraseña: contraseña actual incorrecta se informa como 403 con mensaje
 // --- Vehículo ---
 
 const vehiculoApi = (idUsuario) => ({
-  idVehiculo: 5, tipo: "Automovil", modelo: "Mazda 2", capacidad: 3, foto: null, idUsuario,
+  idVehiculo: 5, tipo: "Automovil", modelo: "Mazda 2", capacidad: 3, idUsuario,
   automovil: { numeroPuertas: 4 },
 });
 

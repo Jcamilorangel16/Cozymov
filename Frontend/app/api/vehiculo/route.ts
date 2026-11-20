@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import {
+	construirFormDataVehiculo,
 	validarIdUsuarioVehiculo,
 	validarNuevoVehiculo,
 } from "../../../src/features/ofrecer-viajes/validations/vehiculos";
+import { TIPO_API_POR_UI, TIPO_UI_POR_API } from "../../../src/features/ofrecer-viajes/constants/vehiculos";
 import { obtenerSesionActual } from "../../../src/lib/auth";
 import { getBackendApiConfig, mensajeErrorSeguro } from "../../../src/lib/backendApi";
 
@@ -39,6 +41,16 @@ async function responderErrorApi(respuesta: Response, mensaje: string) {
 			if (typeof detalleApi === "string" && detalleApi) {
 				error = detalleApi;
 			}
+			// ValidationProblemDetails: { errors: { campo: ["mensaje", ...] } }
+			const errores = resultado.errors;
+			if (respuesta.status < 500 && esRegistro(errores)) {
+				const mensajes = Object.entries(errores).flatMap(([campo, lista]) =>
+					Array.isArray(lista) ? lista.map((m) => `${campo}: ${String(m)}`) : [],
+				);
+				if (mensajes.length > 0) {
+					error = mensajes.join(" ");
+				}
+			}
 		}
 	} catch {
 		// El backend puede responder texto plano.
@@ -47,6 +59,10 @@ async function responderErrorApi(respuesta: Response, mensaje: string) {
 		{ error: mensajeErrorSeguro(respuesta.status, error, mensaje) },
 		{ status: respuesta.status },
 	);
+}
+
+function tipoParaInterfaz(tipo: unknown): unknown {
+	return typeof tipo === "string" ? (TIPO_UI_POR_API[tipo] ?? tipo) : tipo;
 }
 
 function normalizarVehiculo(valor: unknown): Registro | null {
@@ -66,11 +82,15 @@ function normalizarVehiculo(valor: unknown): Registro | null {
 	return {
 		id_vehiculo: obtenerCampo(valor, "idVehiculo", "IdVehiculo", "id_vehiculo"),
 		id_usuario: String(obtenerCampo(valor, "idUsuario", "IdUsuario", "id_usuario") ?? ""),
-		tipo: obtenerCampo(valor, "tipo", "Tipo"),
+		// La API devuelve el valor canónico (p. ej. "automovil"); la interfaz usa etiquetas.
+		tipo: tipoParaInterfaz(obtenerCampo(valor, "tipo", "Tipo")),
+		marca: obtenerCampo(valor, "marca", "Marca") ?? null,
 		modelo: obtenerCampo(valor, "modelo", "Modelo"),
+		foto_frontal: obtenerCampo(valor, "fotoFrontal", "FotoFrontal") ?? null,
+		foto_lateral: obtenerCampo(valor, "fotoLateral", "FotoLateral") ?? null,
+		foto_perfil: obtenerCampo(valor, "fotoPerfil", "FotoPerfil") ?? null,
 		capacidad: obtenerCampo(valor, "capacidad", "Capacidad"),
 		ruta_cotidiana: obtenerCampo(valor, "rutaCotidiana", "RutaCotidiana", "ruta_cotidiana") ?? null,
-		foto_vehiculo: obtenerCampo(valor, "foto", "Foto", "foto_vehiculo") ?? null,
 		...(puertas !== undefined && { numero_puertas: puertas }),
 		...(modalidad !== undefined && { modalidad }),
 	};
@@ -147,9 +167,9 @@ export async function POST(request: Request) {
 		return NextResponse.json({ error: "Debes iniciar sesión." }, { status: 401 });
 	}
 
-	let body: unknown;
+	let entrada: FormData;
 	try {
-		body = await request.json();
+		entrada = await request.formData();
 	} catch {
 		return NextResponse.json(
 			{ error: "El cuerpo de solicitud no es válido." },
@@ -157,7 +177,7 @@ export async function POST(request: Request) {
 		);
 	}
 
-	const validacion = validarNuevoVehiculo(body, sesion.id);
+	const validacion = construirFormDataVehiculo(entrada, sesion.id);
 	if (!validacion.valido) {
 		return NextResponse.json({ error: validacion.error }, { status: 400 });
 	}
@@ -170,26 +190,20 @@ export async function POST(request: Request) {
 		);
 	}
 
-	const datos = validacion.datos;
+	const rutaCotidiana = entrada.get("ruta_cotidiana");
 	try {
+		// Sin Content-Type: fetch lo fija con el boundary del multipart.
 		const respuesta = await fetch(`${config.baseUrl}/api/vehiculos`, {
 			method: "POST",
-			headers: { ...config.headers, "Content-Type": "application/json" },
-			body: JSON.stringify({
-				Tipo: datos.tipo,
-				Modelo: datos.modelo,
-				Capacidad: datos.capacidad,
-				Foto: datos.foto_vehiculo,
-				IdUsuario: Number(sesion.id),
-			}),
+			headers: { ...config.headers },
+			body: validacion.datos,
 			cache: "no-store",
 		});
 		if (!respuesta.ok) {
 			return responderErrorApi(respuesta, "No se pudo registrar el vehículo.");
 		}
 
-		const vehiculoApi: unknown = await respuesta.json();
-		const vehiculo = normalizarVehiculo(vehiculoApi);
+		const vehiculo = normalizarVehiculo(await respuesta.json());
 		const idVehiculo = vehiculo?.id_vehiculo;
 		if (!vehiculo || (typeof idVehiculo !== "number" && typeof idVehiculo !== "string")) {
 			console.error("La API no devolvió el identificador del vehículo creado.");
@@ -199,58 +213,11 @@ export async function POST(request: Request) {
 			);
 		}
 
-		const id = encodeURIComponent(String(idVehiculo));
-		const subtipo = datos.tipo === "Automovil"
-			? { ruta: "automoviles", cuerpo: { NumeroPuertas: datos.numero_puertas } }
-			: datos.tipo === "Moto"
-				? { ruta: "motos", cuerpo: { Modalidad: datos.modalidad } }
-				: { ruta: "bicicletas-electricas", cuerpo: {} };
-		const respuestaSubtipo = await fetch(`${config.baseUrl}/api/${subtipo.ruta}/${id}`, {
-			method: "POST",
-			headers: { ...config.headers, "Content-Type": "application/json" },
-			body: JSON.stringify(subtipo.cuerpo),
-			cache: "no-store",
-		});
-
-		if (!respuestaSubtipo.ok) {
-			const errorSubtipo = await respuestaSubtipo.text();
-			try {
-				const respuestaLimpieza = await fetch(`${config.baseUrl}/api/vehiculos/${id}`, {
-					method: "DELETE",
-					headers: { ...config.headers },
-					cache: "no-store",
-				});
-				if (!respuestaLimpieza.ok) {
-					console.error(
-						`No se pudo eliminar el vehículo incompleto ${idVehiculo}:`,
-						await respuestaLimpieza.text(),
-					);
-				}
-			} catch (error) {
-				console.error(`No se pudo limpiar el vehículo incompleto ${idVehiculo}:`, error);
-			}
-			return NextResponse.json(
-				{
-					error: mensajeErrorSeguro(
-						respuestaSubtipo.status,
-						errorSubtipo,
-						"No se pudo registrar el tipo de vehículo.",
-					),
-				},
-				{ status: respuestaSubtipo.status },
-			);
-		}
-
 		return NextResponse.json(
 			{
 				vehiculo: {
 					...vehiculo,
-					ruta_cotidiana: datos.ruta_cotidiana,
-					foto_vehiculo: datos.foto_vehiculo,
-					...(datos.tipo === "Automovil" && {
-						numero_puertas: datos.numero_puertas,
-					}),
-					...(datos.tipo === "Moto" && { modalidad: datos.modalidad }),
+					ruta_cotidiana: typeof rutaCotidiana === "string" && rutaCotidiana ? rutaCotidiana : null,
 				},
 			},
 			{ status: 201 },
@@ -325,10 +292,9 @@ export async function PUT(request: Request) {
 			method: "PUT",
 			headers: { ...config.headers, "Content-Type": "application/json" },
 			body: JSON.stringify({
-				Tipo: datos.tipo,
+				Tipo: TIPO_API_POR_UI[datos.tipo],
 				Modelo: datos.modelo,
 				Capacidad: datos.capacidad,
-				Foto: datos.foto_vehiculo,
 				...(datos.tipo === "Automovil" && { NumeroPuertas: datos.numero_puertas }),
 				...(datos.tipo === "Moto" && { Modalidad: datos.modalidad }),
 			}),
@@ -345,7 +311,6 @@ export async function PUT(request: Request) {
 				tipo: datos.tipo,
 				modelo: datos.modelo,
 				capacidad: datos.capacidad,
-				foto_vehiculo: datos.foto_vehiculo,
 				...(datos.tipo === "Automovil" && { numero_puertas: datos.numero_puertas }),
 				...(datos.tipo === "Moto" && { modalidad: datos.modalidad }),
 			},

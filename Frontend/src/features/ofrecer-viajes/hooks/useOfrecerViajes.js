@@ -9,6 +9,11 @@ import {
 } from "../constants/ofrecerViajes";
 import { obtenerPartesFechaHora } from "../utils/fechaHora";
 import {
+  comprimirImagen,
+  MAX_BYTES_SOLICITUD,
+  tamanoArchivos,
+} from "../utils/comprimirImagen";
+import {
   validarDatosNuevoViaje,
   validarPermisoPublicarViaje,
 } from "../../viajes/validations/viajes";
@@ -264,29 +269,76 @@ export function useOfrecerViajes({ pasajeroSeleccionado, setMensajeAccion }) {
     setErrorVehiculo("");
 
     try {
-      const datosVehiculo = {
-        id_usuario: idUsuario,
-        tipo: vehiculo.tipo,
-        modelo: vehiculo.modelo.trim(),
-        capacidad: Number(vehiculo.capacidad),
-        ruta_cotidiana: vehiculo.rutaCotidiana || null,
-        foto_vehiculo: null,
-        ...(vehiculo.tipo === "Automovil" && {
-          numero_puertas: Number(vehiculo.numeroPuertas),
-        }),
-        ...(vehiculo.tipo === "Moto" && {
-          modalidad: vehiculo.modalidad.trim(),
-        }),
+      // Los archivos viajan como multipart/form-data; los campos de texto, junto a ellos.
+      const datos = new FormData();
+      const agregar = (campo, valor) => {
+        if (valor !== undefined && valor !== null && valor !== "") datos.set(campo, valor);
       };
-      // TODO: enviar archivos (multipart/form-data) cuando el backend lo soporte
+      agregar("tipo", vehiculo.tipo);
+      agregar("marca", vehiculo.marca.trim());
+      agregar("modelo", vehiculo.modelo.trim());
+      agregar("capacidad", vehiculo.capacidad);
+      agregar("ruta_cotidiana", vehiculo.rutaCotidiana);
+      // Las imágenes se reducen antes de enviarlas: Vercel rechaza (413) cuerpos de más de 4,5 MB.
+      const imagenes = {
+        foto_frontal: vehiculo.fotoFrontal,
+        foto_lateral: vehiculo.fotoLateral,
+        foto_perfil: vehiculo.fotoPerfil,
+      };
+      if (vehiculo.tipo === "Automovil" || vehiculo.tipo === "Moto") {
+        imagenes.foto_placa = vehiculo.fotoPlaca;
+        imagenes.foto_licencia = vehiculo.fotoLicencia;
+      }
+      for (const [campo, archivo] of Object.entries(imagenes)) {
+        agregar(campo, await comprimirImagen(archivo));
+      }
+      if (vehiculo.tipo === "Automovil") {
+        agregar("numero_puertas", vehiculo.numeroPuertas);
+      }
+      if (vehiculo.tipo === "Moto") {
+        agregar("modalidad", vehiculo.modalidad?.trim());
+      }
+      if (vehiculo.tipo === "Automovil" || vehiculo.tipo === "Moto") {
+        agregar("doc_tecnomecanica", vehiculo.docTecnomecanica);
+        agregar("doc_soat", vehiculo.docSoat);
+      }
+      if (vehiculo.tipo === "Bicicleta electrica") {
+        agregar("numero_serie", vehiculo.numeroSerie?.trim());
+        agregar("velocidad_maxima", vehiculo.velocidadMaxima);
+        agregar("capacidad_peso", vehiculo.capacidadPeso);
+        for (const campo of ["capacidadVehicular", "casco", "chaleco", "luces"]) {
+          datos.set(
+            campo.replace(/[A-Z]/g, (m) => "_" + m.toLowerCase()),
+            vehiculo[campo] ? "true" : "false",
+          );
+        }
+      }
+      // Si aun comprimidas las imágenes no caben, se reintenta con más compresión.
+      if (tamanoArchivos(datos) > MAX_BYTES_SOLICITUD) {
+        for (const [campo, archivo] of Object.entries(imagenes)) {
+          if (!datos.has(campo)) continue;
+          datos.set(campo, await comprimirImagen(archivo, { maxLado: 1024, calidad: 0.6 }));
+        }
+      }
+      if (tamanoArchivos(datos) > MAX_BYTES_SOLICITUD) {
+        throw new Error(
+          "Los archivos pesan demasiado en conjunto (máximo 4 MB). Reduce el tamaño de los PDF o de las imágenes.",
+        );
+      }
+      // Sin Content-Type: el navegador agrega el boundary del multipart.
       const respuesta = await fetch("/api/vehiculo", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(datosVehiculo),
+        body: datos,
       });
-      const resultado = await respuesta.json();
+      // Los errores de la plataforma (p. ej. 413) llegan como texto plano, no como JSON.
+      const resultado = await respuesta.json().catch(() => ({}));
       if (!respuesta.ok) {
-        throw new Error(resultado.error || "No se pudo guardar el vehículo.");
+        throw new Error(
+          resultado.error ||
+            (respuesta.status === 413
+              ? "Los archivos pesan demasiado. Reduce su tamaño e inténtalo de nuevo."
+              : "No se pudo guardar el vehículo."),
+        );
       }
       if (!resultado.vehiculo?.id_vehiculo) {
         throw new Error("El servidor no confirmó el registro del vehículo.");

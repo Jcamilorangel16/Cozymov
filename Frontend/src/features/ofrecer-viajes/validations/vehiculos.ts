@@ -1,7 +1,9 @@
 // Define tipos y reglas de validación para el registro de vehículos.
 import {
+  ARCHIVOS_VEHICULO,
   MAX_TAMANO_ARCHIVO_BYTES,
   MAX_TAMANO_ARCHIVO_MB,
+  TIPO_API_POR_UI,
   TIPOS_ARCHIVO_PERMITIDOS,
   TIPOS_VEHICULO,
 } from "../constants/vehiculos";
@@ -91,7 +93,6 @@ export function validarNuevoVehiculo(
     modelo,
     capacidad,
     ruta_cotidiana,
-    foto_vehiculo,
     numero_puertas,
     modalidad,
   } = valor;
@@ -132,15 +133,6 @@ export function validarNuevoVehiculo(
     };
   }
   if (
-    foto_vehiculo != null &&
-    (typeof foto_vehiculo !== "string" || foto_vehiculo.length > 255)
-  ) {
-    return {
-      valido: false,
-      error: "foto_vehiculo debe tener máximo 255 caracteres.",
-    };
-  }
-  if (
     tipo === "Automovil" &&
     (typeof numero_puertas !== "number" ||
       ![2, 3, 4, 5].includes(numero_puertas))
@@ -165,11 +157,119 @@ export function validarNuevoVehiculo(
       modelo: modelo.trim(),
       capacidad,
       ruta_cotidiana: typeof ruta_cotidiana === "string" ? ruta_cotidiana : null,
-      foto_vehiculo: typeof foto_vehiculo === "string" ? foto_vehiculo : null,
       ...(tipo === "Automovil" &&
         typeof numero_puertas === "number" && { numero_puertas }),
       ...(tipo === "Moto" &&
         typeof modalidad === "string" && { modalidad: modalidad.trim() }),
     },
   };
+}
+
+const CAMPOS_TEXTO_POR_TIPO: Record<string, string[]> = {
+  Automovil: ["numero_puertas"],
+  Moto: ["modalidad"],
+  "Bicicleta electrica": [
+    "numero_serie",
+    "velocidad_maxima",
+    "capacidad_peso",
+    "capacidad_vehicular",
+    "casco",
+    "chaleco",
+    "luces",
+  ],
+};
+
+const NOMBRE_BACKEND: Record<string, string> = {
+  marca: "Marca",
+  modelo: "Modelo",
+  capacidad: "Capacidad",
+  numero_puertas: "NumeroPuertas",
+  modalidad: "Modalidad",
+  numero_serie: "NumeroSerie",
+  velocidad_maxima: "VelocidadMaxima",
+  capacidad_peso: "CapacidadPeso",
+  capacidad_vehicular: "CapacidadVehicular",
+  casco: "Casco",
+  chaleco: "Chaleco",
+  luces: "Luces",
+  foto_frontal: "FotoFrontal",
+  foto_lateral: "FotoLateral",
+  foto_perfil: "FotoPerfil",
+  foto_placa: "FotoPlaca",
+  foto_licencia: "FotoLicencia",
+  doc_tecnomecanica: "DocTecnomecanica",
+  doc_soat: "DocSoat",
+};
+
+/**
+ * Valida el FormData del navegador y arma el multipart que se envía a la API.
+ * Es un primer filtro (tipo, textos, MIME y tamaño); el servidor valida además
+ * el contenido real de los archivos. Solo reenvía los campos del tipo elegido.
+ * @param entrada FormData recibido del navegador.
+ * @param idUsuarioAutenticado Usuario de la sesión (nunca el del cliente).
+ * @returns FormData para la API o error de validación.
+ */
+export function construirFormDataVehiculo(
+  entrada: FormData,
+  idUsuarioAutenticado: string,
+): ResultadoValidacion<FormData> {
+  if (!validarIdUsuarioVehiculo(idUsuarioAutenticado)) {
+    return {
+      valido: false,
+      error: "La sesión no contiene un identificador de usuario válido.",
+    };
+  }
+
+  const tipo = entrada.get("tipo");
+  if (!esTipoVehiculo(tipo)) {
+    return { valido: false, error: "El tipo de vehículo no es válido." };
+  }
+
+  const texto = (campo: string) => {
+    const valor = entrada.get(campo);
+    return typeof valor === "string" ? valor.trim() : "";
+  };
+
+  for (const [campo, nombre, maximo] of [
+    ["marca", "marca", 100],
+    ["modelo", "modelo", 50],
+  ] as const) {
+    if (!texto(campo) || texto(campo).length > maximo) {
+      return {
+        valido: false,
+        error: `${nombre} es obligatorio y debe tener máximo ${maximo} caracteres.`,
+      };
+    }
+  }
+  const capacidad = Number(texto("capacidad"));
+  if (!Number.isInteger(capacidad) || capacidad < 1 || capacidad > 32767) {
+    return {
+      valido: false,
+      error: "capacidad debe ser un entero positivo (máximo 32767).",
+    };
+  }
+
+  const salida = new FormData();
+  salida.set("IdUsuario", idUsuarioAutenticado.trim());
+  salida.set("Tipo", TIPO_API_POR_UI[tipo]);
+  for (const campo of ["marca", "modelo", "capacidad"]) {
+    salida.set(NOMBRE_BACKEND[campo], texto(campo));
+  }
+  for (const campo of CAMPOS_TEXTO_POR_TIPO[tipo]) {
+    const valor = texto(campo);
+    if (valor) salida.set(NOMBRE_BACKEND[campo], valor);
+  }
+
+  for (const { campo, clase, tipos } of ARCHIVOS_VEHICULO) {
+    if (!(tipos as readonly string[]).includes(tipo)) continue;
+    const archivo = entrada.get(campo);
+    if (!(archivo instanceof File) || archivo.size === 0) {
+      return { valido: false, error: `Falta el archivo ${campo}.` };
+    }
+    const error = validarArchivoVehiculo(archivo, clase);
+    if (error) return { valido: false, error: `${campo}: ${error}` };
+    salida.set(NOMBRE_BACKEND[campo], archivo, archivo.name);
+  }
+
+  return { valido: true, datos: salida };
 }

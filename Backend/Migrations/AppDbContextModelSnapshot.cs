@@ -22,35 +22,6 @@ namespace Backend.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("Backend.Models.Automovil", b =>
-                {
-                    b.Property<long>("IdVehiculo")
-                        .HasColumnType("bigint")
-                        .HasColumnName("id_vehiculo");
-
-                    b.Property<short>("NumeroPuertas")
-                        .HasColumnType("smallint")
-                        .HasColumnName("numero_puertas");
-
-                    b.HasKey("IdVehiculo");
-
-                    b.ToTable("automovil", null, t =>
-                        {
-                            t.HasCheckConstraint("ck_automovil_numero_puertas", "numero_puertas IN (2, 3, 4, 5)");
-                        });
-                });
-
-            modelBuilder.Entity("Backend.Models.Bicicleta", b =>
-                {
-                    b.Property<long>("IdVehiculo")
-                        .HasColumnType("bigint")
-                        .HasColumnName("id_vehiculo");
-
-                    b.HasKey("IdVehiculo");
-
-                    b.ToTable("bicicleta_electrica", (string)null);
-                });
-
             modelBuilder.Entity("Backend.Models.Calificacion", b =>
                 {
                     b.Property<long>("IdCalificacion")
@@ -168,23 +139,6 @@ namespace Backend.Migrations
                     b.HasIndex("IdReceptor");
 
                     b.ToTable("Mensajes", (string)null);
-                });
-
-            modelBuilder.Entity("Backend.Models.Moto", b =>
-                {
-                    b.Property<long>("IdVehiculo")
-                        .HasColumnType("bigint")
-                        .HasColumnName("id_vehiculo");
-
-                    b.Property<string>("Modalidad")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("modalidad");
-
-                    b.HasKey("IdVehiculo");
-
-                    b.ToTable("moto", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Models.Preferencia", b =>
@@ -452,27 +406,55 @@ namespace Backend.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("IdVehiculo"));
 
                     b.Property<int>("Capacidad")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("capacidad");
 
-                    b.Property<string>("Foto")
-                        .HasColumnType("text");
+                    b.Property<string>("FotoFrontal")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("foto_frontal");
+
+                    b.Property<string>("FotoLateral")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("foto_lateral");
+
+                    b.Property<string>("FotoPerfil")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("foto_perfil");
 
                     b.Property<int>("IdUsuario")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("id_usuario");
+
+                    b.Property<string>("Marca")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("marca");
 
                     b.Property<string>("Modelo")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("modelo");
 
                     b.Property<string>("Tipo")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("tipo");
 
                     b.HasKey("IdVehiculo");
 
                     b.HasIndex("IdUsuario");
 
-                    b.ToTable("vehiculo", (string)null);
+                    b.ToTable("vehiculo", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_vehiculo_tipo", "tipo IN ('automovil', 'moto', 'bicicleta_electrica')");
+                        });
+
+                    b.UseTptMappingStrategy();
                 });
 
             modelBuilder.Entity("Backend.Models.Viaje", b =>
@@ -540,24 +522,130 @@ namespace Backend.Migrations
 
             modelBuilder.Entity("Backend.Models.Automovil", b =>
                 {
-                    b.HasOne("Backend.Models.Vehiculo", "Vehiculo")
-                        .WithOne("Automovil")
-                        .HasForeignKey("Backend.Models.Automovil", "IdVehiculo")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.HasBaseType("Backend.Models.Vehiculo");
 
-                    b.Navigation("Vehiculo");
+                    b.Property<string>("DocSoat")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("doc_soat");
+
+                    b.Property<string>("DocTecnomecanica")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("doc_tecnomecanica");
+
+                    b.Property<string>("FotoLicencia")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("foto_licencia");
+
+                    b.Property<string>("FotoPlaca")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("foto_placa");
+
+                    b.Property<short>("NumeroPuertas")
+                        .HasColumnType("smallint")
+                        .HasColumnName("numero_puertas");
+
+                    b.ToTable("automovil", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_vehiculo_tipo", "tipo IN ('automovil', 'moto', 'bicicleta_electrica')");
+
+                            t.HasCheckConstraint("ck_automovil_numero_puertas", "numero_puertas IN (2, 3, 4, 5)");
+                        });
                 });
 
-            modelBuilder.Entity("Backend.Models.Bicicleta", b =>
+            modelBuilder.Entity("Backend.Models.BicicletaElectrica", b =>
                 {
-                    b.HasOne("Backend.Models.Vehiculo", "Vehiculo")
-                        .WithOne("Bicicleta")
-                        .HasForeignKey("Backend.Models.Bicicleta", "IdVehiculo")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.HasBaseType("Backend.Models.Vehiculo");
 
-                    b.Navigation("Vehiculo");
+                    b.Property<decimal?>("CapacidadPeso")
+                        .HasPrecision(6, 2)
+                        .HasColumnType("numeric(6,2)")
+                        .HasColumnName("capacidad_peso");
+
+                    b.Property<bool>("CapacidadVehicular")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("capacidad_vehicular");
+
+                    b.Property<bool>("Casco")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("casco");
+
+                    b.Property<bool>("Chaleco")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("chaleco");
+
+                    b.Property<bool>("Luces")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("luces");
+
+                    b.Property<string>("NumeroSerie")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("numero_serie");
+
+                    b.Property<decimal?>("VelocidadMaxima")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)")
+                        .HasColumnName("velocidad_maxima");
+
+                    b.HasIndex("NumeroSerie")
+                        .IsUnique();
+
+                    b.ToTable("bicicleta_electrica", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_vehiculo_tipo", "tipo IN ('automovil', 'moto', 'bicicleta_electrica')");
+
+                            t.HasCheckConstraint("ck_bicicleta_electrica_capacidad_peso", "capacidad_peso > 0");
+
+                            t.HasCheckConstraint("ck_bicicleta_electrica_velocidad_maxima", "velocidad_maxima > 0");
+                        });
+                });
+
+            modelBuilder.Entity("Backend.Models.Moto", b =>
+                {
+                    b.HasBaseType("Backend.Models.Vehiculo");
+
+                    b.Property<string>("DocSoat")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("doc_soat");
+
+                    b.Property<string>("DocTecnomecanica")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("doc_tecnomecanica");
+
+                    b.Property<string>("FotoLicencia")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("foto_licencia");
+
+                    b.Property<string>("FotoPlaca")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("foto_placa");
+
+                    b.Property<string>("Modalidad")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("modalidad");
+
+                    b.ToTable("moto", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_vehiculo_tipo", "tipo IN ('automovil', 'moto', 'bicicleta_electrica')");
+                        });
                 });
 
             modelBuilder.Entity("Backend.Models.Calificacion", b =>
@@ -615,17 +703,6 @@ namespace Backend.Migrations
                     b.Navigation("Emisor");
 
                     b.Navigation("Receptor");
-                });
-
-            modelBuilder.Entity("Backend.Models.Moto", b =>
-                {
-                    b.HasOne("Backend.Models.Vehiculo", "Vehiculo")
-                        .WithOne("Moto")
-                        .HasForeignKey("Backend.Models.Moto", "IdVehiculo")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Vehiculo");
                 });
 
             modelBuilder.Entity("Backend.Models.Preferencia", b =>
@@ -724,6 +801,33 @@ namespace Backend.Migrations
                     b.Navigation("Usuario");
                 });
 
+            modelBuilder.Entity("Backend.Models.Automovil", b =>
+                {
+                    b.HasOne("Backend.Models.Vehiculo", null)
+                        .WithOne()
+                        .HasForeignKey("Backend.Models.Automovil", "IdVehiculo")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Backend.Models.BicicletaElectrica", b =>
+                {
+                    b.HasOne("Backend.Models.Vehiculo", null)
+                        .WithOne()
+                        .HasForeignKey("Backend.Models.BicicletaElectrica", "IdVehiculo")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Backend.Models.Moto", b =>
+                {
+                    b.HasOne("Backend.Models.Vehiculo", null)
+                        .WithOne()
+                        .HasForeignKey("Backend.Models.Moto", "IdVehiculo")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Backend.Models.ReservaViaje", b =>
                 {
                     b.Navigation("Calificaciones");
@@ -751,15 +855,6 @@ namespace Backend.Migrations
                     b.Navigation("Vehiculos");
 
                     b.Navigation("Viajes");
-                });
-
-            modelBuilder.Entity("Backend.Models.Vehiculo", b =>
-                {
-                    b.Navigation("Automovil");
-
-                    b.Navigation("Bicicleta");
-
-                    b.Navigation("Moto");
                 });
 #pragma warning restore 612, 618
         }

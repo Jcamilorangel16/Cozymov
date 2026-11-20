@@ -56,10 +56,6 @@ namespace Backend.Controllers
                 .AsNoTracking()
                 .Include(v => v.Usuario)
                     .ThenInclude(usuario => usuario.Vehiculos)
-                        .ThenInclude(vehiculo => vehiculo.Automovil)
-                .Include(v => v.Usuario)
-                    .ThenInclude(usuario => usuario.Vehiculos)
-                        .ThenInclude(vehiculo => vehiculo.Moto)
                 .Include(v => v.Ruta)
                 .Where(v => v.Estado.ToLower() == "activo");
 
@@ -138,9 +134,8 @@ namespace Backend.Controllers
                     vehiculo?.Tipo,
                     vehiculo?.Modelo,
                     vehiculo?.Capacidad,
-                    vehiculo?.Foto,
-                    vehiculo?.Automovil?.NumeroPuertas,
-                    vehiculo?.Moto?.Modalidad);
+                    vehiculo is Automovil automovil ? automovil.NumeroPuertas : null,
+                    vehiculo is Moto moto ? moto.Modalidad : null);
             }).ToList();
         }
 

@@ -29,7 +29,7 @@ Contiene la información común:
 - `Tipo`: tipo de vehículo.
 - `Modelo`: modelo del vehículo.
 - `Capacidad`: capacidad de pasajeros o carga.
-- `Foto`: imagen opcional.
+- Fotos y documentos: `FotoFrontal`, `FotoLateral` y `FotoPerfil` (rutas en Supabase Storage). La columna `foto_vehiculo` se eliminó con la migración `QuitarFotoVehiculo`.
 - `IdUsuario`: usuario propietario.
 
 ### Automovil
