@@ -404,6 +404,19 @@ test("pedirTicketAlServidor distingue los errores definitivos de los pasajeros",
 
   await assert.rejects(pedirTicketAlServidor(responder(401, {})), ErrorTicketPermanente);
   await assert.rejects(pedirTicketAlServidor(responder(503, { desactivado: true })), ErrorTicketPermanente);
+  // El motivo del servidor llega al error para poder diagnosticar el 503.
+  const infoOriginal = console.info;
+  const mensajes = [];
+  console.info = (mensaje) => mensajes.push(String(mensaje));
+  try {
+    await assert.rejects(
+      pedirTicketAlServidor(responder(503, { desactivado: true, motivo: "backend_sin_tiempo_real" })),
+      (error) => error instanceof ErrorTicketPermanente && error.motivo === "backend_sin_tiempo_real",
+    );
+  } finally {
+    console.info = infoOriginal;
+  }
+  assert.match(mensajes.join("\n"), /motivo: backend_sin_tiempo_real/);
   for (const status of [429, 500, 502]) {
     await assert.rejects(pedirTicketAlServidor(responder(status, {})), (error) => !(error instanceof ErrorTicketPermanente));
   }

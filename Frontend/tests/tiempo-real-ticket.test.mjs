@@ -45,6 +45,7 @@ let proxy;
 let firmarSesion;
 let ticketRoute;
 let urlHubTiempoReal;
+let evaluarUrlHub;
 let origenWebSocketHub;
 let configuracionNext;
 
@@ -53,13 +54,15 @@ before(async () => {
   ({ proxy } = await import("../proxy.ts"));
   ({ firmarSesion } = await import("../src/lib/auth.ts"));
   ticketRoute = await import("../app/api/tiempo-real/ticket/route.ts");
-  ({ urlHubTiempoReal, origenWebSocketHub } = await import("../src/lib/tiempoRealUrl.ts"));
+  ({ urlHubTiempoReal, origenWebSocketHub, evaluarUrlHub } = await import("../src/lib/tiempoRealUrl.ts"));
   // La CSP se calcula al cargar la configuración, con el VITE_API_URL de arriba.
   configuracionNext = (await import("../next.config.ts")).default;
 });
 
 const originalFetch = globalThis.fetch;
 const errorOriginal = console.error;
+const avisoOriginal = console.warn;
+let avisos;
 const entornoOriginal = { ...process.env };
 let llamadas;
 
@@ -71,11 +74,14 @@ beforeEach(() => {
   cookieSesion = null;
   llamadas = [];
   console.error = () => {};
+  avisos = [];
+  console.warn = (mensaje) => avisos.push(String(mensaje));
 });
 
 afterEach(() => {
   globalThis.fetch = originalFetch;
   console.error = errorOriginal;
+  console.warn = avisoOriginal;
   for (const nombre of ["VITE_API_URL", "INTERNAL_API_KEY", "SIGNALR_HUB_URL", "NODE_ENV"]) {
     if (entornoOriginal[nombre] === undefined) delete process.env[nombre];
     else process.env[nombre] = entornoOriginal[nombre];
@@ -232,4 +238,69 @@ test("csp: connect-src permite solo el WebSocket del backend además del propio 
   const connectSrc = csp.split("; ").find((directiva) => directiva.startsWith("connect-src"));
   assert.match(connectSrc, /^connect-src 'self' wss:\/\/backend\.example( |$)/);
   assert.ok(!connectSrc.includes("*"));
+});
+
+// --- Diagnóstico del 503: cada causa trae su motivo ---
+
+test("diagnóstico: cada configuración del Hub sin URL válida tiene su motivo", () => {
+  const casos = [
+    [{ SIGNALR_HUB_URL: "off", VITE_API_URL: "https://api.example" }, "desactivado"],
+    [{}, "sin_configurar"],
+    [{ VITE_API_URL: "no es una url" }, "url_invalida"],
+    [{ SIGNALR_HUB_URL: "ftp://api.example/hub" }, "url_invalida"],
+    [{ NODE_ENV: "production", VITE_API_URL: "http://api.example" }, "requiere_https"],
+    [{ SIGNALR_HUB_URL: "https://u:p@api.example/hub" }, "url_con_credenciales"],
+  ];
+  for (const [entorno, motivo] of casos) {
+    assert.deepEqual(evaluarUrlHub(entorno), { url: null, motivo }, JSON.stringify(entorno));
+  }
+  assert.deepEqual(evaluarUrlHub({ VITE_API_URL: "https://api.example" }), {
+    url: "https://api.example/hubs/tiempo-real",
+    motivo: null,
+  });
+});
+
+test("diagnóstico: VITE_API_URL con http:// en producción responde 503 «requiere_https» y lo registra", async () => {
+  await iniciarSesion();
+  simularBackend();
+  process.env.NODE_ENV = "production";
+  process.env.VITE_API_URL = "http://backend.example";
+
+  const respuesta = await ticketRoute.POST();
+  const cuerpo = await respuesta.json();
+
+  assert.equal(respuesta.status, 503);
+  assert.equal(cuerpo.desactivado, true);
+  assert.equal(cuerpo.motivo, "requiere_https");
+  assert.equal(llamadas.length, 0);
+  assert.match(avisos.join("\n"), /requiere_https.*https:\/\//);
+  // Ni el navegador ni el log reciben la URL configurada.
+  assert.ok(!JSON.stringify(cuerpo).includes("backend.example"));
+  assert.ok(!avisos.join("\n").includes("backend.example"));
+});
+
+test("diagnóstico: el 404 del backend distingue API sin tiempo real de cuenta borrada", async () => {
+  await iniciarSesion();
+
+  // 404 de enrutamiento (sin cuerpo): la API desplegada no tiene /api/tiempo-real/tickets.
+  simularBackend({ status: 404, cuerpo: "" });
+  let cuerpo = await (await ticketRoute.POST()).json();
+  assert.equal(cuerpo.motivo, "backend_sin_tiempo_real");
+  assert.match(avisos.join("\n"), /despliega una versión con SignalR/);
+
+  // 404 del controlador.
+  simularBackend({ status: 404, cuerpo: "El usuario no existe." });
+  cuerpo = await (await ticketRoute.POST()).json();
+  assert.equal(cuerpo.motivo, "usuario_inexistente");
+});
+
+test("diagnóstico: el 401 del backend indica que INTERNAL_API_KEY no coincide, sin mostrarla", async () => {
+  await iniciarSesion();
+  simularBackend({ status: 401, cuerpo: { error: "No autorizado." } });
+
+  const cuerpo = await (await ticketRoute.POST()).json();
+
+  assert.equal(cuerpo.motivo, "clave_interna_rechazada");
+  assert.match(avisos.join("\n"), /INTERNAL_API_KEY/);
+  assert.ok(!avisos.join("\n").includes(CLAVE_INTERNA));
 });

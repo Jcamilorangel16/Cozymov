@@ -157,6 +157,28 @@ Frontend (Vercel):
   - Si el backend sale primero, nadie conecta hasta publicar el frontend.
 - No hay cambios de esquema ni migraciones.
 
+### Diagnosticar el 503 de `/api/tiempo-real/ticket`
+
+El 503 con `desactivado: true` no rompe nada: el navegador deja de reintentar y sigue
+con consultas HTTP. La respuesta trae `motivo` (pestaña Network del navegador; la
+consola muestra `Tiempo real no disponible (motivo: …)`) y el log de la función en
+Vercel lo explica. Ninguno de los dos incluye URLs ni claves.
+
+| `motivo` | Causa | Solución |
+| --- | --- | --- |
+| `desactivado` | `SIGNALR_HUB_URL=off`. | Quitarla si se quiere tiempo real. |
+| `sin_configurar` | No hay `SIGNALR_HUB_URL` ni `VITE_API_URL` en ese entorno de Vercel (Production o Preview). | Definir `VITE_API_URL` en ese entorno y volver a desplegar. |
+| `url_invalida` | La URL no es `http(s)://` válida. | Corregir la variable. |
+| `requiere_https` | En producción la URL del Hub es `http://` con un anfitrión no local. | Usar la URL `https://` del backend. |
+| `url_con_credenciales` | La URL lleva usuario, contraseña, `?` o `#`. | Dejar solo esquema, anfitrión y ruta. |
+| `clave_interna_rechazada` | El backend respondió 401: `INTERNAL_API_KEY` difiere entre Vercel y el backend. | Igualar la clave en ambos. |
+| `backend_sin_tiempo_real` | El backend respondió 404 sin el texto del controlador: la API desplegada no tiene `/api/tiempo-real/tickets`. | Desplegar el backend con SignalR. |
+| `usuario_inexistente` | La cuenta de la sesión ya no existe. | Cerrar sesión. |
+
+Si el ticket se entrega (200) pero el WebSocket no conecta, revisa
+`TiempoReal__OrigenesPermitidos` en el backend: debe incluir el dominio exacto del
+frontend (cada URL de Preview de Vercel es un origen distinto).
+
 ### Una sola instancia
 
 Los tickets, el registro de conexiones y el reparto de SignalR viven en memoria, igual

@@ -18,7 +18,16 @@ export const ESTADOS = Object.freeze({
 });
 
 /** El servidor no dará ticket aunque se reintente (sin sesión o función desactivada). */
-export class ErrorTicketPermanente extends Error {}
+export class ErrorTicketPermanente extends Error {
+  /**
+   * @param {string} mensaje
+   * @param {string|null} [motivo] Código que envía el servidor con el 503 (diagnóstico).
+   */
+  constructor(mensaje, motivo = null) {
+    super(mensaje);
+    this.motivo = motivo;
+  }
+}
 
 /**
  * Pide al servidor de Next.js un ticket de un solo uso para el Hub. La sesión viaja en la
@@ -33,8 +42,16 @@ export async function pedirTicketAlServidor(pedir = fetch) {
     credentials: "same-origin",
   });
   const datos = await respuesta.json().catch(() => null);
-  if (respuesta.status === 401 || (respuesta.status === 503 && datos?.desactivado === true)) {
-    throw new ErrorTicketPermanente(datos?.error ?? "Tiempo real no disponible.");
+  if (respuesta.status === 401) {
+    throw new ErrorTicketPermanente(datos?.error ?? "Debes iniciar sesión.");
+  }
+  if (respuesta.status === 503 && datos?.desactivado === true) {
+    const motivo = typeof datos.motivo === "string" ? datos.motivo : null;
+    // El 503 es esperado: la app sigue con consultas HTTP. El motivo ayuda a diagnosticarlo.
+    console.info(
+      `Tiempo real no disponible${motivo ? ` (motivo: ${motivo})` : ""}; se usan consultas periódicas.`,
+    );
+    throw new ErrorTicketPermanente(datos?.error ?? "Tiempo real no disponible.", motivo);
   }
   if (!respuesta.ok || typeof datos?.ticket !== "string" || typeof datos?.url !== "string") {
     throw new Error("No se pudo obtener el ticket de tiempo real.");

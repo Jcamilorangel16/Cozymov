@@ -214,9 +214,11 @@ dotnet ef database update --project Backend/Backend.csproj --startup-project Bac
   `Microsoft.AspNetCore.SignalR.Client` 10.0.14, `Microsoft.NET.Test.Sdk`,
   `<Using Include="Xunit" />` y referencia a `Backend/Backend.csproj`. Las
   pruebas de integración (`FabricaTiempoReal`) usan el entorno `Testing` y base
-  en memoria: no aplican migraciones ni leen User Secrets. Último resultado: 133
-  pruebas correctas.
-- El frontend pasó `npm --prefix Frontend run build` y sus 244 pruebas (la de
+  en memoria: no aplican migraciones ni leen User Secrets. Último resultado: 137
+  pruebas correctas. Si Windows (Smart App Control) bloquea `Backend.Tests.dll`
+  con "Una directiva de Control de aplicaciones bloqueó este archivo", ejecuta
+  las pruebas con `--artifacts-path` apuntando a una carpeta fuera de OneDrive.
+- El frontend pasó `npm --prefix Frontend run build` y sus 248 pruebas (la de
   memoria de `tests/registro.test.mjs` falla a veces de forma intermitente).
   ESLint terminó sin errores; informó cuatro advertencias existentes:
   constantes sin uso en `src/lib/mapa.ts`.
@@ -312,6 +314,10 @@ Detalle completo en [`README_TIEMPO_REAL.md`](README_TIEMPO_REAL.md). En resumen
   cada (re)conexión las vistas se resincronizan por HTTP; sin conexión vuelven
   a sus consultas periódicas. La CSP incluye el origen `wss://` del Hub, que se
   calcula al compilar desde `SIGNALR_HUB_URL` o `VITE_API_URL`.
+- Si el ticket no se puede dar, `/api/tiempo-real/ticket` responde 503
+  `desactivado` con un `motivo` (`sin_configurar`, `requiere_https`,
+  `backend_sin_tiempo_real`, `clave_interna_rechazada`, …) y lo explica en el log
+  sin revelar URLs ni claves. Tabla de causas en `README_TIEMPO_REAL.md`.
 - Todo vive en memoria (una sola instancia). Con varias harían falta almacén de
   tickets compartido y backplane.
 
