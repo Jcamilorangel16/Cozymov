@@ -13,6 +13,8 @@ export default function CredencialesRegistro({
   confirmarContrasena,
   setConfirmarContrasena,
   guardando,
+  correoEstaVerificado,
+  verificarCorreo,
   manejarCambio,
   manejarTeclado,
   manejarSiguiente,
@@ -28,17 +30,39 @@ export default function CredencialesRegistro({
           id="correo"
           name="correo"
           type="email"
-          className="form-control"
+          className={`form-control${correoEstaVerificado ? " is-valid" : ""}`}
           placeholder="✉ Sergio.Gomez@universidad.edu.co"
           pattern="[^\s@]+@[^\s@]+\.edu\.co"
           title="Usa un correo institucional que termine en .edu.co"
           maxLength={150}
+          aria-describedby="correo-ayuda"
           value={datosUsuario.correo}
           onChange={manejarCambio}
           onKeyDown={(e) => manejarTeclado(e, "correo")}
           ref={asignarRef("correo")}
           disabled={guardando}
         />
+        {correoEstaVerificado ? (
+          <div id="correo-ayuda" className="form-text text-success" role="status">
+            <i className="bi bi-patch-check-fill" aria-hidden="true" /> Correo verificado con Google.
+          </div>
+        ) : (
+          <>
+            <button
+              id="verificar-correo"
+              type="button"
+              className="btn btn-google w-100 mt-2"
+              onClick={verificarCorreo}
+              ref={asignarRef("verificar-correo")}
+              disabled={guardando}
+            >
+              <i className="bi bi-google" aria-hidden="true" /> Verificar con Google
+            </button>
+            <div id="correo-ayuda" className="form-text">
+              Obligatorio: entra con la cuenta de Google de este correo para confirmar que es tuyo.
+            </div>
+          </>
+        )}
       </div>
       <div className="col-md-6">
         <label htmlFor="contrasena" className="form-label">Contraseña</label>

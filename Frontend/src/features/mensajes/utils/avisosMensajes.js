@@ -32,6 +32,26 @@ export function detectarMensajesNuevos(previos, actuales) {
 }
 
 /**
+ * Suma a la referencia de la consulta anterior un mensaje del que ya se avisó por tiempo
+ * real, para que la siguiente consulta periódica no vuelva a avisar de él.
+ * @param {Array<{id: string, noLeidos?: number}>|null} previos Referencia actual (null si aún no hay).
+ * @param {{id: string, nombre: string, texto: string}} chat Remitente del mensaje recibido.
+ * @returns {Array<object>|null} Referencia actualizada.
+ */
+export function registrarMensajeAvisado(previos, chat) {
+  if (!Array.isArray(previos)) return previos;
+  const id = String(chat.id);
+  if (!previos.some((previo) => String(previo.id) === id)) {
+    return [...previos, { id, nombre: chat.nombre, ultimoMensaje: chat.texto, noLeidos: 1 }];
+  }
+  return previos.map((previo) =>
+    String(previo.id) === id
+      ? { ...previo, ultimoMensaje: chat.texto, noLeidos: (Number(previo.noLeidos) || 0) + 1 }
+      : previo,
+  );
+}
+
+/**
  * Recorta un mensaje largo para mostrarlo en una notificación.
  * @param {string} texto Contenido del mensaje.
  * @returns {string} Texto de hasta 120 caracteres, con «…» si se cortó.

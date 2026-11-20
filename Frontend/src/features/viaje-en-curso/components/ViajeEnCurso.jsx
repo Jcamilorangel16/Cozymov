@@ -3,8 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Swal from "sweetalert2";
+import { useTiempoReal } from "../../../hooks/useTiempoReal";
 import { formatearFecha, formatearPrecioViaje } from "../../buscar-viajes/utils/viajes";
+import { avisoCambioViaje } from "../utils/cambiosViaje";
 import { viajeEnTrayecto } from "../utils/trayecto";
+import { textoCompartirViaje, urlCompartirWhatsApp } from "../utils/compartir";
 import {
   borrarLlegada,
   debeAutofinalizar,
@@ -22,11 +25,19 @@ const MapaRuta = dynamic(() => import("./MapaRuta"), {
 
 /**
  * Presenta la reserva activa del usuario.
- * @param {{onNavigate: (id: string) => void, onMensajeConductor?: (id: string, nombre: string) => void}} props
+ * @param {{onNavigate: (id: string) => void, onMensajeConductor?: (id: string, nombre: string) => void, onViajeActivo?: (activo: boolean) => void}} props
+ *   `onViajeActivo` informa si la vista muestra un viaje activo (el menú pide
+ *   confirmación para salir mientras lo haya).
  * @returns Vista del viaje en curso o un estado de carga/error/vacío.
  */
-export default function ViajeEnCurso({ onNavigate, onMensajeConductor }) {
+export default function ViajeEnCurso({ onNavigate, onMensajeConductor, onViajeActivo }) {
   const [viaje, setViaje] = useState(null);
+
+  useEffect(() => {
+    onViajeActivo?.(Boolean(viaje));
+  }, [viaje, onViajeActivo]);
+  // Al salir de la vista ya no hay viaje mostrado.
+  useEffect(() => () => onViajeActivo?.(false), [onViajeActivo]);
   // "pasajero" con reserva propia; "conductor" cuando atiende una solicitud que aceptó.
   const [rol, setRol] = useState("pasajero");
   const [cargando, setCargando] = useState(true);
@@ -38,6 +49,33 @@ export default function ViajeEnCurso({ onNavigate, onMensajeConductor }) {
   const finalizandoRef = useRef(false);
   // Se actualiza cada medio minuto: al llegar la hora de salida el viaje pasa a estar en trayecto.
   const [ahora, setAhora] = useState(() => Date.now());
+
+  // Lo que se muestra ahora, para saber qué cambió cuando avisa el servidor.
+  const mostradoRef = useRef({ viaje: null, rol: "pasajero" });
+  useEffect(() => {
+    mostradoRef.current = { viaje, rol };
+  });
+  // Evento pendiente de aplicar cuando llegue la consulta, y si esa consulta es en segundo plano.
+  const cambioPendienteRef = useRef(null);
+  const enSegundoPlanRef = useRef(false);
+
+  // Si la otra parte sale, finaliza, cancela o edita el viaje, se vuelve a consultar por HTTP.
+  useTiempoReal(
+    {
+      ViajeActualizado: (evento) => {
+        const { viaje: actual, rol: rolActual } = mostradoRef.current;
+        cambioPendienteRef.current = { motivo: evento.motivo, rolAnterior: actual ? rolActual : null };
+        enSegundoPlanRef.current = true;
+        setIntento((actualIntento) => actualIntento + 1);
+      },
+    },
+    {
+      alResincronizar: () => {
+        enSegundoPlanRef.current = true;
+        setIntento((actualIntento) => actualIntento + 1);
+      },
+    },
+  );
 
   // Momento (ms) en que el GPS confirmó la llegada; desde ahí corre la hora para el cierre automático.
   const [llegada, setLlegada] = useState(null);
@@ -163,7 +201,9 @@ export default function ViajeEnCurso({ onNavigate, onMensajeConductor }) {
 
   useEffect(() => {
     const controlador = new AbortController();
-    fetch("/api/viajes/en-curso", { signal: controlador.signal })
+    const enSegundoPlan = enSegundoPlanRef.current;
+    enSegundoPlanRef.current = false;
+    fetch("/api/viajes/en-curso", { signal: controlador.signal, cache: "no-store" })
       .then(async (respuesta) => {
         const resultado = await respuesta.json();
         if (!respuesta.ok) {
@@ -172,19 +212,31 @@ export default function ViajeEnCurso({ onNavigate, onMensajeConductor }) {
         if (!("viaje" in resultado)) {
           throw new Error("La respuesta del servidor no contiene tu viaje.");
         }
+        const rolNuevo = resultado.rol === "conductor" ? "conductor" : "pasajero";
         setViaje(resultado.viaje);
-        setRol(resultado.rol === "conductor" ? "conductor" : "pasajero");
+        setRol(rolNuevo);
         // Si el pasajero ya había llegado antes de recargar, retoma la hora de espera.
         setLlegada(
           resultado.viaje && resultado.rol !== "conductor"
             ? leerLlegada(window.localStorage, resultado.viaje.id_viaje)
             : null,
         );
+
+        const cambio = cambioPendienteRef.current;
+        cambioPendienteRef.current = null;
+        const aviso = cambio
+          ? avisoCambioViaje({ ...cambio, rolNuevo: resultado.viaje ? rolNuevo : null })
+          : null;
+        // No se tapa otra ventana abierta (p. ej. una confirmación en curso).
+        if (aviso && !Swal.isVisible()) {
+          void Swal.fire({ icon: aviso.icono, title: aviso.titulo, text: aviso.texto });
+        }
       })
       .catch((errorConsulta) => {
-        if (errorConsulta.name !== "AbortError") {
-          setError(errorConsulta.message || "No se pudo consultar tu viaje en curso.");
-        }
+        if (errorConsulta.name === "AbortError") return;
+        // Una actualización en segundo plano que falla no reemplaza lo que ya se ve.
+        if (enSegundoPlan) return;
+        setError(errorConsulta.message || "No se pudo consultar tu viaje en curso.");
       })
       .finally(() => {
         if (!controlador.signal.aborted) setCargando(false);
@@ -246,6 +298,16 @@ export default function ViajeEnCurso({ onNavigate, onMensajeConductor }) {
   const fechaSalida = viaje.fecha_salida
     ? `${formatearFecha(viaje.fecha_salida)}${viaje.hora_salida ? ` · ${viaje.hora_salida}` : ""}`
     : "No disponible";
+  const estadoViaje = esConductor
+    ? "Solicitud aceptada"
+    : llegada !== null
+      ? "Llegaste"
+      : enTrayecto
+        ? "En trayecto"
+        : "Reserva confirmada";
+  const enlaceWhatsApp = esConductor
+    ? ""
+    : urlCompartirWhatsApp(textoCompartirViaje(viaje, estadoViaje));
   const escribirAlConductor = () => {
     onMensajeConductor?.(String(idContraparte), nombreContraparte);
     onNavigate("mensajes");
@@ -343,15 +405,7 @@ export default function ViajeEnCurso({ onNavigate, onMensajeConductor }) {
           <h3 className="mb-0 letra-contenido">
             {esConductor ? "Viaje que estás atendiendo" : "Tu viaje en curso"}
           </h3>
-          <span className="estado-viaje">
-            {esConductor
-              ? "Solicitud aceptada"
-              : llegada !== null
-                ? "Llegaste"
-                : enTrayecto
-                  ? "En trayecto"
-                  : "Reserva confirmada"}
-          </span>
+          <span className="estado-viaje">{estadoViaje}</span>
         </div>
         <section className="panel-lateral viaje-resumen-ruta">
           <small className="texto-secundario">Tu ruta</small>
@@ -404,6 +458,15 @@ export default function ViajeEnCurso({ onNavigate, onMensajeConductor }) {
             </>
           ) : (
             <>
+              <a
+                href={enlaceWhatsApp}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-whatsapp w-100 mt-2"
+                aria-label="Compartir la información del viaje por WhatsApp (se abre en otra pestaña)"
+              >
+                <i className="bi bi-whatsapp" aria-hidden="true" /> Compartir viaje por WhatsApp
+              </a>
               <button
                 type="button"
                 className="btn btn-success w-100 mt-2"

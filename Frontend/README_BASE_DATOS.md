@@ -17,6 +17,7 @@ En Vercel configura:
 | `ORIGENES_PERMITIDOS` | Opcional. Orígenes adicionales (separados por coma) desde los que se aceptan POST/PUT/DELETE a `/api`. Solo hace falta si un proxy cambia el `Host` y las solicitudes legítimas reciben 403. |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Credenciales OAuth de Google para el inicio de sesión con Google. |
 | `GOOGLE_REDIRECT_URI` | URL de callback registrada en Google. En producción: `https://cozymov.com/api/auth/google/callback`. Su origen también se usa para las redirecciones finales. Si falta, se usa el origen de la solicitud. |
+| `SIGNALR_HUB_URL` | Opcional. URL pública del Hub de tiempo real; por defecto `VITE_API_URL` + `/hubs/tiempo-real`. `off` lo desactiva (la app sigue con sus consultas HTTP). Solo HTTPS en producción. Entra en la CSP al compilar: si cambia, vuelve a desplegar. Ver [`README_TIEMPO_REAL.md`](../README_TIEMPO_REAL.md). |
 
 En Google Cloud Console (APIs y servicios > Credenciales > ID de cliente OAuth)
 agrega `https://cozymov.com` en "Orígenes autorizados de JavaScript" y
@@ -31,6 +32,13 @@ de `SESSION_SECRET`. No requiere variables nuevas.
 
 En el backend, `Cors__OrigenesPermitidos` es opcional y está vacío por defecto:
 el navegador no llama a la API directamente, así que no hace falta abrir CORS.
+
+La única conexión directa del navegador al backend es el WebSocket de tiempo
+real (`/hubs/tiempo-real`, fuera de `/api`), autenticado con un ticket de un solo
+uso que entrega Next.js. Configura en el backend `TiempoReal__OrigenesPermitidos`
+con el origen público del frontend (por ejemplo `https://cozymov.com`); si queda
+vacío, ningún navegador conecta y la app usa solo HTTP. No hace falta CORS: el
+cliente usa WebSocket sin negociación.
 
 Al desplegar una versión del backend que protege rutas nuevas, publica primero
 el frontend: una versión anterior que no envíe la clave en esas rutas recibiría

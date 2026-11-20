@@ -4,6 +4,9 @@ using Backend.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Backend.Middleware;
+using Backend.TiempoReal;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Http.Connections;
 using System.Net;
 using System.Threading.RateLimiting;
 
@@ -72,6 +75,23 @@ builder.Services.AddCors(options =>
 builder.Services.AddScoped<IPasswordHasher<Usuarios>,PasswordHasher<Usuarios>>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<LimitadorIntentos>();
+
+// Tiempo real (SignalR). El navegador conecta al Hub directamente con un ticket de un
+// solo uso que pide el servidor de Next.js tras verificar la sesión. Ver README_TIEMPO_REAL.md.
+builder.Services.AddSingleton(
+    OpcionesTiempoReal.Desde(builder.Configuration, builder.Environment.IsDevelopment()));
+builder.Services.AddSingleton<AlmacenTicketsTiempoReal>();
+builder.Services.AddSingleton<RegistroConexionesTiempoReal>();
+builder.Services.AddSingleton<INotificadorTiempoReal, NotificadorTiempoReal>();
+builder.Services.AddAuthentication()
+    .AddScheme<AuthenticationSchemeOptions, TicketTiempoRealHandler>(TicketTiempoReal.Esquema, null);
+builder.Services.AddSignalR(options =>
+{
+    options.EnableDetailedErrors = false;
+    // El navegador no invoca métodos: solo envía el saludo inicial y pings.
+    options.MaximumReceiveMessageSize = 4 * 1024;
+    options.MaximumParallelInvocationsPerClient = 1;
+});
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -108,6 +128,13 @@ builder.Services.AddRateLimiter(options =>
 
 var app = builder.Build();
 
+if (!app.Environment.IsDevelopment() &&
+    app.Services.GetRequiredService<OpcionesTiempoReal>().OrigenesPermitidos.Count == 0)
+{
+    app.Logger.LogWarning(
+        "TiempoReal:OrigenesPermitidos está vacío: ningún navegador podrá conectar al Hub y la aplicación usará solo HTTP.");
+}
+
 // En desarrollo, garantiza que la base configurada contiene también las tablas
 // añadidas por las migraciones. En producción deben aplicarse en el despliegue.
 if (app.Environment.IsDevelopment())
@@ -134,6 +161,9 @@ app.Use(async (context, next) =>
     await next(context);
 });
 
+// Solo la aplicación web puede abrir el WebSocket del Hub (los WebSockets no usan CORS).
+app.UseMiddleware<OrigenTiempoRealMiddleware>();
+
 app.UseRouting();
 app.UseMiddleware<InternalApiMiddleware>();
 app.UseRateLimiter();
@@ -154,9 +184,21 @@ app.UseCors();
 
 app.UseHttpsRedirection();
 
+// La autenticación solo actúa en la ruta del Hub (ticket); el resto de la API se
+// sigue autorizando con X-Internal-Api-Key.
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Solo WebSockets: el cliente conecta sin negociación, así que no hace falta abrir CORS
+// ni aceptar transportes de respaldo. Si el WebSocket no está disponible, la app sigue
+// con sus consultas HTTP. La conexión se cierra cuando vence su autenticación.
+app.MapHub<TiempoRealHub>(TiempoRealHub.Ruta, options =>
+{
+    options.Transports = HttpTransportType.WebSockets;
+    options.CloseOnAuthenticationExpiration = true;
+});
 
 
 app.Run();

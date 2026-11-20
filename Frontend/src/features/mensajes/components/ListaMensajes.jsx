@@ -49,7 +49,12 @@ export default function ListaMensajes({ mensajes, usuarioActualId, nombreContact
                 {horaLocalMensaje(msg.fecha_hora) ||
                   (msg.fecha_hora ? "Hora no disponible" : "Enviando...")}
                 {esMio && horaLocalMensaje(msg.fecha_hora) && (
-                  <i className="bi bi-check2 ms-1" aria-hidden="true" />
+                  <i
+                    className={`bi ${msg.leido ? "bi-check2-all msj-leido" : "bi-check2"} ms-1`}
+                    role="img"
+                    aria-label={msg.leido ? "Leído" : "Enviado"}
+                    title={msg.leido ? "Leído" : "Enviado"}
+                  />
                 )}
               </div>
             </div>

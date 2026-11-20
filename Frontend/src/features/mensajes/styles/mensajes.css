@@ -200,6 +200,11 @@
   opacity: 0.75;
 }
 
+/* Doble marca: el destinatario ya abrió la conversación. */
+.msj-leido {
+  font-weight: 700;
+}
+
 .msj-form {
   display: flex;
   gap: 10px;

@@ -76,3 +76,15 @@
   letter-spacing: 1px;
    color: #4c5c71;
 }
+/* Botón para compartir el viaje: verde de WhatsApp con contraste AA para el texto blanco. */
+.btn-whatsapp {
+  --bs-btn-color: #fff;
+  --bs-btn-bg: #0f7a3f;
+  --bs-btn-border-color: #0f7a3f;
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: #0c6634;
+  --bs-btn-hover-border-color: #0c6634;
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: #0a5a2d;
+  --bs-btn-active-border-color: #0a5a2d;
+}

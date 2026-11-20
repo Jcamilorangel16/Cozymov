@@ -1,8 +1,19 @@
 import { validarRegistroUsuario } from "../../../src/features/register/validations/usuarios.ts";
 import { cabecerasIpCliente, getBackendApiConfig } from "../../../src/lib/backendApi.ts";
+import {
+  cabeceraBorrarCorreoVerificado,
+  COOKIE_CORREO_VERIFICADO,
+  leerCookie,
+  verificarCorreoVerificado,
+} from "../../../src/lib/verificacionCorreo.ts";
 
 export const runtime = "nodejs";
 
+/**
+ * Crea una cuenta con contraseña. Exige la cookie `correo_verificado`, que el
+ * callback de Google firma cuando el usuario entra con el mismo correo que
+ * escribió en el formulario.
+ */
 export async function POST(request: Request) {
   let body: unknown;
 
@@ -15,6 +26,19 @@ export async function POST(request: Request) {
   const validacion = validarRegistroUsuario(body);
   if (!validacion.valido) {
     return Response.json({ error: validacion.error }, { status: 400 });
+  }
+
+  const verificado = await verificarCorreoVerificado(
+    leerCookie(request, COOKIE_CORREO_VERIFICADO),
+  );
+  if (!verificado || verificado.correo !== validacion.datos.correo) {
+    return Response.json(
+      {
+        error: "Verifica tu correo con Google antes de crear la cuenta.",
+        verificar: true,
+      },
+      { status: 403 },
+    );
   }
 
   const config = getBackendApiConfig();
@@ -48,6 +72,7 @@ export async function POST(request: Request) {
         Contrasena: usuario.contrasena,
         rol: "usuario",
         ocupacion: usuario.ocupacion,
+        Telefono: usuario.telefono,
       }),
       cache: "no-store",
     });
@@ -76,7 +101,11 @@ export async function POST(request: Request) {
     }
 
     // No reenviar al navegador la respuesta del backend, que incluye la contraseña.
-    return Response.json({ mensaje: "Registro exitoso." }, { status: 201 });
+    // La verificación es de un solo uso: se borra al crear la cuenta.
+    return Response.json(
+      { mensaje: "Registro exitoso." },
+      { status: 201, headers: { "Set-Cookie": cabeceraBorrarCorreoVerificado() } },
+    );
   } catch (error) {
     console.error("No se pudo conectar con la API de registro:", error);
     return Response.json({ error: "No se pudo conectar con la API." }, { status: 502 });

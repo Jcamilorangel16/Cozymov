@@ -28,6 +28,17 @@ public class UsuariosController : ControllerBase
         @"^[^\s@]+@[^\s@]+\.[^\s@]+$",
         System.Text.RegularExpressions.RegexOptions.Compiled);
 
+    /// <summary>
+    /// Celular colombiano: 10 dígitos que empiezan por 3, con o sin el indicativo 57.
+    /// Se usa [0-9] y no \d para no aceptar dígitos Unicode de otros sistemas.
+    /// </summary>
+    private static readonly System.Text.RegularExpressions.Regex FormatoCelular = new(
+        @"^(?:\+?57)?(3[0-9]{9})$",
+        System.Text.RegularExpressions.RegexOptions.Compiled);
+
+    private const string ErrorCelular =
+        "Ingresa un celular colombiano válido: 10 dígitos que empiezan por 3.";
+
     public UsuariosController(
         AppDbContext context,
         IPasswordHasher<Usuarios> passwordHasher,
@@ -149,6 +160,12 @@ public class UsuariosController : ControllerBase
             return BadRequest("La contraseña es obligatoria.");
         }
 
+        var telefono = NormalizarCelular(usuarios.Telefono);
+        if (telefono == null)
+        {
+            return BadRequest(ErrorCelular);
+        }
+
         if (await _context.Usuarios.AnyAsync(
                 usuario => usuario.Correo.ToLower() == correo,
                 cancellationToken))
@@ -177,6 +194,8 @@ public class UsuariosController : ControllerBase
             ocupacion = usuarios.ocupacion
         };
         usuario.Contrasena = _passwordHasher.HashPassword(usuario, usuarios.Contrasena);
+        // Se inserta con la cuenta en el mismo SaveChanges: no queda una cuenta sin celular.
+        usuario.Telefonos.Add(new TelefonoUsuario { Telefono = telefono });
 
         _context.Usuarios.Add(usuario);
 
@@ -450,6 +469,12 @@ public class UsuariosController : ControllerBase
             return BadRequest("Completa todos los campos.");
         }
 
+        var telefono = NormalizarCelular(datos.Telefono);
+        if (telefono == null)
+        {
+            return BadRequest(ErrorCelular);
+        }
+
         // Misma política que el registro normal: entre 8 y 72 bytes (límite de bcrypt/Identity).
         var contrasena = datos.Contrasena ?? string.Empty;
         if (contrasena.Length < 8 || System.Text.Encoding.UTF8.GetByteCount(contrasena) > 72)
@@ -492,6 +517,7 @@ public class UsuariosController : ControllerBase
         };
         // Con esta contraseña la cuenta también puede entrar sin Google.
         usuario.Contrasena = _passwordHasher.HashPassword(usuario, contrasena);
+        usuario.Telefonos.Add(new TelefonoUsuario { Telefono = telefono });
 
         _context.Usuarios.Add(usuario);
         _context.IdentidadesExternas.Add(new IdentidadExterna
@@ -557,4 +583,17 @@ public class UsuariosController : ControllerBase
     private static string NormalizarCorreo(string? correo) =>
         string.Concat((correo ?? string.Empty).Where(caracter => !char.IsWhiteSpace(caracter)))
             .ToLowerInvariant();
+
+    /// <summary>
+    /// Normaliza un celular colombiano al formato E.164 (+573001234567), ignorando
+    /// espacios, guiones, puntos y paréntesis.
+    /// </summary>
+    /// <returns>El número normalizado, o null si no es un celular válido.</returns>
+    private static string? NormalizarCelular(string? telefono)
+    {
+        var limpio = string.Concat((telefono ?? string.Empty)
+            .Where(caracter => !char.IsWhiteSpace(caracter) && caracter is not ('-' or '.' or '(' or ')')));
+        var coincidencia = FormatoCelular.Match(limpio);
+        return coincidencia.Success ? "+57" + coincidencia.Groups[1].Value : null;
+    }
 }

@@ -1,9 +1,8 @@
-// Renderiza los datos personales y la ocupación del formulario de registro.
+// Renderiza los datos personales, la ocupación y el celular del formulario de registro.
 
 /**
  * Muestra los campos personales del nuevo usuario.
- * @param {object} props Valores y controladores de los campos personales;
- *   `campoTrasOcupacion` es el campo que recibe el foco al pulsar Enter en Ocupación.
+ * @param {object} props Valores y controladores de los campos personales.
  * @returns Campos personales del formulario.
  */
 export default function DatosPersonalesRegistro({
@@ -16,7 +15,6 @@ export default function DatosPersonalesRegistro({
   setOcupacionOtro,
   manejarCambio,
   manejarTeclado,
-  campoTrasOcupacion = "correo",
 }) {
   return (
     <>
@@ -123,7 +121,7 @@ export default function DatosPersonalesRegistro({
           onKeyDown={(evento) => {
             if (evento.key === "Enter") {
               evento.preventDefault();
-              enfocarCampo(tipoOcupacion === "otro" ? "ocupacionOtro" : campoTrasOcupacion);
+              enfocarCampo(tipoOcupacion === "otro" ? "ocupacionOtro" : "telefono");
             }
           }}
           ref={asignarRef("tipoOcupacion")}
@@ -149,6 +147,28 @@ export default function DatosPersonalesRegistro({
             aria-label="Especifica tu ocupación"
           />
         )}
+      </div>
+      <div className="col-md-6">
+        <label htmlFor="telefono" className="form-label">Celular</label>
+        <input
+          id="telefono"
+          name="telefono"
+          type="tel"
+          inputMode="tel"
+          autoComplete="tel-national"
+          className="form-control"
+          maxLength={20}
+          placeholder="300 123 4567"
+          required
+          aria-describedby="telefono-ayuda"
+          value={datosUsuario.telefono}
+          onChange={manejarCambio}
+          onKeyDown={(e) => manejarTeclado(e, "telefono")}
+          ref={asignarRef("telefono")}
+        />
+        <div id="telefono-ayuda" className="form-text">
+          Obligatorio. Lo usaremos para recuperar tu contraseña.
+        </div>
       </div>
     </>
   );

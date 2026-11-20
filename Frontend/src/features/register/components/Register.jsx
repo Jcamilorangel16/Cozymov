@@ -1,17 +1,49 @@
 // Compone las secciones personales y de credenciales del registro.
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Swal from "sweetalert2";
 import DatosPersonalesRegistro from "./DatosPersonalesRegistro";
 import CredencialesRegistro from "./CredencialesRegistro";
 import BotonGoogle from "../../../components/BotonGoogle";
-import { useRegisterForm } from "../hooks/useRegisterForm";
+import { useBorradorRegistro, useRegisterForm } from "../hooks/useRegisterForm";
 import "../styles/register.css";
 
 /**
  * Presenta el formulario de creación de cuenta.
+ * @param {{correoVerificado?: string, errorVerificacion?: string}} props Correo
+ *   que Google ya confirmó y error del último intento de verificación.
  * @returns Interfaz de registro de usuario.
  */
-export default function Register() {
+export default function Register({ correoVerificado = "", errorVerificacion = "" }) {
+  const router = useRouter();
+  const borrador = useBorradorRegistro();
+
+  // Al volver de Google: muestra el error, si lo hubo, y limpia la URL.
+  useEffect(() => {
+    if (errorVerificacion) void Swal.fire({ icon: "error", text: errorVerificacion });
+    if (window.location.search) router.replace("/register");
+  }, [errorVerificacion, router]);
+
+  // El borrador solo existe en el navegador: al leerlo tras la hidratación,
+  // la key remonta el formulario con lo que el usuario había escrito.
+  return (
+    <FormularioRegistro
+      key={borrador ? "con-borrador" : "sin-borrador"}
+      correoVerificado={correoVerificado}
+      borrador={borrador}
+    />
+  );
+}
+
+/**
+ * Formulario de registro; sus valores iniciales salen del borrador y del
+ * correo verificado.
+ * @param {{correoVerificado: string, borrador: object|null}} props Valores iniciales.
+ * @returns Tarjeta con el formulario.
+ */
+function FormularioRegistro({ correoVerificado, borrador }) {
   const {
     asignarRef,
     enfocarCampo,
@@ -23,10 +55,12 @@ export default function Register() {
     confirmarContrasena,
     setConfirmarContrasena,
     guardando,
+    correoEstaVerificado,
+    verificarCorreo,
     manejarCambio,
     manejarTeclado,
     manejarSiguiente,
-  } = useRegisterForm();
+  } = useRegisterForm({ correoVerificado, borrador });
 
   return (
     <div className="register-page d-flex justify-content-center align-items-center min-vh-100">
@@ -63,6 +97,8 @@ export default function Register() {
             confirmarContrasena={confirmarContrasena}
             setConfirmarContrasena={setConfirmarContrasena}
             guardando={guardando}
+            correoEstaVerificado={correoEstaVerificado}
+            verificarCorreo={verificarCorreo}
             manejarCambio={manejarCambio}
             manejarTeclado={manejarTeclado}
             manejarSiguiente={manejarSiguiente}

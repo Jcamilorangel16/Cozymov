@@ -10,7 +10,7 @@ import "../styles/register.css";
 
 /**
  * Formulario obligatorio para completar el registro con Google: datos
- * personales y una contraseña para entrar también sin Google.
+ * personales, celular y una contraseña para entrar también sin Google.
  * @param {{correo: string, nombres: object}} props Correo verificado por Google
  *   y nombres para precargar.
  * @returns Interfaz para completar el registro.
@@ -56,7 +56,6 @@ export default function CompletarRegistroGoogle({ correo, nombres }) {
             setOcupacionOtro={setOcupacionOtro}
             manejarCambio={manejarCambio}
             manejarTeclado={manejarTeclado}
-            campoTrasOcupacion="contrasena"
           />
           <div className="col-md-6">
             <label htmlFor="correo-google" className="form-label">Correo Institucional</label>
