@@ -5,12 +5,8 @@ using System.Text.Json.Serialization;
 namespace Backend.Models;
 
 [Table("moto")]
-public class Moto
+public class Moto : Vehiculo
 {
-    [Key]
-    [Column("id_vehiculo")]
-    public long IdVehiculo { get; set; }
-
     [Required]
     [StringLength(20)]
     public string Modalidad { get; set; } = string.Empty;
@@ -30,7 +26,4 @@ public class Moto
     [StringLength(500)]
     [Column("doc_soat")]
     public string? DocSoat { get; set; }
-
-    [JsonIgnore]
-    public Vehiculo Vehiculo { get; set; } = null!;
 }

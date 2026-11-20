@@ -13,14 +13,13 @@ public class AutomovilsController(AppDbContext context) : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Automovil>>> GetAutomoviles()
     {
-        return await context.Automoviles.Include(a => a.Vehiculo).ToListAsync();
+        return await context.Automoviles.ToListAsync();
     }
 
     [HttpGet("{idVehiculo:long}")]
     public async Task<ActionResult<Automovil>> GetAutomovil(long idVehiculo)
     {
         var automovil = await context.Automoviles
-            .Include(a => a.Vehiculo)
             .FirstOrDefaultAsync(a => a.IdVehiculo == idVehiculo);
 
         return automovil is null ? NotFound() : automovil;

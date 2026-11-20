@@ -5,11 +5,8 @@ using System.Text.Json.Serialization;
 namespace Backend.Models;
 
 [Table("bicicleta_electrica")]
-public class Bicicleta
+public class BicicletaElectrica : Vehiculo
 {
-    [Column("id_vehiculo")]
-    public long IdVehiculo { get; set; }
-
     [Required]
     [StringLength(100)]
     [Column("numero_serie")]
@@ -35,6 +32,4 @@ public class Bicicleta
     [Column("luces")]
     public bool Luces { get; set; }
 
-    [JsonIgnore]
-    public Vehiculo Vehiculo { get; set; } = null!;
 }

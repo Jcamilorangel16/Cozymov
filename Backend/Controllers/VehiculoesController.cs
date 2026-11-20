@@ -14,9 +14,6 @@ public class VehiculoesController(AppDbContext context) : ControllerBase
     public async Task<ActionResult<IEnumerable<VehiculoResponseDto>>> GetVehiculos()
     {
         var vehiculos = await context.Vehiculos
-            .Include(v => v.Automovil)
-            .Include(v => v.Moto)
-            .Include(v => v.Bicicleta)
             .ToListAsync();
 
         return vehiculos.Select(ToResponseDto).ToList();
@@ -26,9 +23,6 @@ public class VehiculoesController(AppDbContext context) : ControllerBase
     public async Task<ActionResult<VehiculoResponseDto>> GetVehiculo(long idVehiculo)
     {
         var vehiculo = await context.Vehiculos
-            .Include(v => v.Automovil)
-            .Include(v => v.Moto)
-            .Include(v => v.Bicicleta)
             .FirstOrDefaultAsync(v => v.IdVehiculo == idVehiculo);
 
         return vehiculo is null ? NotFound() : ToResponseDto(vehiculo);
@@ -61,8 +55,6 @@ public class VehiculoesController(AppDbContext context) : ControllerBase
     public async Task<IActionResult> PutVehiculo(long idVehiculo, VehiculoUpdateDto dto)
     {
         var vehiculo = await context.Vehiculos
-            .Include(v => v.Automovil)
-            .Include(v => v.Moto)
             .FirstOrDefaultAsync(v => v.IdVehiculo == idVehiculo);
         if (vehiculo is null)
         {
@@ -80,22 +72,22 @@ public class VehiculoesController(AppDbContext context) : ControllerBase
             return BadRequest("El modelo y la capacidad son obligatorios.");
         }
 
-        if (vehiculo.Automovil is not null && dto.NumeroPuertas is { } puertas)
+        if (vehiculo is Automovil automovil && dto.NumeroPuertas is { } puertas)
         {
             if (puertas is < 2 or > 5)
             {
                 return BadRequest("El número de puertas debe estar entre 2 y 5.");
             }
-            vehiculo.Automovil.NumeroPuertas = puertas;
+            automovil.NumeroPuertas = puertas;
         }
 
-        if (vehiculo.Moto is not null && !string.IsNullOrWhiteSpace(dto.Modalidad))
+        if (vehiculo is Moto moto && !string.IsNullOrWhiteSpace(dto.Modalidad))
         {
             if (dto.Modalidad.Length > 20)
             {
                 return BadRequest("La modalidad admite máximo 20 caracteres.");
             }
-            vehiculo.Moto.Modalidad = dto.Modalidad;
+            moto.Modalidad = dto.Modalidad;
         }
 
         // IdUsuario no se toca: la propiedad no se puede reasignar.
@@ -125,15 +117,45 @@ public class VehiculoesController(AppDbContext context) : ControllerBase
     {
         IdVehiculo = vehiculo.IdVehiculo,
         Tipo = vehiculo.Tipo,
+        Marca = vehiculo.Marca,
         Modelo = vehiculo.Modelo,
         Capacidad = vehiculo.Capacidad,
         Foto = vehiculo.Foto,
+        FotoFrontal = vehiculo.FotoFrontal,
+        FotoLateral = vehiculo.FotoLateral,
+        FotoPerfil = vehiculo.FotoPerfil,
         IdUsuario = vehiculo.IdUsuario,
-        Automovil = vehiculo.Automovil is null
-            ? null
-            : new AutomovilResponseDto { NumeroPuertas = vehiculo.Automovil.NumeroPuertas },
-        Moto = vehiculo.Moto is null
-            ? null
-            : new MotoResponseDto { Modalidad = vehiculo.Moto.Modalidad }
+        Automovil = vehiculo is Automovil automovil
+            ? new AutomovilResponseDto
+            {
+                NumeroPuertas = automovil.NumeroPuertas,
+                FotoPlaca = automovil.FotoPlaca,
+                FotoLicencia = automovil.FotoLicencia,
+                DocTecnomecanica = automovil.DocTecnomecanica,
+                DocSoat = automovil.DocSoat
+            }
+            : null,
+        Moto = vehiculo is Moto moto
+            ? new MotoResponseDto
+            {
+                Modalidad = moto.Modalidad,
+                FotoPlaca = moto.FotoPlaca,
+                FotoLicencia = moto.FotoLicencia,
+                DocTecnomecanica = moto.DocTecnomecanica,
+                DocSoat = moto.DocSoat
+            }
+            : null,
+        BicicletaElectrica = vehiculo is BicicletaElectrica bicicleta
+            ? new BicicletaElectricaResponseDto
+            {
+                NumeroSerie = bicicleta.NumeroSerie,
+                VelocidadMaxima = bicicleta.VelocidadMaxima,
+                CapacidadPeso = bicicleta.CapacidadPeso,
+                CapacidadVehicular = bicicleta.CapacidadVehicular,
+                Casco = bicicleta.Casco,
+                Chaleco = bicicleta.Chaleco,
+                Luces = bicicleta.Luces
+            }
+            : null
     };
 }

@@ -48,21 +48,45 @@ namespace Backend.DTOs
     {
         public long IdVehiculo { get; set; }
         public string Tipo { get; set; } = string.Empty;
+        public string? Marca { get; set; }
         public string Modelo { get; set; } = string.Empty;
         public int Capacidad { get; set; }
         public string? Foto { get; set; }
+        public string? FotoFrontal { get; set; }
+        public string? FotoLateral { get; set; }
+        public string? FotoPerfil { get; set; }
         public int IdUsuario { get; set; }
         public AutomovilResponseDto? Automovil { get; set; }
         public MotoResponseDto? Moto { get; set; }
+        public BicicletaElectricaResponseDto? BicicletaElectrica { get; set; }
     }
 
     public class AutomovilResponseDto
     {
         public short NumeroPuertas { get; set; }
+        public string? FotoPlaca { get; set; }
+        public string? FotoLicencia { get; set; }
+        public string? DocTecnomecanica { get; set; }
+        public string? DocSoat { get; set; }
     }
 
     public class MotoResponseDto
     {
         public string Modalidad { get; set; } = string.Empty;
+        public string? FotoPlaca { get; set; }
+        public string? FotoLicencia { get; set; }
+        public string? DocTecnomecanica { get; set; }
+        public string? DocSoat { get; set; }
+    }
+
+    public class BicicletaElectricaResponseDto
+    {
+        public string NumeroSerie { get; set; } = string.Empty;
+        public decimal VelocidadMaxima { get; set; }
+        public decimal CapacidadPeso { get; set; }
+        public bool CapacidadVehicular { get; set; }
+        public bool Casco { get; set; }
+        public bool Chaleco { get; set; }
+        public bool Luces { get; set; }
     }
 }
