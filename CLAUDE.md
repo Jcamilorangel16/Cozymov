@@ -214,9 +214,9 @@ dotnet ef database update --project Backend/Backend.csproj --startup-project Bac
   `Microsoft.AspNetCore.SignalR.Client` 10.0.14, `Microsoft.NET.Test.Sdk`,
   `<Using Include="Xunit" />` y referencia a `Backend/Backend.csproj`. Las
   pruebas de integración (`FabricaTiempoReal`) usan el entorno `Testing` y base
-  en memoria: no aplican migraciones ni leen User Secrets. Último resultado: 138
+  en memoria: no aplican migraciones ni leen User Secrets. Último resultado: 133
   pruebas correctas.
-- El frontend pasó `npm --prefix Frontend run build` y sus 245 pruebas (la de
+- El frontend pasó `npm --prefix Frontend run build` y sus 244 pruebas (la de
   memoria de `tests/registro.test.mjs` falla a veces de forma intermitente).
   ESLint terminó sin errores; informó cuatro advertencias existentes:
   constantes sin uso en `src/lib/mapa.ts`.
@@ -363,22 +363,20 @@ dirección inversa.
 
 ### Perfil público
 
-- `Usuarios` tiene `foto_perfil` (text, data URL) y `descripcion` (160),
-  ambas opcionales (migración `PerfilPublico`). No hay almacenamiento de
-  archivos: el navegador recorta la foto a 256 px JPEG
-  (`prepararFotoPerfil` en `src/features/perfil-publico/utils/perfil.js`).
+- Solo lectura y **sin cambios de esquema**: usa columnas que ya existen en
+  `main`. (Una versión anterior añadía `foto_perfil` y `descripcion` a
+  `Usuarios` con la migración `PerfilPublico`; se retiró porque la base
+  desplegada sigue el esquema de `main` y las consultas daban 500.)
 - `GET /api/perfiles/{id}` (`PerfilesController`) devuelve nombre (primer
-  nombre y apellido), ocupación, descripción, foto, fecha de registro,
-  promedio y total de calificaciones, viajes publicados, viajes completados
-  como pasajero, vehículos (tipo y modelo) y las 20 reseñas más recientes
-  **anónimas** (solo puntuación y comentario). Nunca cédula, correo,
-  teléfonos, edad ni evaluador. `PUT` cambia foto y descripción; solo acepta
-  data URLs JPEG/PNG/WEBP de ≤ 350 000 caracteres cuya firma coincide con el
-  tipo (no SVG).
-- Proxy `Frontend/app/api/perfil`: `GET ?id=N` (sin id, el propio) y `PUT`
-  siempre sobre el usuario de la sesión. Modal:
-  `src/features/perfil-publico/components/PerfilPublicoModal.jsx`; edición en
-  Configuración > Tu perfil (nombre y ocupación son de solo lectura).
+  nombre y apellido), ocupación, fecha de registro, promedio y total de
+  calificaciones, viajes publicados, viajes completados como pasajero,
+  vehículos (tipo y modelo) y las 20 reseñas más recientes **anónimas** (solo
+  puntuación y comentario). Nunca cédula, correo, teléfonos, edad ni evaluador.
+- Proxy `Frontend/app/api/perfil` (solo GET, `?id=N`; sin id, el propio).
+  Modal: `src/features/perfil-publico/components/PerfilPublicoModal.jsx`, con
+  la inicial del nombre como avatar. La foto y la descripción de
+  Configuración > Tu perfil siguen sin guardarse (`TODO` en `TuPerfil.jsx`):
+  guardarlas exige una migración acordada con `main`.
 
 ### Calificaciones anónimas
 

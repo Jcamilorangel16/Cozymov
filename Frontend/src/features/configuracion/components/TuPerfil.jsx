@@ -3,17 +3,12 @@
 // Formulario con los datos públicos del usuario.
 import { useRef, useState } from "react";
 import Image from "next/image";
-import { validarFoto } from "../validations/configuracion";
+import { validarPerfil, validarFoto } from "../validations/configuracion";
 import { usePerfil } from "../context/PerfilContext";
 import CampoFormulario from "./CampoFormulario";
-import {
-  MAX_DESCRIPCION,
-  prepararFotoPerfil,
-} from "../../perfil-publico/utils/perfil";
 
 /**
- * Permite editar la foto y la descripción que otros usuarios ven en el perfil
- * público. El nombre y la ocupación son los del registro.
+ * Permite editar foto, nombre, programa y descripción.
  * @returns Sección de perfil.
  */
 export default function TuPerfil() {
@@ -39,19 +34,30 @@ export default function TuPerfil() {
 }
 
 function FormularioPerfil({ perfil, setPerfil, errorPerfil }) {
-  // Al volver a esta sección se parte de lo ya guardado en el contexto.
-  const inicial = { descripcion: perfil.descripcion ?? "", foto: perfil.fotoUrl ?? null };
 
-  const [descripcion, setDescripcion] = useState(inicial.descripcion);
-  const [foto, setFoto] = useState(inicial.foto); // data URL o null
-  const [guardado, setGuardado] = useState(inicial);
+  // Al volver a esta sección se parte de lo ya guardado en el contexto.
+  // TODO: programa y descripción vendrán del backend.
+  const inicial = {
+    nombre: perfil.nombre,
+    programa: "",
+    descripcion: "",
+  };
+  const fotoInicial = perfil.fotoUrl ? { archivo: null, url: perfil.fotoUrl } : null;
+
+  const [datos, setDatos] = useState(inicial);
+  const [foto, setFoto] = useState(fotoInicial); // { archivo, url } o null
+  const [guardado, setGuardado] = useState({ datos: inicial, foto: fotoInicial });
   const [errores, setErrores] = useState({});
   const [mensaje, setMensaje] = useState("");
-  const [guardando, setGuardando] = useState(false);
 
   const inputFoto = useRef(null);
 
-  const elegirFoto = async (e) => {
+  const cambiar = (e) => {
+    setDatos((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    setMensaje("");
+  };
+
+  const elegirFoto = (e) => {
     const archivo = e.target.files?.[0];
     e.target.value = ""; // permite volver a elegir el mismo archivo
     if (!archivo) return;
@@ -61,13 +67,10 @@ function FormularioPerfil({ perfil, setPerfil, errorPerfil }) {
       setErrores((prev) => ({ ...prev, foto: error }));
       return;
     }
-    try {
-      // Se guarda reducida a 256 px para que pese pocos KB.
-      setFoto(await prepararFotoPerfil(archivo));
-      setErrores((prev) => ({ ...prev, foto: undefined }));
-    } catch {
-      setErrores((prev) => ({ ...prev, foto: "No se pudo leer la imagen." }));
-    }
+    // La URL no se revoca: la barra superior también la usa.
+    const url = URL.createObjectURL(archivo);
+    setFoto({ archivo, url });
+    setErrores((prev) => ({ ...prev, foto: undefined }));
     setMensaje("");
   };
 
@@ -78,65 +81,41 @@ function FormularioPerfil({ perfil, setPerfil, errorPerfil }) {
   };
 
   const restablecer = () => {
-    setDescripcion(guardado.descripcion);
+    setDatos(guardado.datos);
     setFoto(guardado.foto);
     setErrores({});
     setMensaje("");
   };
 
-  const guardar = async (e) => {
+  const guardar = (e) => {
     e.preventDefault();
-    if (descripcion.trim().length > MAX_DESCRIPCION) {
-      setErrores({ descripcion: `Máximo ${MAX_DESCRIPCION} caracteres.` });
-      return;
-    }
-    setErrores({});
-    setMensaje("");
-    setGuardando(true);
-    try {
-      const respuesta = await fetch("/api/perfil", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ descripcion: descripcion.trim() || null, fotoPerfil: foto }),
-      });
-      if (!respuesta.ok) {
-        const datos = await respuesta.json().catch(() => null);
-        throw new Error(datos?.error || "No se pudo guardar tu perfil.");
-      }
-      const nuevo = { descripcion: descripcion.trim(), foto };
-      setDescripcion(nuevo.descripcion);
-      setGuardado(nuevo);
-      setPerfil((prev) => ({ ...prev, fotoUrl: foto, descripcion: nuevo.descripcion }));
-      setMensaje("Perfil actualizado.");
-    } catch (error) {
-      setErrores({ general: error.message || "No se pudo guardar tu perfil." });
-    } finally {
-      setGuardando(false);
-    }
+    const nuevos = validarPerfil(datos);
+    setErrores(nuevos);
+    if (Object.keys(nuevos).length > 0) return;
+    // TODO: enviar `datos` y `foto?.archivo` al backend (FormData).
+    setGuardado({ datos, foto });
+    setPerfil({ nombre: datos.nombre, fotoUrl: foto?.url ?? null });
+    setMensaje("Perfil actualizado.");
   };
 
   return (
     <form onSubmit={guardar} noValidate>
       <h5 className="config-titulo">Tu perfil</h5>
-      <p className="config-ayuda">
-        Esto es lo que ven otros usuarios cuando abren tu perfil desde un viaje o una solicitud,
-        junto con tus reseñas.
-      </p>
+      <p className="config-ayuda">Esto es lo que ven otros usuarios al reservar contigo.</p>
       {errorPerfil && <div className="alert alert-danger" role="alert">{errorPerfil}</div>}
-      {errores.general && <div className="alert alert-danger" role="alert">{errores.general}</div>}
 
       <div className="config-foto">
         <div className="config-avatar" aria-hidden={!foto}>
           {foto ? (
             <Image
-              src={foto}
+              src={foto.url}
               alt="Tu foto de perfil"
               width={72}
               height={72}
               unoptimized
             />
           ) : (
-            perfil.nombre.trim().charAt(0).toUpperCase() || "A"
+            datos.nombre.trim().charAt(0).toUpperCase() || "A"
           )}
         </div>
 
@@ -173,32 +152,24 @@ function FormularioPerfil({ perfil, setPerfil, errorPerfil }) {
         </div>
       </div>
 
-      <CampoFormulario id="nombre" label="Nombre" value={perfil.nombre} readOnly disabled />
-      {perfil.ocupacion && (
-        <CampoFormulario id="ocupacion" label="Ocupación" value={perfil.ocupacion} readOnly disabled />
-      )}
+      <CampoFormulario id="nombre" label="Nombre completo" value={datos.nombre} onChange={cambiar} error={errores.nombre} />
+      <CampoFormulario id="programa" label="Programa o facultad" value={datos.programa} onChange={cambiar} placeholder="Ej. Ingeniería de Sistemas" />
       <CampoFormulario
         id="descripcion"
         as="textarea"
         rows={3}
-        label={`Descripción (${descripcion.length}/${MAX_DESCRIPCION})`}
-        value={descripcion}
-        onChange={(e) => {
-          setDescripcion(e.target.value);
-          setMensaje("");
-        }}
+        label={`Descripción (${datos.descripcion.length}/160)`}
+        value={datos.descripcion}
+        onChange={cambiar}
         error={errores.descripcion}
-        maxLength={MAX_DESCRIPCION}
         placeholder="Cuéntales algo breve sobre ti"
       />
 
       <div className="config-acciones">
-        <button type="button" className="btn btn-outline-secondary" onClick={restablecer} disabled={guardando}>
+        <button type="button" className="btn btn-outline-secondary" onClick={restablecer}>
           Restablecer
         </button>
-        <button type="submit" className="btn btn-primary" disabled={guardando}>
-          {guardando ? "Guardando..." : "Guardar cambios"}
-        </button>
+        <button type="submit" className="btn btn-primary">Guardar cambios</button>
         {mensaje && <span className="config-ok" role="status">{mensaje}</span>}
       </div>
     </form>

@@ -9,9 +9,6 @@ namespace Backend.Tests;
 
 public sealed class PerfilPublicoTests
 {
-    // JPEG mínimo: solo importa la firma FF D8 FF.
-    private const string FotoJpeg = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQ==";
-
     private static AppDbContext NewContext() => new(
         new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
@@ -83,6 +80,16 @@ public sealed class PerfilPublicoTests
     }
 
     [Fact]
+    public void UsuariosNoTieneColumnasQueMainNoDefine()
+    {
+        // El perfil público se adaptó al esquema de main: no añade columnas a Usuarios.
+        var propiedades = typeof(Usuarios).GetProperties().Select(p => p.Name).ToHashSet();
+
+        Assert.DoesNotContain("FotoPerfil", propiedades);
+        Assert.DoesNotContain("Descripcion", propiedades);
+    }
+
+    [Fact]
     public async Task PerfilInexistenteDevuelve404()
     {
         await using var context = NewContext();
@@ -90,50 +97,5 @@ public sealed class PerfilPublicoTests
         var resultado = await new PerfilesController(context).GetPerfil(99);
 
         Assert.IsType<NotFoundResult>(resultado.Result);
-    }
-
-    [Fact]
-    public async Task PutGuardaDescripcionYFotoYLuegoLasQuita()
-    {
-        await using var context = await ContextoConHistorial();
-        var controller = new PerfilesController(context);
-
-        var guardar = await controller.PutPerfil(1, new PerfilPublicoUpdateDto
-        {
-            Descripcion = "  Viajo a la U todos los días  ", FotoPerfil = FotoJpeg
-        });
-        Assert.IsType<NoContentResult>(guardar);
-        var usuario = await context.Usuarios.FindAsync(1);
-        Assert.Equal("Viajo a la U todos los días", usuario!.Descripcion);
-        Assert.Equal(FotoJpeg, usuario.FotoPerfil);
-
-        await controller.PutPerfil(1, new PerfilPublicoUpdateDto { Descripcion = " ", FotoPerfil = null });
-        Assert.Null(usuario.Descripcion);
-        Assert.Null(usuario.FotoPerfil);
-    }
-
-    [Theory]
-    [InlineData("https://ejemplo.com/foto.png")]
-    [InlineData("data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=")]
-    // Declara PNG pero el contenido es JPEG.
-    [InlineData("data:image/png;base64,/9j/4AAQSkZJRgABAQ==")]
-    [InlineData("data:image/jpeg;base64,no-es-base64!")]
-    public async Task PutRechazaFotosNoValidas(string foto)
-    {
-        await using var context = await ContextoConHistorial();
-
-        var resultado = await new PerfilesController(context)
-            .PutPerfil(1, new PerfilPublicoUpdateDto { FotoPerfil = foto });
-
-        Assert.IsType<BadRequestObjectResult>(resultado);
-        Assert.Null((await context.Usuarios.FindAsync(1))!.FotoPerfil);
-    }
-
-    [Fact]
-    public void FotoDemasiadoGrandeNoEsValida()
-    {
-        var foto = "data:image/jpeg;base64,/9j/" + new string('A', PerfilesController.MaximoLongitudFoto);
-
-        Assert.False(PerfilesController.EsFotoValida(foto));
     }
 }
