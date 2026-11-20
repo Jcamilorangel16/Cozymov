@@ -9,6 +9,7 @@ import {
   buscarMapTiler,
   calcularRutaOsrm,
   distanciaMetros,
+  esTrayectoUniversitario,
   indicePuntoCercano,
   obtenerRutaPrecargada,
 } from "../../../lib/mapa";
@@ -68,6 +69,8 @@ const formatearDistancia = (metros) =>
  * @returns Mapa interactivo con ruta y seguimiento de ubicación.
  */
 export default function MapaRuta({ origen, destino, onLlegada }) {
+  // Solo se trazan rutas desde o hacia la universidad; las demás muestran una explicación.
+  const universitario = esTrayectoUniversitario(origen, destino);
   const [ruta, setRuta] = useState(null);
   const [error, setError] = useState("");
   const [posicion, setPosicion] = useState(null);
@@ -84,6 +87,7 @@ export default function MapaRuta({ origen, destino, onLlegada }) {
 
   // 1. Usa la ruta precargada barrio ⇄ universidad; si no existe, geocodifica (MapTiler) y calcula (OSRM).
   useEffect(() => {
+    if (!universitario) return undefined;
     const controlador = new AbortController();
     (async () => {
       try {
@@ -121,11 +125,11 @@ export default function MapaRuta({ origen, destino, onLlegada }) {
       }
     })();
     return () => controlador.abort();
-  }, [origen, destino]);
+  }, [origen, destino, universitario]);
 
   // 2. Sigue la ubicación del dispositivo.
   useEffect(() => {
-    if (!navigator.geolocation) return undefined;
+    if (!universitario || !navigator.geolocation) return undefined;
     const id = navigator.geolocation.watchPosition(
       ({ coords }) => {
         setAvisoGps("");
@@ -136,7 +140,7 @@ export default function MapaRuta({ origen, destino, onLlegada }) {
       { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 },
     );
     return () => navigator.geolocation.clearWatch(id);
-  }, []);
+  }, [universitario]);
 
   // 3. Avance sobre la ruta y detección de llegada.
   const progreso = useMemo(() => {
@@ -165,6 +169,16 @@ export default function MapaRuta({ origen, destino, onLlegada }) {
     }
   }, [progreso]);
 
+  if (!universitario) {
+    return (
+      <div className="alert alert-info mb-0" role="status">
+        <strong>Este recorrido no se muestra en el mapa.</strong> Cozymov está diseñada solo
+        para viajes hacia la universidad y desde la universidad; por eso todavía no tenemos
+        las rutas entre los demás barrios. Esta función se implementará en una proyección a
+        futuro. Mientras tanto, puedes seguir tu viaje con normalidad.
+      </div>
+    );
+  }
   if (error) {
     return (
       <div className="alert alert-warning" role="alert">
