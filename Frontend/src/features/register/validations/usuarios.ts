@@ -16,6 +16,20 @@ const EXPRESION_CORREO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
 const EXPRESION_CORREO_INSTITUCIONAL = /^[^\s@]+@[^\s@]+\.edu\.co$/i;
 const ERROR_INCOMPLETO = "Completa todos los campos.";
 const ERROR_LONGITUD = "Uno o más campos superan la longitud permitida.";
+const ERROR_CELULAR = "Ingresa un celular colombiano válido: 10 dígitos que empiezan por 3.";
+// Celular colombiano con o sin el indicativo 57. Misma regla que el backend.
+const EXPRESION_CELULAR = /^(?:\+?57)?(3[0-9]{9})$/;
+
+/**
+ * Normaliza un celular colombiano al formato E.164, ignorando espacios,
+ * guiones, puntos y paréntesis.
+ * @param telefono Número tal como lo escribió el usuario.
+ * @returns El número como +573001234567, o null si no es un celular válido.
+ */
+export function normalizarCelular(telefono: string): string | null {
+  const coincidencia = EXPRESION_CELULAR.exec(telefono.replace(/[\s\-.()]/g, ""));
+  return coincidencia ? `+57${coincidencia[1]}` : null;
+}
 
 /**
  * Comprueba que el valor sea un objeto JSON no nulo ni una lista.
@@ -62,13 +76,15 @@ function validarDatosPersonales(
     segundoApellido,
     edad,
     ocupacion,
+    telefono,
   } = valor;
 
   if (
     !esTextoNoVacio(idUsuario) ||
     !esTextoNoVacio(primerNombre) ||
     !esTextoNoVacio(primerApellido) ||
-    !esTextoNoVacio(ocupacion)
+    !esTextoNoVacio(ocupacion) ||
+    !esTextoNoVacio(telefono)
   ) {
     return { valido: false, error: ERROR_INCOMPLETO };
   }
@@ -118,6 +134,11 @@ function validarDatosPersonales(
     };
   }
 
+  const celular = normalizarCelular(telefono);
+  if (!celular) {
+    return { valido: false, error: ERROR_CELULAR };
+  }
+
   return {
     valido: true,
     datos: {
@@ -128,6 +149,7 @@ function validarDatosPersonales(
       segundoApellido: segundoApellidoNormalizado,
       edad,
       ocupacion: ocupacionNormalizada,
+      telefono: celular,
     },
   };
 }
@@ -154,6 +176,33 @@ export function validarRegistroUsuario(
     return personales;
   }
 
+  const correoValidado = validarCorreoRegistro(correo);
+  if (!correoValidado.valido) {
+    return correoValidado;
+  }
+
+  const errorClave = errorContrasena(contrasena);
+  if (errorClave) {
+    return { valido: false, error: errorClave };
+  }
+
+  return {
+    valido: true,
+    datos: { ...personales.datos, correo: correoValidado.datos, contrasena },
+  };
+}
+
+/**
+ * Normaliza el correo del registro (sin espacios, en minúsculas) y comprueba
+ * su formato: en producción debe terminar en .edu.co.
+ * @param correo Correo tal como lo escribió el usuario.
+ * @returns Correo normalizado o error de validación.
+ */
+export function validarCorreoRegistro(correo: unknown): ResultadoValidacion<string> {
+  if (!esTextoNoVacio(correo)) {
+    return { valido: false, error: ERROR_INCOMPLETO };
+  }
+
   const correoNormalizado = correo.replace(/\s+/g, "").toLowerCase();
   if (correoNormalizado.length > 150) {
     return { valido: false, error: ERROR_LONGITUD };
@@ -171,15 +220,7 @@ export function validarRegistroUsuario(
     };
   }
 
-  const errorClave = errorContrasena(contrasena);
-  if (errorClave) {
-    return { valido: false, error: errorClave };
-  }
-
-  return {
-    valido: true,
-    datos: { ...personales.datos, correo: correoNormalizado, contrasena },
-  };
+  return { valido: true, datos: correoNormalizado };
 }
 
 /**
@@ -248,6 +289,7 @@ export function validarFormularioRegistro(
       "correo",
       "contrasena",
       "ocupacion",
+      "telefono",
     ]) ||
     confirmarContrasena === ""
   ) {
@@ -283,6 +325,7 @@ export function validarFormularioRegistroGoogle(
       "idUsuario",
       "edad",
       "ocupacion",
+      "telefono",
       "contrasena",
     ]) ||
     confirmarContrasena === ""

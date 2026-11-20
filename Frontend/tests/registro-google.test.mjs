@@ -74,6 +74,7 @@ const datosFormulario = {
   segundoApellido: "Pérez",
   edad: 21,
   ocupacion: "estudiante",
+  telefono: "310-555-0000",
   contrasena: "ClaveGoogle1",
 };
 
@@ -159,7 +160,7 @@ test("el formulario de Google exige todos los campos y que las contraseñas coin
   );
 
   const incompleto = "Por favor, completa todos los campos.";
-  for (const campo of ["primerNombre", "primerApellido", "idUsuario", "edad", "ocupacion", "contrasena"]) {
+  for (const campo of ["primerNombre", "primerApellido", "idUsuario", "edad", "ocupacion", "telefono", "contrasena"]) {
     assert.deepEqual(
       validaciones.validarFormularioRegistroGoogle({ ...completa, [campo]: "" }, "ClaveGoogle1"),
       { valido: false, error: incompleto },
@@ -230,6 +231,7 @@ test("crea la cuenta con el correo de Google e inicia sesión", async () => {
   assert.equal(cuerpo.Correo, pendiente.correo);
   assert.equal(cuerpo.Sub, pendiente.sub);
   assert.equal(cuerpo.Cedula, "1065123456");
+  assert.equal(cuerpo.Telefono, "+573105550000");
   assert.equal(cuerpo.Contrasena, "ClaveGoogle1");
 
   const cookies = respuesta.headers.getSetCookie();

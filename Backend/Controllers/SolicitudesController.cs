@@ -1,6 +1,7 @@
 using Backend.Data;
 using Backend.DTOs;
 using Backend.Models;
+using Backend.TiempoReal;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,8 +9,10 @@ namespace Backend.Controllers;
 
 [Route("api/solicitudes")]
 [ApiController]
-public class SolicitudesController(AppDbContext context) : ControllerBase
+public class SolicitudesController(AppDbContext context, INotificadorTiempoReal? notificador = null) : ControllerBase
 {
+    private readonly INotificadorTiempoReal _notificador = notificador ?? NotificadorTiempoRealNulo.Instancia;
+
     /// <summary>
     /// Estado del viaje que se crea al aceptar una solicitud. No es "activo", así que
     /// no aparece en la búsqueda pública de viajes ni cuenta como viaje publicado.
@@ -201,6 +204,13 @@ public class SolicitudesController(AppDbContext context) : ControllerBase
         // (Si tuviera pasajeros activos, ya se habría rechazado la solicitud arriba.)
         await RetirarViajesPublicados(dto.IdConductor, cancellationToken);
 
+        // Quien acepta pasa a ser conductor: su propia solicitud como pasajero (pendiente)
+        // deja de tener sentido y se elimina en el mismo guardado.
+        var propiasPendientes = await context.Solicitudes
+            .Where(s => s.IdUsuario == dto.IdConductor && s.Estado == Solicitud.EstadoPendiente)
+            .ToListAsync(cancellationToken);
+        context.Solicitudes.RemoveRange(propiasPendientes);
+
         var viaje = new Viaje
         {
             IdUsuario = dto.IdConductor,
@@ -235,6 +245,11 @@ public class SolicitudesController(AppDbContext context) : ControllerBase
         {
             return Conflict("La solicitud ya fue aceptada por otro conductor.");
         }
+
+        // Ya guardado: el pasajero pasa a «En curso» sin esperar a la siguiente consulta.
+        _notificador.PublicarViajeActualizado(
+            new ViajeActualizadoEvento(VersionEventos.Actual, MotivoViaje.SolicitudAceptada, viaje.IdViaje),
+            [dto.IdConductor, solicitud.IdUsuario]);
 
         viaje.Usuario = conductor;
         return Ok(CrearReservaDto(reserva, viaje));

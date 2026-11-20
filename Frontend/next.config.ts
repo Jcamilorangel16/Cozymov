@@ -1,6 +1,12 @@
 import type { NextConfig } from "next";
+import { origenWebSocketHub, urlHubTiempoReal } from "./src/lib/tiempoRealUrl";
 
 const esDesarrollo = process.env.NODE_ENV !== "production";
+
+// El navegador abre el WebSocket de tiempo real directamente contra el backend (las
+// funciones de Vercel no mantienen WebSockets). Se calcula al compilar: si cambian
+// VITE_API_URL o SIGNALR_HUB_URL hay que volver a desplegar.
+const origenHub = origenWebSocketHub(urlHubTiempoReal(process.env));
 
 // Política de contenido. Next.js inyecta scripts en línea y Bootstrap,
 // SweetAlert2 y Leaflet escriben estilos en línea, así que ambos se permiten;
@@ -12,7 +18,7 @@ const politicaContenido = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
-  `connect-src 'self'${esDesarrollo ? " ws: wss:" : ""}`,
+  `connect-src 'self'${origenHub ? ` ${origenHub}` : ""}${esDesarrollo ? " ws: wss:" : ""}`,
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",

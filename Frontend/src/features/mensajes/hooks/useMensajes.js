@@ -1,5 +1,16 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useTiempoReal } from "../../../hooks/useTiempoReal";
+import {
+  fusionarMensaje,
+  marcarLeidosHasta,
+  mensajeDesdeEvento,
+  perteneceAConversacion,
+  reconciliarMensajes,
+} from "../utils/tiempoRealMensajes";
+
+/** Sin tiempo real, la conversación abierta se vuelve a consultar con esta frecuencia. */
+const INTERVALO_RESPALDO_MS = 4000;
 
 async function pedir(url, opciones) {
   const res = await fetch(url, opciones);
@@ -20,6 +31,12 @@ export function useMensajes(usuarioActualId, contactoInicial = null) {
   const [contactoSeleccionado, setContactoSeleccionado] = useState(contactoInicial);
   const [mensajes, setMensajes] = useState([]);
   const [error, setError] = useState(null);
+  // Cambia para volver a pedir la lista de chats (llegó un mensaje o se leyó uno).
+  const [versionChats, setVersionChats] = useState(0);
+  // Número de la última consulta de la conversación: una respuesta anterior se descarta.
+  const consultaRef = useRef(0);
+
+  const contactoId = contactoSeleccionado?.id;
 
   // Chats existentes del usuario de la sesión
   useEffect(() => {
@@ -30,7 +47,7 @@ export function useMensajes(usuarioActualId, contactoInicial = null) {
         setChats(data);
       })
       .catch((e) => setError(e.message));
-  }, [vista, contactoSeleccionado]);
+  }, [vista, contactoSeleccionado, versionChats]);
 
   // Usuarios reales para iniciar un chat nuevo
   useEffect(() => {
@@ -46,41 +63,71 @@ export function useMensajes(usuarioActualId, contactoInicial = null) {
     return () => clearTimeout(t);
   }, [vista, busqueda, contactoSeleccionado]);
 
-  const cargarConversacion = useCallback(async () => {
-    if (!contactoSeleccionado) return;
-    try {
-      const data = await pedir(
-        `/api/mensajes?usuario1=${yo}&usuario2=${contactoSeleccionado.id}`,
-      );
-      setMensajes(data);
-    } catch (e) {
-      setError(e.message);
-    }
-  }, [yo, contactoSeleccionado]);
-
-  // Conversación abierta, refrescada cada 4 segundos
-useEffect(() => {
-  if (!contactoSeleccionado) return;
-
-  let activo = true;
-
-  const cargar = () =>
-    pedir(`/api/mensajes?usuario1=${yo}&usuario2=${contactoSeleccionado.id}`)
+  // Consulta (y marca como leídos) los mensajes de la conversación abierta.
+  const cargarConversacion = useCallback(() => {
+    if (!contactoId) return Promise.resolve();
+    const numero = ++consultaRef.current;
+    return pedir(`/api/mensajes?usuario1=${yo}&usuario2=${contactoId}`)
       .then((data) => {
-        if (activo) setMensajes(data);
+        if (numero === consultaRef.current) {
+          setMensajes((actuales) => reconciliarMensajes(actuales, data));
+        }
       })
       .catch((e) => {
-        if (activo) setError(e.message);
+        if (numero === consultaRef.current) setError(e.message);
       });
+  }, [yo, contactoId]);
 
-  cargar();
-  const intervalo = setInterval(cargar, 4000);
+  // Los mensajes nuevos y las lecturas llegan al instante; HTTP sigue siendo la fuente.
+  const { conectado } = useTiempoReal(
+    {
+      MensajeNuevo: (evento) => {
+        if (contactoSeleccionado) {
+          if (!perteneceAConversacion(evento, yo, contactoSeleccionado.id)) return;
+          setMensajes((lista) => fusionarMensaje(lista, mensajeDesdeEvento(evento)));
+          // Si es para mí, la consulta de siempre lo marca como leído (y avisa al emisor).
+          if (String(evento.idReceptor) === yo) void cargarConversacion();
+        } else if (vista === "chats") {
+          setVersionChats((version) => version + 1);
+        }
+      },
+      MensajesLeidos: (evento) => {
+        if (contactoSeleccionado) {
+          if (
+            String(evento.idEmisor) === yo &&
+            String(evento.idLector) === String(contactoSeleccionado.id)
+          ) {
+            setMensajes((lista) => marcarLeidosHasta(lista, yo, evento.hastaIdMensaje));
+          }
+        } else if (vista === "chats" && String(evento.idLector) === yo) {
+          // Leí en otra pestaña: cambian las insignias de «sin leer».
+          setVersionChats((version) => version + 1);
+        }
+      },
+    },
+    {
+      // Tras una desconexión se recupera por HTTP lo que pudo llegar mientras tanto.
+      alResincronizar: () => {
+        if (contactoSeleccionado) void cargarConversacion();
+        else if (vista === "chats") setVersionChats((version) => version + 1);
+      },
+    },
+  );
 
-  return () => {
-    activo = false;
-    clearInterval(intervalo);
-  };
-}, [yo, contactoSeleccionado]);
+  // Al abrir la conversación. Al cambiar de contacto se descartan las respuestas pendientes.
+  useEffect(() => {
+    void cargarConversacion();
+    return () => {
+      consultaRef.current += 1;
+    };
+  }, [cargarConversacion]);
+
+  // Sin conexión de tiempo real, consulta periódica como antes.
+  useEffect(() => {
+    if (!contactoId || conectado) return undefined;
+    const intervalo = setInterval(() => void cargarConversacion(), INTERVALO_RESPALDO_MS);
+    return () => clearInterval(intervalo);
+  }, [contactoId, conectado, cargarConversacion]);
 
   async function manejarEnvio(texto) {
     try {
@@ -102,31 +149,31 @@ useEffect(() => {
   }
 
   function volverALista() {
-  setContactoSeleccionado(null);
-  setMensajes([]);
-  setError(null);
-  setVista("chats");
-  setBusqueda("");
-}
+    setContactoSeleccionado(null);
+    setMensajes([]);
+    setError(null);
+    setVista("chats");
+    setBusqueda("");
+  }
 
-function abrirChat(contacto) {
-  setMensajes([]);
-  setError(null);
-  setContactoSeleccionado(contacto);
-}
+  function abrirChat(contacto) {
+    setMensajes([]);
+    setError(null);
+    setContactoSeleccionado(contacto);
+  }
 
   return {
-  vista,
-  setVista,
-  chats,
-  contactos,
-  busqueda,
-  setBusqueda,
-  contactoSeleccionado,
-  abrirChat,
-  mensajes,
-  manejarEnvio,
-  volverALista,
-  error,
-};
+    vista,
+    setVista,
+    chats,
+    contactos,
+    busqueda,
+    setBusqueda,
+    contactoSeleccionado,
+    abrirChat,
+    mensajes,
+    manejarEnvio,
+    volverALista,
+    error,
+  };
 }

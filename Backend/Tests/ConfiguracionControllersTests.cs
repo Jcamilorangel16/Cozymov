@@ -213,11 +213,11 @@ public sealed class ConfiguracionControllersTests
         return controlador;
     }
 
-    private static UsuariosCreateDTO NuevoRegistro(string correo) => new()
+    private static UsuariosCreateDTO NuevoRegistro(string correo, string? telefono = "3001234567") => new()
     {
         Cedula = "777", PrimerNombre = "Nueva", SegundoNombre = "", PrimerApellido = "Persona",
         SegundoApellido = "", Edad = 20, Correo = correo, Contrasena = "ClaveSegura1",
-        rol = "usuario", ocupacion = "Estudiante"
+        rol = "usuario", ocupacion = "Estudiante", Telefono = telefono
     };
 
     [Fact]
@@ -232,6 +232,46 @@ public sealed class ConfiguracionControllersTests
         var usuario = await context.Usuarios.SingleAsync();
         Assert.Equal("nueva@uni.edu.co", usuario.Correo);
         Assert.NotEqual("ClaveSegura1", usuario.Contrasena);
+    }
+
+    [Theory]
+    [InlineData("3001234567")]
+    [InlineData("300 123 4567")]
+    [InlineData("+57 300-123-4567")]
+    [InlineData("57 (300) 123.4567")]
+    public async Task RegistroGuardaElCelularNormalizadoJuntoConLaCuenta(string telefono)
+    {
+        await using var context = NewContext();
+
+        var result = await ControladorRegistro(context, "Production")
+            .PostUsuarios(NuevoRegistro("nueva@uni.edu.co", telefono), CancellationToken.None);
+
+        Assert.IsType<CreatedAtActionResult>(result.Result);
+        var usuario = await context.Usuarios.SingleAsync();
+        var guardado = await context.TelefonosUsuario.SingleAsync();
+        Assert.Equal((usuario.IdPersonas, "+573001234567"), (guardado.IdUsuario, guardado.Telefono));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("6055712345")]   // fijo de Valledupar: no recibe SMS
+    [InlineData("300123456")]    // 9 dígitos
+    [InlineData("30012345678")]  // 11 dígitos
+    [InlineData("+1 300 123 4567")]
+    [InlineData("300123456a")]
+    [InlineData("٣٠٠١٢٣٤٥٦٧")]   // dígitos arábigo-índicos
+    public async Task RegistroExigeUnCelularColombianoValido(string? telefono)
+    {
+        await using var context = NewContext();
+
+        var result = await ControladorRegistro(context, "Production")
+            .PostUsuarios(NuevoRegistro("nueva@uni.edu.co", telefono), CancellationToken.None);
+
+        Assert.IsType<BadRequestObjectResult>(result.Result);
+        Assert.False(await context.Usuarios.AnyAsync());
+        Assert.False(await context.TelefonosUsuario.AnyAsync());
     }
 
     [Fact]
@@ -251,11 +291,13 @@ public sealed class ConfiguracionControllersTests
         string sub = "sub-google-1",
         string cedula = "888",
         bool verificado = true,
-        string contrasena = "ClaveGoogle1") => new()
+        string contrasena = "ClaveGoogle1",
+        string? telefono = "+57 310 555 0000") => new()
     {
         Sub = sub, Correo = correo, EmailVerificado = verificado, Cedula = cedula,
         PrimerNombre = " Nueva ", SegundoNombre = null, PrimerApellido = "Persona",
-        SegundoApellido = null, Edad = 20, Ocupacion = "Estudiante", Contrasena = contrasena
+        SegundoApellido = null, Edad = 20, Ocupacion = "Estudiante", Contrasena = contrasena,
+        Telefono = telefono
     };
 
     [Fact]
@@ -277,6 +319,8 @@ public sealed class ConfiguracionControllersTests
         var identidad = await context.IdentidadesExternas.SingleAsync();
         Assert.Equal(("google", "sub-google-1", usuario.IdPersonas),
             (identidad.Proveedor, identidad.Sub, identidad.IdUsuario));
+        var telefono = await context.TelefonosUsuario.SingleAsync();
+        Assert.Equal((usuario.IdPersonas, "+573105550000"), (telefono.IdUsuario, telefono.Telefono));
 
         var login = await controlador.LoginGoogle(new UsuariosLoginGoogleDTO
         {
@@ -306,6 +350,23 @@ public sealed class ConfiguracionControllersTests
         Assert.IsType<BadRequestObjectResult>(result.Result);
         Assert.False(await context.Usuarios.AnyAsync());
         Assert.False(await context.IdentidadesExternas.AnyAsync());
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("6055712345")]
+    public async Task RegistroGoogleExigeUnCelularColombianoValido(string? telefono)
+    {
+        await using var context = NewContext();
+
+        var result = await ControladorRegistro(context, "Production")
+            .RegistroGoogle(NuevoRegistroGoogle(telefono: telefono), CancellationToken.None);
+
+        Assert.IsType<BadRequestObjectResult>(result.Result);
+        Assert.False(await context.Usuarios.AnyAsync());
+        Assert.False(await context.IdentidadesExternas.AnyAsync());
+        Assert.False(await context.TelefonosUsuario.AnyAsync());
     }
 
     [Theory]

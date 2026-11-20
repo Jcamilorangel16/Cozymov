@@ -106,6 +106,7 @@ export async function POST(request: NextRequest) {
         SegundoApellido: datos.segundoApellido,
         Edad: datos.edad,
         Ocupacion: datos.ocupacion,
+        Telefono: datos.telefono,
         Contrasena: datos.contrasena,
       }),
       cache: "no-store",

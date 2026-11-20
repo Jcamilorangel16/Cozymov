@@ -22,3 +22,11 @@ test("decodificarPolilinea y slugBarrio", async () => {
   assert.equal(slugBarrio("SANTO  DOMINGO"), "santo-domingo");
   assert.equal(slugBarrio("DOÑA CLARA"), "dona-clara");
 });
+
+test("esTrayectoUniversitario solo acepta viajes desde o hacia la universidad", async () => {
+  const { esTrayectoUniversitario } = await import("../src/lib/mapa.ts");
+  assert.equal(esTrayectoUniversitario("Santo Domingo", "Universidad Popular del Cesar"), true);
+  assert.equal(esTrayectoUniversitario("UNIVERSIDAD POPULAR DEL CESAR", "Doña Clara"), true);
+  assert.equal(esTrayectoUniversitario("Santo Domingo", "Doña Clara"), false);
+  assert.equal(esTrayectoUniversitario("", undefined), false);
+});

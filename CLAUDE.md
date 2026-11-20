@@ -56,7 +56,24 @@ Tablas_ccozy/ Bóveda Obsidian local opcional, ignorada por Git
 
 - Registro sin verificación de correo: `POST /api/registro` en
   `UsuariosController` crea la cuenta directamente; fuera de Development exige
-  un correo `.edu.co` y limita los intentos por IP. No hay confirmación de
+  un correo `.edu.co` y limita los intentos por IP. Ambos registros (normal y
+  con Google) exigen un celular colombiano (10 dígitos que empiezan por 3, con
+  o sin `+57`), pensado para recuperar la contraseña. Se normaliza a E.164
+  (`+573001234567`) en el frontend y otra vez en el backend, y se inserta en
+  `telefono_usuario` en el mismo `SaveChanges` que la cuenta (sin migración).
+  Las cuentas anteriores pueden no tener teléfono, y desde Configuración aún
+  se puede borrar el último.
+- Verificación del correo con Google antes del registro con contraseña: en
+  `/register`, "Verificar con Google" va a `/api/auth/google?verificar=<correo>`
+  (que añade `login_hint` y guarda el correo en la cookie OAuth). El callback,
+  en ese modo, no inicia sesión: exige `email_verified` y el mismo correo, firma
+  la cookie httpOnly `correo_verificado` (30 min, clave derivada de
+  `SESSION_SECRET` y distinta de las demás; `src/lib/verificacionCorreo.ts`) y
+  vuelve a `/register`. Los errores vuelven con `?verificacion_error=`.
+  `POST /api/registro` responde 403 sin esa cookie o si su correo no coincide, y
+  la borra al crear la cuenta. Lo escrito (sin contraseñas) se conserva en
+  `sessionStorage` durante la ida a Google. El backend no lo comprueba: confía
+  en el proxy, como el resto de la autorización. No hay confirmación de
   correo ni recuperación de contraseña por correo: ambos flujos, Brevo y las
   columnas `EmailVerificado` y `CodigoRecuperacion*` se eliminaron (migración
   `QuitarVerificacionYRecuperacionCorreo`). La contraseña solo se cambia desde
@@ -69,17 +86,21 @@ Tablas_ccozy/ Bóveda Obsidian local opcional, ignorada por Git
   de reservas.
 - Registro y consulta de vehículos, con detalles separados para automóvil,
   moto y bicicleta eléctrica.
-- Mensajería: contactos, conversaciones, mensajes y estado de lectura.
+- Mensajería: contactos, conversaciones, mensajes y estado de lectura, con
+  mensajes nuevos y lecturas en tiempo real (SignalR, ver abajo).
 - Teléfonos y preferencias de movilidad desde Configuración.
 - Solicitudes de viaje: creación, consulta, edición, eliminación y consulta de
   viajes coincidentes por ruta, día, presupuesto y hora límite.
 - Calificaciones: consulta de recibidas y enviadas, promedio, creación para
   una reserva propia completada y eliminación de calificaciones propias.
+- Perfil público (ver "Perfil público" abajo): desde Buscar viajes, "Ver perfil
+  y reseñas" abre el perfil del conductor de un viaje o de quien hizo una
+  solicitud pendiente.
 
 Rutas de API de backend destacadas: `/api/Usuarios`, `/api/registro`,
 `/api/Viajes`, `/api/rutas`, `/api/vehiculos`, `/api/automoviles`,
 `/api/motos`, `/api/bicicletas-electricas`, `/api/Mensajes`, `/api/telefonos`,
-`/api/preferencias`, `/api/solicitudes` y `/api/calificaciones`. Revisa los
+`/api/preferencias`, `/api/solicitudes`, `/api/calificaciones` y `/api/perfiles`. Revisa los
 controladores para verbos, parámetros y DTOs exactos.
 
 ## Modelo relacional actual
@@ -145,6 +166,20 @@ estado.
 - El proxy `Frontend/app/api/viajes/en-curso/route.ts` expone GET (reserva activa),
   POST (finalizar) y DELETE (cancelar). El ID numérico del conductor para
   calificar viene de `/api/viajes/completados`.
+- En "Viaje en curso", solo el pasajero ve "Compartir viaje por WhatsApp": un
+  enlace `https://wa.me/?text=…` (sin número, el usuario elige el contacto)
+  con origen, destino, salida, conductor, precio y estado. El texto se arma en
+  `src/features/viaje-en-curso/utils/compartir.js` y no incluye ids. No lleva
+  vehículo: la reserva activa no lo devuelve y `vehiculo` no tiene placa.
+- `useRedirigirViajeEnCurso` (menú principal) consulta `/api/viajes/en-curso`
+  al abrir, al volver a la pestaña y con cada evento `ViajeActualizado` (sin
+  tiempo real, cada 15 s). Con un viaje activo que el usuario no
+  había visto (clave `rol:idViaje` en `sessionStorage`) lo lleva a "En curso"
+  y avisa; al abrir la app con un viaje activo también entra ahí. La decisión
+  está en `menu-principal/utils/viajeActivo.js`. Mientras "En curso" muestra un
+  viaje activo, salir por el menú lateral, "Volver" o los avisos pide
+  confirmación (`salirDeEnCursoSiConfirma` en `MenuPrincipal.jsx`); las
+  acciones propias de la vista (enviar mensaje, calificar al finalizar) no.
 
 ## Ejecutar y validar
 
@@ -171,14 +206,19 @@ dotnet ef database update --project Backend/Backend.csproj --startup-project Bac
 ## Estado conocido y precauciones
 
 - El conflicto anterior de `Backend/Controllers/UsuariosController.cs` ya fue
-  resuelto; el último build del backend y sus 65 pruebas pasaron. Si se retoca
+  resuelto; el último build del backend y sus 81 pruebas pasaron. Si se retoca
   ese controlador, vuelve a compilar y probar.
-- `Backend/Tests/Backend.Tests.csproj` no está en el repositorio (solo los
-  `.cs`). Para correr las pruebas hay que recrearlo: net10.0, xunit 2.9.3,
-  `Microsoft.EntityFrameworkCore.InMemory` y `Microsoft.AspNetCore.Mvc.Testing`
-  10.0.14, `Microsoft.NET.Test.Sdk`, `<Using Include="Xunit" />` y referencia a
-  `Backend/Backend.csproj`.
-- El frontend pasó `npm --prefix Frontend run build` y sus 158 pruebas. ESLint
+- `Backend/Tests/Backend.Tests.csproj` no estaba en el repositorio (solo los
+  `.cs`). Si falta, recréalo: net10.0, xunit 2.9.3, xunit.runner.visualstudio,
+  `Microsoft.EntityFrameworkCore.InMemory`, `Microsoft.AspNetCore.Mvc.Testing` y
+  `Microsoft.AspNetCore.SignalR.Client` 10.0.14, `Microsoft.NET.Test.Sdk`,
+  `<Using Include="Xunit" />` y referencia a `Backend/Backend.csproj`. Las
+  pruebas de integración (`FabricaTiempoReal`) usan el entorno `Testing` y base
+  en memoria: no aplican migraciones ni leen User Secrets. Último resultado: 138
+  pruebas correctas.
+- El frontend pasó `npm --prefix Frontend run build`; de sus 245 pruebas, la
+  de memoria de `tests/registro.test.mjs` falla de forma intermitente (no
+  relacionada con el perfil público). ESLint
   terminó sin errores; informó cinco advertencias existentes: un `<img>` en
   `BuscarViajes.jsx` y cuatro constantes sin uso en `src/lib/mapa.ts`.
 - La revisión visual del último trabajo llegó a la pantalla de inicio de
@@ -248,6 +288,32 @@ clave.
 - CORS del backend está cerrado salvo `Cors:OrigenesPermitidos`.
 - Las falencias pendientes están en [`INFORME_SEGURIDAD.md`](INFORME_SEGURIDAD.md).
 
+### Tiempo real (SignalR)
+
+Detalle completo en [`README_TIEMPO_REAL.md`](README_TIEMPO_REAL.md). En resumen:
+
+- Hub de solo envío `TiempoRealHub` en `/hubs/tiempo-real` (fuera de `/api`, sin
+  `X-Internal-Api-Key`). Solo WebSocket, sin negociación ni CORS; lista blanca de
+  `Origin` en `TiempoReal:OrigenesPermitidos`. No tiene métodos invocables: el
+  servidor elige a los destinatarios desde la base y envía con
+  `Clients.Users(...)`; no hay grupos que el cliente pueda pedir.
+- El navegador conecta directamente al backend (Vercel no mantiene WebSockets)
+  con un ticket de un solo uso (60 s, 256 bits, solo su hash en memoria) que
+  pide a `POST /api/tiempo-real/ticket`; Next.js lo obtiene de
+  `POST /api/tiempo-real/tickets` (con la clave interna) para el usuario de la
+  sesión. La conexión se cierra al cabo de 1 h para revalidar la sesión.
+- Eventos v1: `MensajeNuevo`, `MensajesLeidos` y `ViajeActualizado` (`motivo`,
+  `idViaje`). Se publican con `INotificadorTiempoReal` **después** de
+  `SaveChanges`/`Commit`, sin esperar al envío; un fallo solo se registra. Si
+  añades un flujo que cambie mensajes, reservas o viajes, publica ahí también.
+- Cliente: `src/lib/tiempoReal/gestor.js` (una conexión por pestaña, espera
+  progresiva, ticket nuevo por intento) y `src/hooks/useTiempoReal.js`. Tras
+  cada (re)conexión las vistas se resincronizan por HTTP; sin conexión vuelven
+  a sus consultas periódicas. La CSP incluye el origen `wss://` del Hub, que se
+  calcula al compilar desde `SIGNALR_HUB_URL` o `VITE_API_URL`.
+- Todo vive en memoria (una sola instancia). Con varias harían falta almacén de
+  tickets compartido y backplane.
+
 ### Registro con Google
 
 El botón de Google (en el login, "Continuar con Google", y en `/register`,
@@ -262,7 +328,7 @@ vincula en `identidad_externa`. Si no existe:
   la de sesión) y redirige a `/register/google`. No se entra a la app sin
   completar esa página, que exige cédula, nombres (precargados con
   `given_name`/`family_name`; segundo nombre y segundo apellido opcionales,
-  como en el registro normal), edad, ocupación y una contraseña con
+  como en el registro normal), edad, ocupación, celular y una contraseña con
   confirmación (8–72 bytes).
 - `POST /api/registro/google` toma sub y correo de la cookie, nunca del
   cuerpo, y llama a `POST /api/Usuarios/RegistroGoogle`. Este endpoint vuelve a
@@ -293,6 +359,25 @@ calificaciones, que lista las reservas completadas aún sin calificar. El backen
 exige `reserva.Estado == "completada"` para aceptar una calificación. Hoy solo
 el pasajero califica al conductor desde la UI; el backend admite también la
 dirección inversa.
+
+### Perfil público
+
+- `Usuarios` tiene `foto_perfil` (text, data URL) y `descripcion` (160),
+  ambas opcionales (migración `PerfilPublico`). No hay almacenamiento de
+  archivos: el navegador recorta la foto a 256 px JPEG
+  (`prepararFotoPerfil` en `src/features/perfil-publico/utils/perfil.js`).
+- `GET /api/perfiles/{id}` (`PerfilesController`) devuelve nombre (primer
+  nombre y apellido), ocupación, descripción, foto, fecha de registro,
+  promedio y total de calificaciones, viajes publicados, viajes completados
+  como pasajero, vehículos (tipo y modelo) y las 20 reseñas más recientes
+  **anónimas** (solo puntuación y comentario). Nunca cédula, correo,
+  teléfonos, edad ni evaluador. `PUT` cambia foto y descripción; solo acepta
+  data URLs JPEG/PNG/WEBP de ≤ 350 000 caracteres cuya firma coincide con el
+  tipo (no SVG).
+- Proxy `Frontend/app/api/perfil`: `GET ?id=N` (sin id, el propio) y `PUT`
+  siempre sobre el usuario de la sesión. Modal:
+  `src/features/perfil-publico/components/PerfilPublicoModal.jsx`; edición en
+  Configuración > Tu perfil (nombre y ocupación son de solo lectura).
 
 ### Calificaciones anónimas
 

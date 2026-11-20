@@ -85,11 +85,14 @@ export function crearParametrosOAuth(): ParametrosOAuth {
  * Construye la URL a la que se redirige al usuario para autenticarse en Google.
  * @param config Credenciales y callback.
  * @param parametros State, nonce y challenge PKCE.
+ * @param correoSugerido Correo que Google preselecciona (login_hint); el
+ *   callback igual comprueba que el correo devuelto sea ese.
  * @returns URL de autorización.
  */
 export function construirUrlAutorizacion(
   config: ConfigGoogle,
   parametros: ParametrosOAuth,
+  correoSugerido?: string,
 ): string {
   const url = new URL(URL_AUTORIZACION);
   url.searchParams.set("client_id", config.clientId);
@@ -102,6 +105,7 @@ export function construirUrlAutorizacion(
   url.searchParams.set("code_challenge", parametros.challenge);
   url.searchParams.set("code_challenge_method", "S256");
   url.searchParams.set("prompt", "select_account");
+  if (correoSugerido) url.searchParams.set("login_hint", correoSugerido);
   return url.toString();
 }
 
