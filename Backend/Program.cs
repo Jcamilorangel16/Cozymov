@@ -71,6 +71,9 @@ builder.Services.AddCors(options =>
     }));
 builder.Services.AddScoped<IPasswordHasher<Usuarios>,PasswordHasher<Usuarios>>();
 builder.Services.AddSingleton(TimeProvider.System);
+// Registro de vehículos: el almacén guarda los archivos en Supabase Storage.
+builder.Services.AddHttpClient<IAlmacenArchivos, SupabaseAlmacenArchivos>();
+builder.Services.AddScoped<VehiculoRegistroService>();
 builder.Services.AddSingleton<LimitadorIntentos>();
 builder.Services.AddRateLimiter(options =>
 {
