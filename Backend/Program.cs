@@ -77,6 +77,11 @@ builder.Services.AddHttpClient<IEnviadorCorreo, BrevoEnviadorCorreo>(client =>
 {
     client.Timeout = TimeSpan.FromSeconds(15);
 });
+builder.Services.AddHttpClient<IAlmacenArchivos, SupabaseAlmacenArchivos>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(60);
+});
+builder.Services.AddScoped<VehiculoRegistroService>();
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;

@@ -43,6 +43,11 @@ const cabecerasSeguridad = [
 const nextConfig: NextConfig = {
   devIndicators: false,
   poweredByHeader: false,
+  experimental: {
+    // El registro de vehículo envía hasta 7 archivos de 5 MB; el valor por defecto
+    // (10 MB) truncaría el cuerpo que Next.js reenvía a la API.
+    proxyClientMaxBodySize: "40mb",
+  },
   turbopack: {
     root: process.cwd(),
   },

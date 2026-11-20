@@ -1,4 +1,5 @@
-using Backend.Models;
+﻿using Backend.Models;
+using Backend.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -11,7 +12,7 @@ public sealed class VehiculoConfiguration : IEntityTypeConfiguration<Vehiculo>
         entity.UseTptMappingStrategy();
         entity.ToTable("vehiculo", table => table.HasCheckConstraint(
             "ck_vehiculo_tipo",
-            "tipo IN ('automovil', 'moto', 'bicicleta_electrica')"));
+            TiposVehiculo.SqlCheck));
         entity.HasKey(v => v.IdVehiculo);
 
         entity.Property(v => v.IdVehiculo).HasColumnName("id_vehiculo");

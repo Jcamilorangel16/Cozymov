@@ -1,6 +1,7 @@
 using Backend.Data;
 using Backend.DTOs;
 using Backend.Models;
+using Backend.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -28,27 +29,41 @@ public class VehiculoesController(AppDbContext context) : ControllerBase
         return vehiculo is null ? NotFound() : ToResponseDto(vehiculo);
     }
 
+    /// <summary>
+    /// Registra un vehículo con sus archivos (multipart/form-data). Los campos
+    /// obligatorios dependen del tipo; ver VehiculoRegistroService.
+    /// </summary>
     [HttpPost]
-    public async Task<ActionResult<Vehiculo>> PostVehiculo(VehiculoCreateDto dto)
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(ValidadorArchivos.MaxBytesSolicitud)]
+    public async Task<ActionResult<VehiculoResponseDto>> PostVehiculo(
+        [FromForm] VehiculoCreateDto dto,
+        [FromServices] VehiculoRegistroService registro,
+        CancellationToken cancellationToken)
     {
-        if (!await context.Usuarios.AnyAsync(u => u.IdPersonas == dto.IdUsuario))
+        ResultadoRegistroVehiculo resultado;
+        try
         {
-            return BadRequest($"El usuario {dto.IdUsuario} no existe.");
+            resultado = await registro.RegistrarAsync(dto, cancellationToken);
+        }
+        catch (AlmacenNoConfiguradoException)
+        {
+            return Problem(
+                "El almacenamiento de archivos no está configurado.",
+                statusCode: StatusCodes.Status503ServiceUnavailable);
         }
 
-        var vehiculo = new Vehiculo
+        switch (resultado.Estado)
         {
-            Tipo = dto.Tipo,
-            Modelo = dto.Modelo,
-            Capacidad = dto.Capacidad,
-            Foto = dto.Foto,
-            IdUsuario = dto.IdUsuario
-        };
-
-        context.Vehiculos.Add(vehiculo);
-        await context.SaveChangesAsync();
-
-        return CreatedAtAction(nameof(GetVehiculo), new { idVehiculo = vehiculo.IdVehiculo }, vehiculo);
+            case EstadoRegistroVehiculo.Creado:
+                var respuesta = ToResponseDto(resultado.Vehiculo!);
+                return CreatedAtAction(nameof(GetVehiculo), new { idVehiculo = respuesta.IdVehiculo }, respuesta);
+            case EstadoRegistroVehiculo.Conflicto:
+                return Conflict(new { error = resultado.Mensaje });
+            default:
+                return ValidationProblem(new ValidationProblemDetails(
+                    resultado.Errores!.ToDictionary(e => e.Key, e => e.Value)));
+        }
     }
 
     [HttpPut("{idVehiculo:long}")]
@@ -62,7 +77,7 @@ public class VehiculoesController(AppDbContext context) : ControllerBase
         }
 
         // El tipo define qué tabla de detalle aplica; cambiarlo dejaría datos incompatibles.
-        if (!string.Equals(vehiculo.Tipo, dto.Tipo, StringComparison.Ordinal))
+        if (TiposVehiculo.Normalizar(vehiculo.Tipo) != TiposVehiculo.Normalizar(dto.Tipo))
         {
             return BadRequest("No se puede cambiar el tipo de un vehículo existente.");
         }

@@ -1,4 +1,4 @@
-using Backend.Models;
+﻿using Backend.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -18,7 +18,7 @@ public sealed class BicicletaElectricaConfiguration : IEntityTypeConfiguration<B
                 "capacidad_peso > 0");
         });
 
-        entity.Property(b => b.NumeroSerie).HasColumnName("numero_serie").HasMaxLength(100);
+        entity.Property(b => b.NumeroSerie).HasColumnName("numero_serie").HasMaxLength(100).IsRequired(false);
         entity.HasIndex(b => b.NumeroSerie).IsUnique();
         entity.Property(b => b.VelocidadMaxima)
             .HasColumnName("velocidad_maxima")

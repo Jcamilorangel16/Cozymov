@@ -264,25 +264,46 @@ export function useOfrecerViajes({ pasajeroSeleccionado, setMensajeAccion }) {
     setErrorVehiculo("");
 
     try {
-      const datosVehiculo = {
-        id_usuario: idUsuario,
-        tipo: vehiculo.tipo,
-        modelo: vehiculo.modelo.trim(),
-        capacidad: Number(vehiculo.capacidad),
-        ruta_cotidiana: vehiculo.rutaCotidiana || null,
-        foto_vehiculo: null,
-        ...(vehiculo.tipo === "Automovil" && {
-          numero_puertas: Number(vehiculo.numeroPuertas),
-        }),
-        ...(vehiculo.tipo === "Moto" && {
-          modalidad: vehiculo.modalidad.trim(),
-        }),
+      // Los archivos viajan como multipart/form-data; los campos de texto, junto a ellos.
+      const datos = new FormData();
+      const agregar = (campo, valor) => {
+        if (valor !== undefined && valor !== null && valor !== "") datos.set(campo, valor);
       };
-      // TODO: enviar archivos (multipart/form-data) cuando el backend lo soporte
+      agregar("tipo", vehiculo.tipo);
+      agregar("marca", vehiculo.marca.trim());
+      agregar("modelo", vehiculo.modelo.trim());
+      agregar("capacidad", vehiculo.capacidad);
+      agregar("ruta_cotidiana", vehiculo.rutaCotidiana);
+      agregar("foto_frontal", vehiculo.fotoFrontal);
+      agregar("foto_lateral", vehiculo.fotoLateral);
+      agregar("foto_perfil", vehiculo.fotoPerfil);
+      if (vehiculo.tipo === "Automovil") {
+        agregar("numero_puertas", vehiculo.numeroPuertas);
+      }
+      if (vehiculo.tipo === "Moto") {
+        agregar("modalidad", vehiculo.modalidad?.trim());
+      }
+      if (vehiculo.tipo === "Automovil" || vehiculo.tipo === "Moto") {
+        agregar("foto_placa", vehiculo.fotoPlaca);
+        agregar("foto_licencia", vehiculo.fotoLicencia);
+        agregar("doc_tecnomecanica", vehiculo.docTecnomecanica);
+        agregar("doc_soat", vehiculo.docSoat);
+      }
+      if (vehiculo.tipo === "Bicicleta electrica") {
+        agregar("numero_serie", vehiculo.numeroSerie?.trim());
+        agregar("velocidad_maxima", vehiculo.velocidadMaxima);
+        agregar("capacidad_peso", vehiculo.capacidadPeso);
+        for (const campo of ["capacidadVehicular", "casco", "chaleco", "luces"]) {
+          datos.set(
+            campo.replace(/[A-Z]/g, (m) => "_" + m.toLowerCase()),
+            vehiculo[campo] ? "true" : "false",
+          );
+        }
+      }
+      // Sin Content-Type: el navegador agrega el boundary del multipart.
       const respuesta = await fetch("/api/vehiculo", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(datosVehiculo),
+        body: datos,
       });
       const resultado = await respuesta.json();
       if (!respuesta.ok) {
