@@ -9,7 +9,7 @@ import { formatearFecha, formatearPresupuestoSolicitud } from "../utils/viajes";
 
 /**
  * Presenta las solicitudes pendientes de otros usuarios y permite aceptarlas.
- * @param {{solicitudes: Array, totalSolicitudes?: number, cargando: boolean, error: string, idUsuario: string, tieneVehiculo: boolean|null, tieneViajeEnCurso: boolean, aceptandoSolicitudId: number|null, onAceptar: (solicitud: object) => void}} props Datos y acciones.
+ * @param {{solicitudes: Array, totalSolicitudes?: number, cargando: boolean, error: string, idUsuario: string, tieneVehiculo: boolean|null, tieneViajeEnCurso: boolean, aceptandoSolicitudId: number|null, onAceptar: (solicitud: object) => void, onVerPerfil?: (solicitud: object) => void}} props Datos y acciones.
  * @returns Sección de solicitudes pendientes.
  */
 export default function SolicitudesPendientes({
@@ -22,6 +22,7 @@ export default function SolicitudesPendientes({
   tieneViajeEnCurso,
   aceptandoSolicitudId,
   onAceptar,
+  onVerPerfil,
 }) {
   const habilitado = puedeAceptarSolicitud(idUsuario, tieneVehiculo, tieneViajeEnCurso);
   const motivo = motivoNoAceptarSolicitud(idUsuario, tieneVehiculo, tieneViajeEnCurso);
@@ -71,6 +72,15 @@ export default function SolicitudesPendientes({
                     </h4>
                     <p className="mb-0 fw-semibold">
                       {solicitud.nombreUsuario || "Usuario no disponible"}
+                      {onVerPerfil && solicitud.idUsuario != null && (
+                        <button
+                          type="button"
+                          className="btn btn-link btn-sm py-0 align-baseline"
+                          onClick={() => onVerPerfil(solicitud)}
+                        >
+                          Ver perfil y reseñas
+                        </button>
+                      )}
                     </p>
                   </div>
                   <strong className="text-success-emphasis">

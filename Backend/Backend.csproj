@@ -34,6 +34,10 @@
   <!-- Las pruebas no forman parte de la API; necesitan su propio proyecto con xUnit. -->
   <ItemGroup>
     <Compile Remove="Tests/**" />
+    <!-- Sin esto, los .json de Tests/bin y Tests/obj se copian como contenido de la API
+         en cada compilación y anidan carpetas Tests/bin/... sin fin. -->
+    <Content Remove="Tests/**" />
+    <None Remove="Tests/**" />
   </ItemGroup>
 
 </Project>

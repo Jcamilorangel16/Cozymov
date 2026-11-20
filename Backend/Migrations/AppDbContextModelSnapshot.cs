@@ -398,8 +398,17 @@ namespace Backend.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("Descripcion")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)")
+                        .HasColumnName("descripcion");
+
                     b.Property<int>("Edad")
                         .HasColumnType("integer");
+
+                    b.Property<string>("FotoPerfil")
+                        .HasColumnType("text")
+                        .HasColumnName("foto_perfil");
 
                     b.Property<string>("PrimerApellido")
                         .IsRequired()

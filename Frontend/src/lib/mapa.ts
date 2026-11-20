@@ -137,6 +137,15 @@ export function decodificarPolilinea(codificada: string): Coordenada[] {
   return puntos;
 }
 
+/**
+ * Indica si el trayecto sale de la universidad o llega a ella. La plataforma solo traza
+ * rutas barrio ⇄ universidad; los viajes entre barrios no tienen mapa (proyección a futuro).
+ */
+export function esTrayectoUniversitario(origen: string, destino: string): boolean {
+  const idUniversidad = slugBarrio(UNIVERSIDAD_NOMBRE);
+  return slugBarrio(origen ?? "") === idUniversidad || slugBarrio(destino ?? "") === idUniversidad;
+}
+
 type TramoPrecargado = { p: string; d: number; t: number };
 
 /**
