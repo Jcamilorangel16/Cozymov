@@ -93,7 +93,6 @@ export function validarNuevoVehiculo(
     modelo,
     capacidad,
     ruta_cotidiana,
-    foto_vehiculo,
     numero_puertas,
     modalidad,
   } = valor;
@@ -134,15 +133,6 @@ export function validarNuevoVehiculo(
     };
   }
   if (
-    foto_vehiculo != null &&
-    (typeof foto_vehiculo !== "string" || foto_vehiculo.length > 255)
-  ) {
-    return {
-      valido: false,
-      error: "foto_vehiculo debe tener máximo 255 caracteres.",
-    };
-  }
-  if (
     tipo === "Automovil" &&
     (typeof numero_puertas !== "number" ||
       ![2, 3, 4, 5].includes(numero_puertas))
@@ -167,7 +157,6 @@ export function validarNuevoVehiculo(
       modelo: modelo.trim(),
       capacidad,
       ruta_cotidiana: typeof ruta_cotidiana === "string" ? ruta_cotidiana : null,
-      foto_vehiculo: typeof foto_vehiculo === "string" ? foto_vehiculo : null,
       ...(tipo === "Automovil" &&
         typeof numero_puertas === "number" && { numero_puertas }),
       ...(tipo === "Moto" &&

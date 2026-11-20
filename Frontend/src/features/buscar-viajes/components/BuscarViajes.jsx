@@ -157,16 +157,6 @@ export default function BuscarViajes({ onEnviarMensaje, onNavigate, usuarioActua
                       >
                         <h5 className="h6 fw-bold letra-contenido">Conductor</h5>
                         <div className="d-flex flex-wrap gap-3 align-items-center">
-                          {viaje.foto_vehiculo && (
-                            <img
-                              src={viaje.foto_vehiculo}
-                              alt={`Vehículo de ${viaje.nombre_conductor || viaje.primer_nombre || "el conductor"}`}
-                              className="rounded object-fit-cover"
-                              width="96"
-                              height="72"
-                              loading="lazy"
-                            />
-                          )}
                           <div>
                             <div className="fw-semibold">
                               {viaje.nombre_conductor ||

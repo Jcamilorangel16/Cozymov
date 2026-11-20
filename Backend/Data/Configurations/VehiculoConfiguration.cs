@@ -21,7 +21,6 @@ public sealed class VehiculoConfiguration : IEntityTypeConfiguration<Vehiculo>
         entity.Property(v => v.Marca).HasColumnName("marca").HasMaxLength(100).IsRequired(false);
         entity.Property(v => v.Modelo).HasColumnName("modelo").HasMaxLength(50).IsRequired();
         entity.Property(v => v.Capacidad).HasColumnName("capacidad");
-        entity.Property(v => v.Foto).HasColumnName("foto_vehiculo").HasMaxLength(500);
         entity.Property(v => v.FotoFrontal).HasColumnName("foto_frontal").HasMaxLength(500);
         entity.Property(v => v.FotoLateral).HasColumnName("foto_lateral").HasMaxLength(500);
         entity.Property(v => v.FotoPerfil).HasColumnName("foto_perfil").HasMaxLength(500);

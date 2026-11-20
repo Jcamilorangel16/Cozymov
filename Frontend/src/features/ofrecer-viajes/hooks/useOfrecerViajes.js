@@ -9,6 +9,11 @@ import {
 } from "../constants/ofrecerViajes";
 import { obtenerPartesFechaHora } from "../utils/fechaHora";
 import {
+  comprimirImagen,
+  MAX_BYTES_SOLICITUD,
+  tamanoArchivos,
+} from "../utils/comprimirImagen";
+import {
   validarDatosNuevoViaje,
   validarPermisoPublicarViaje,
 } from "../../viajes/validations/viajes";
@@ -274,9 +279,19 @@ export function useOfrecerViajes({ pasajeroSeleccionado, setMensajeAccion }) {
       agregar("modelo", vehiculo.modelo.trim());
       agregar("capacidad", vehiculo.capacidad);
       agregar("ruta_cotidiana", vehiculo.rutaCotidiana);
-      agregar("foto_frontal", vehiculo.fotoFrontal);
-      agregar("foto_lateral", vehiculo.fotoLateral);
-      agregar("foto_perfil", vehiculo.fotoPerfil);
+      // Las imágenes se reducen antes de enviarlas: Vercel rechaza (413) cuerpos de más de 4,5 MB.
+      const imagenes = {
+        foto_frontal: vehiculo.fotoFrontal,
+        foto_lateral: vehiculo.fotoLateral,
+        foto_perfil: vehiculo.fotoPerfil,
+      };
+      if (vehiculo.tipo === "Automovil" || vehiculo.tipo === "Moto") {
+        imagenes.foto_placa = vehiculo.fotoPlaca;
+        imagenes.foto_licencia = vehiculo.fotoLicencia;
+      }
+      for (const [campo, archivo] of Object.entries(imagenes)) {
+        agregar(campo, await comprimirImagen(archivo));
+      }
       if (vehiculo.tipo === "Automovil") {
         agregar("numero_puertas", vehiculo.numeroPuertas);
       }
@@ -284,8 +299,6 @@ export function useOfrecerViajes({ pasajeroSeleccionado, setMensajeAccion }) {
         agregar("modalidad", vehiculo.modalidad?.trim());
       }
       if (vehiculo.tipo === "Automovil" || vehiculo.tipo === "Moto") {
-        agregar("foto_placa", vehiculo.fotoPlaca);
-        agregar("foto_licencia", vehiculo.fotoLicencia);
         agregar("doc_tecnomecanica", vehiculo.docTecnomecanica);
         agregar("doc_soat", vehiculo.docSoat);
       }
@@ -300,14 +313,32 @@ export function useOfrecerViajes({ pasajeroSeleccionado, setMensajeAccion }) {
           );
         }
       }
+      // Si aun comprimidas las imágenes no caben, se reintenta con más compresión.
+      if (tamanoArchivos(datos) > MAX_BYTES_SOLICITUD) {
+        for (const [campo, archivo] of Object.entries(imagenes)) {
+          if (!datos.has(campo)) continue;
+          datos.set(campo, await comprimirImagen(archivo, { maxLado: 1024, calidad: 0.6 }));
+        }
+      }
+      if (tamanoArchivos(datos) > MAX_BYTES_SOLICITUD) {
+        throw new Error(
+          "Los archivos pesan demasiado en conjunto (máximo 4 MB). Reduce el tamaño de los PDF o de las imágenes.",
+        );
+      }
       // Sin Content-Type: el navegador agrega el boundary del multipart.
       const respuesta = await fetch("/api/vehiculo", {
         method: "POST",
         body: datos,
       });
-      const resultado = await respuesta.json();
+      // Los errores de la plataforma (p. ej. 413) llegan como texto plano, no como JSON.
+      const resultado = await respuesta.json().catch(() => ({}));
       if (!respuesta.ok) {
-        throw new Error(resultado.error || "No se pudo guardar el vehículo.");
+        throw new Error(
+          resultado.error ||
+            (respuesta.status === 413
+              ? "Los archivos pesan demasiado. Reduce su tamaño e inténtalo de nuevo."
+              : "No se pudo guardar el vehículo."),
+        );
       }
       if (!resultado.vehiculo?.id_vehiculo) {
         throw new Error("El servidor no confirmó el registro del vehículo.");

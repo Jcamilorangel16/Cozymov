@@ -400,11 +400,6 @@ namespace Backend.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("capacidad");
 
-                    b.Property<string>("Foto")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("foto_vehiculo");
-
                     b.Property<string>("FotoFrontal")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)")

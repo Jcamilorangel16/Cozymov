@@ -91,7 +91,6 @@ function normalizarVehiculo(valor: unknown): Registro | null {
 		foto_perfil: obtenerCampo(valor, "fotoPerfil", "FotoPerfil") ?? null,
 		capacidad: obtenerCampo(valor, "capacidad", "Capacidad"),
 		ruta_cotidiana: obtenerCampo(valor, "rutaCotidiana", "RutaCotidiana", "ruta_cotidiana") ?? null,
-		foto_vehiculo: obtenerCampo(valor, "foto", "Foto", "foto_vehiculo") ?? null,
 		...(puertas !== undefined && { numero_puertas: puertas }),
 		...(modalidad !== undefined && { modalidad }),
 	};
@@ -296,7 +295,6 @@ export async function PUT(request: Request) {
 				Tipo: TIPO_API_POR_UI[datos.tipo],
 				Modelo: datos.modelo,
 				Capacidad: datos.capacidad,
-				Foto: datos.foto_vehiculo,
 				...(datos.tipo === "Automovil" && { NumeroPuertas: datos.numero_puertas }),
 				...(datos.tipo === "Moto" && { Modalidad: datos.modalidad }),
 			}),
@@ -313,7 +311,6 @@ export async function PUT(request: Request) {
 				tipo: datos.tipo,
 				modelo: datos.modelo,
 				capacidad: datos.capacidad,
-				foto_vehiculo: datos.foto_vehiculo,
 				...(datos.tipo === "Automovil" && { numero_puertas: datos.numero_puertas }),
 				...(datos.tipo === "Moto" && { modalidad: datos.modalidad }),
 			},

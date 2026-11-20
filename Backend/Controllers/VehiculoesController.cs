@@ -108,7 +108,6 @@ public class VehiculoesController(AppDbContext context) : ControllerBase
         // IdUsuario no se toca: la propiedad no se puede reasignar.
         vehiculo.Modelo = dto.Modelo;
         vehiculo.Capacidad = dto.Capacidad;
-        vehiculo.Foto = dto.Foto;
 
         await context.SaveChangesAsync();
         return NoContent();
@@ -135,7 +134,6 @@ public class VehiculoesController(AppDbContext context) : ControllerBase
         Marca = vehiculo.Marca,
         Modelo = vehiculo.Modelo,
         Capacidad = vehiculo.Capacidad,
-        Foto = vehiculo.Foto,
         FotoFrontal = vehiculo.FotoFrontal,
         FotoLateral = vehiculo.FotoLateral,
         FotoPerfil = vehiculo.FotoPerfil,

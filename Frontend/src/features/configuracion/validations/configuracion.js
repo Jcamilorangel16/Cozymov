@@ -33,14 +33,13 @@ export function validarVehiculo({ marca, modelo, color, placa, plazas }) {
 }
 
 // Valida los campos del vehículo que realmente se persisten.
-export function validarDatosVehiculo({ tipo, modelo, capacidad, foto, numeroPuertas, modalidad }) {
+export function validarDatosVehiculo({ tipo, modelo, capacidad, numeroPuertas, modalidad }) {
   const errores = {};
   if (!modelo.trim()) errores.modelo = "Indica el modelo.";
   else if (modelo.trim().length > 50) errores.modelo = "Máximo 50 caracteres.";
   const n = Number(capacidad);
   if (!Number.isInteger(n) || n < 1 || n > 32767)
     errores.capacidad = "Indica un número entero de plazas (mínimo 1).";
-  if (foto.length > 255) errores.foto = "Máximo 255 caracteres.";
   if (tipo === "Automovil" && ![2, 3, 4, 5].includes(Number(numeroPuertas)))
     errores.numeroPuertas = "Entre 2 y 5 puertas.";
   if (tipo === "Moto" && (!modalidad.trim() || modalidad.trim().length > 20))

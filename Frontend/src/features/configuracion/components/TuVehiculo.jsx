@@ -12,7 +12,6 @@ function aFormulario(v) {
     tipo: v.tipo ?? "",
     modelo: v.modelo ?? "",
     capacidad: String(v.capacidad ?? ""),
-    foto: v.foto_vehiculo ?? "",
     numeroPuertas: v.numero_puertas != null ? String(v.numero_puertas) : "",
     modalidad: v.modalidad ?? "",
   };
@@ -87,7 +86,6 @@ export default function TuVehiculo() {
           tipo: datos.tipo,
           modelo: datos.modelo.trim(),
           capacidad: Number(datos.capacidad),
-          foto_vehiculo: datos.foto.trim() || null,
           ...(datos.tipo === "Automovil" && { numero_puertas: Number(datos.numeroPuertas) }),
           ...(datos.tipo === "Moto" && { modalidad: datos.modalidad.trim() }),
         }),
@@ -130,7 +128,6 @@ export default function TuVehiculo() {
               <CampoFormulario id="modalidad" label="Modalidad" value={datos.modalidad} onChange={cambiar} error={errores.modalidad} maxLength={20} />
             )}
           </div>
-          <CampoFormulario id="foto" label="Foto (URL, opcional)" value={datos.foto} onChange={cambiar} error={errores.foto} maxLength={255} />
 
           {errorServidor && <p className="config-error" role="alert">{errorServidor}</p>}
           <button type="submit" className="btn btn-primary" disabled={enviando}>

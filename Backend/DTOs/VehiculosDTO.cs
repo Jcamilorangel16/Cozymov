@@ -7,7 +7,6 @@ namespace Backend.DTOs
         public string Tipo { get; set; } = string.Empty;
         public string Modelo { get; set; } = string.Empty;
         public int Capacidad { get; set; }
-        public string? Foto { get; set; }
         public int IdUsuario { get; set; }
     }
 
@@ -58,8 +57,6 @@ namespace Backend.DTOs
         public string Modelo { get; set; } = string.Empty;
         [Range(1, 32767)]
         public int Capacidad { get; set; }
-        [StringLength(255)]
-        public string? Foto { get; set; }
         [Range(2, 5)]
         public short? NumeroPuertas { get; set; }
         [StringLength(20)]
@@ -73,7 +70,6 @@ namespace Backend.DTOs
         public string? Marca { get; set; }
         public string Modelo { get; set; } = string.Empty;
         public int Capacidad { get; set; }
-        public string? Foto { get; set; }
         public string? FotoFrontal { get; set; }
         public string? FotoLateral { get; set; }
         public string? FotoPerfil { get; set; }

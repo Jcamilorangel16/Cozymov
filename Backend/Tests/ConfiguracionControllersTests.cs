@@ -375,7 +375,7 @@ public sealed class ConfiguracionControllersTests
 
         var result = await new VehiculoesController(context).PutVehiculo(5, new VehiculoUpdateDto
         {
-            Tipo = "Automovil", Modelo = "Kia Picanto", Capacidad = 2, Foto = "f.png", NumeroPuertas = 5
+            Tipo = "Automovil", Modelo = "Kia Picanto", Capacidad = 2, NumeroPuertas = 5
         });
 
         Assert.IsType<NoContentResult>(result);

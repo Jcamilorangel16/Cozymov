@@ -131,7 +131,6 @@ namespace Backend.Controllers
                     vehiculo?.Tipo,
                     vehiculo?.Modelo,
                     vehiculo?.Capacidad,
-                    vehiculo?.Foto,
                     vehiculo is Automovil automovil ? automovil.NumeroPuertas : null,
                     vehiculo is Moto moto ? moto.Modalidad : null);
             }).ToList();

@@ -37,7 +37,6 @@ export interface DatosNuevoVehiculo {
   modelo: string;
   capacidad: number;
   ruta_cotidiana: string | null;
-  foto_vehiculo: string | null;
   numero_puertas?: number;
   modalidad?: string;
 }

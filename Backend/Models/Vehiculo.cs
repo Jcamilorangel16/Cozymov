@@ -24,7 +24,6 @@ public class Vehiculo
 
     [Column("capacidad")]
     public int Capacidad { get; set; }
-    public string? Foto { get; set; }
 
     [StringLength(500)]
     [Column("foto_frontal")]
