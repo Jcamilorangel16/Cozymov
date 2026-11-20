@@ -54,6 +54,9 @@ namespace Backend.DTOs
         public string rol { get; set; }
         [StringLength(50)]
         public string ocupacion { get; set; }
+        /// <summary>Celular obligatorio; se guarda en telefono_usuario para recuperar la contraseña.</summary>
+        [StringLength(20)]
+        public string? Telefono { get; set; }
     }
 }
 
@@ -130,6 +133,9 @@ public class UsuariosRegistroGoogleDTO
     public int Edad { get; set; }
     [Required, StringLength(50)]
     public string Ocupacion { get; set; } = string.Empty;
+    /// <summary>Celular obligatorio; se guarda en telefono_usuario para recuperar la contraseña.</summary>
+    [StringLength(20)]
+    public string? Telefono { get; set; }
     [Required, StringLength(200)]
     public string Contrasena { get; set; } = string.Empty;
 }

@@ -34,6 +34,7 @@ export function useRegistroGoogle(nombres) {
     ...nombres,
     idUsuario: "",
     edad: "",
+    telefono: "",
     contrasena: "",
   });
   const [tipoOcupacion, setTipoOcupacion] = useState("");
@@ -53,7 +54,11 @@ export function useRegistroGoogle(nombres) {
 
   function manejarCambio(evento) {
     const { name, value } = evento.target;
-    const valor = name === "idUsuario" ? value.replace(/\D/g, "") : value;
+    const valor = name === "idUsuario"
+      ? value.replace(/\D/g, "")
+      : name === "telefono"
+        ? value.replace(/[^0-9+\s\-.()]/g, "")
+        : value;
     setDatosUsuario((prev) => ({ ...prev, [name]: valor }));
   }
 
@@ -64,6 +69,7 @@ export function useRegistroGoogle(nombres) {
     const campos = [
       ...CAMPOS_PERSONALES,
       ...(tipoOcupacion === "otro" ? ["ocupacionOtro"] : []),
+      "telefono",
       ...CAMPOS_CONTRASENA,
     ];
     const indice = campos.indexOf(campoActual);

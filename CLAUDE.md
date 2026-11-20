@@ -56,7 +56,24 @@ Tablas_ccozy/ Bóveda Obsidian local opcional, ignorada por Git
 
 - Registro sin verificación de correo: `POST /api/registro` en
   `UsuariosController` crea la cuenta directamente; fuera de Development exige
-  un correo `.edu.co` y limita los intentos por IP. No hay confirmación de
+  un correo `.edu.co` y limita los intentos por IP. Ambos registros (normal y
+  con Google) exigen un celular colombiano (10 dígitos que empiezan por 3, con
+  o sin `+57`), pensado para recuperar la contraseña. Se normaliza a E.164
+  (`+573001234567`) en el frontend y otra vez en el backend, y se inserta en
+  `telefono_usuario` en el mismo `SaveChanges` que la cuenta (sin migración).
+  Las cuentas anteriores pueden no tener teléfono, y desde Configuración aún
+  se puede borrar el último.
+- Verificación del correo con Google antes del registro con contraseña: en
+  `/register`, "Verificar con Google" va a `/api/auth/google?verificar=<correo>`
+  (que añade `login_hint` y guarda el correo en la cookie OAuth). El callback,
+  en ese modo, no inicia sesión: exige `email_verified` y el mismo correo, firma
+  la cookie httpOnly `correo_verificado` (30 min, clave derivada de
+  `SESSION_SECRET` y distinta de las demás; `src/lib/verificacionCorreo.ts`) y
+  vuelve a `/register`. Los errores vuelven con `?verificacion_error=`.
+  `POST /api/registro` responde 403 sin esa cookie o si su correo no coincide, y
+  la borra al crear la cuenta. Lo escrito (sin contraseñas) se conserva en
+  `sessionStorage` durante la ida a Google. El backend no lo comprueba: confía
+  en el proxy, como el resto de la autorización. No hay confirmación de
   correo ni recuperación de contraseña por correo: ambos flujos, Brevo y las
   columnas `EmailVerificado` y `CodigoRecuperacion*` se eliminaron (migración
   `QuitarVerificacionYRecuperacionCorreo`). La contraseña solo se cambia desde
@@ -171,14 +188,14 @@ dotnet ef database update --project Backend/Backend.csproj --startup-project Bac
 ## Estado conocido y precauciones
 
 - El conflicto anterior de `Backend/Controllers/UsuariosController.cs` ya fue
-  resuelto; el último build del backend y sus 65 pruebas pasaron. Si se retoca
+  resuelto; el último build del backend y sus 81 pruebas pasaron. Si se retoca
   ese controlador, vuelve a compilar y probar.
 - `Backend/Tests/Backend.Tests.csproj` no está en el repositorio (solo los
   `.cs`). Para correr las pruebas hay que recrearlo: net10.0, xunit 2.9.3,
   `Microsoft.EntityFrameworkCore.InMemory` y `Microsoft.AspNetCore.Mvc.Testing`
   10.0.14, `Microsoft.NET.Test.Sdk`, `<Using Include="Xunit" />` y referencia a
   `Backend/Backend.csproj`.
-- El frontend pasó `npm --prefix Frontend run build` y sus 158 pruebas. ESLint
+- El frontend pasó `npm --prefix Frontend run build` y sus 183 pruebas. ESLint
   terminó sin errores; informó cinco advertencias existentes: un `<img>` en
   `BuscarViajes.jsx` y cuatro constantes sin uso en `src/lib/mapa.ts`.
 - La revisión visual del último trabajo llegó a la pantalla de inicio de
@@ -262,7 +279,7 @@ vincula en `identidad_externa`. Si no existe:
   la de sesión) y redirige a `/register/google`. No se entra a la app sin
   completar esa página, que exige cédula, nombres (precargados con
   `given_name`/`family_name`; segundo nombre y segundo apellido opcionales,
-  como en el registro normal), edad, ocupación y una contraseña con
+  como en el registro normal), edad, ocupación, celular y una contraseña con
   confirmación (8–72 bytes).
 - `POST /api/registro/google` toma sub y correo de la cookie, nunca del
   cuerpo, y llama a `POST /api/Usuarios/RegistroGoogle`. Este endpoint vuelve a

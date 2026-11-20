@@ -19,10 +19,16 @@ import {
   firmarRegistroGoogle,
   opcionesCookieRegistroGoogle,
 } from "../../../../../src/lib/registroGoogle";
+import {
+  COOKIE_CORREO_VERIFICADO,
+  firmarCorreoVerificado,
+  opcionesCookieCorreoVerificado,
+} from "../../../../../src/lib/verificacionCorreo";
 
 export const runtime = "nodejs";
 
-type DatosOAuth = { state: string; nonce: string; verifier: string };
+/** `verificar` solo existe si el flujo confirma el correo del registro. */
+type DatosOAuth = { state: string; nonce: string; verifier: string; verificar?: string };
 
 function leerCookieOAuth(valor: string | undefined): DatosOAuth | null {
   if (!valor) return null;
@@ -30,7 +36,8 @@ function leerCookieOAuth(valor: string | undefined): DatosOAuth | null {
     const datos = JSON.parse(valor) as Partial<DatosOAuth>;
     return typeof datos.state === "string" &&
       typeof datos.nonce === "string" &&
-      typeof datos.verifier === "string"
+      typeof datos.verifier === "string" &&
+      (datos.verificar === undefined || typeof datos.verificar === "string")
       ? (datos as DatosOAuth)
       : null;
   } catch {
@@ -39,20 +46,25 @@ function leerCookieOAuth(valor: string | undefined): DatosOAuth | null {
 }
 
 /**
- * Recibe el callback de Google, valida la identidad en el servidor y, si hay
- * una cuenta Cozymov asociada, emite la misma cookie de sesión del login normal.
- * Si no la hay y el correo es @unicesar.edu.co, guarda la identidad en una
- * cookie firmada y lleva a `/register/google` para completar el registro.
+ * Recibe el callback de Google y valida la identidad en el servidor.
+ * - Si el flujo verifica el correo del registro, comprueba que Google devolvió
+ *   ese mismo correo verificado, lo firma en la cookie `correo_verificado` y
+ *   vuelve a `/register`. No inicia sesión.
+ * - Si no, y hay una cuenta Cozymov asociada, emite la misma cookie de sesión
+ *   del login normal. Si no la hay y el correo es @unicesar.edu.co, guarda la
+ *   identidad en una cookie firmada y lleva a `/register/google`.
  * @param request Solicitud con code y state de Google.
- * @returns Redirección a la app o al login con un código de error.
+ * @returns Redirección a la app o a la pantalla de origen con un código de error.
  */
 export async function GET(request: NextRequest) {
   const config = obtenerConfigGoogle(request.nextUrl.origin);
   const origen = origenPublico(request.nextUrl.origin, config);
+  const guardado = leerCookieOAuth(request.cookies.get(COOKIE_OAUTH_GOOGLE)?.value);
+  const destinoError = guardado?.verificar
+    ? "/register?verificacion_error="
+    : "/?google_error=";
   const fallar = (codigo: string) => {
-    const respuesta = NextResponse.redirect(
-      new URL(`/?google_error=${codigo}`, origen),
-    );
+    const respuesta = NextResponse.redirect(new URL(`${destinoError}${codigo}`, origen));
     respuesta.cookies.delete({ name: COOKIE_OAUTH_GOOGLE, path: "/api/auth/google" });
     return respuesta;
   };
@@ -68,7 +80,6 @@ export async function GET(request: NextRequest) {
     return fallar(parametros.get("error") === "access_denied" ? "cancelado" : "error");
   }
 
-  const guardado = leerCookieOAuth(request.cookies.get(COOKIE_OAUTH_GOOGLE)?.value);
   const codigo = parametros.get("code");
   if (!guardado || !codigo || parametros.get("state") !== guardado.state) {
     return fallar("invalido");
@@ -81,6 +92,24 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("No se pudo validar la identidad de Google:", error);
     return fallar("invalido");
+  }
+
+  if (guardado.verificar) {
+    if (!identidad.emailVerificado) return fallar("no_verificado");
+    if (identidad.correo !== guardado.verificar) return fallar("no_coincide");
+    try {
+      const token = await firmarCorreoVerificado({
+        correo: identidad.correo,
+        sub: identidad.sub,
+      });
+      const respuesta = NextResponse.redirect(new URL("/register", origen));
+      respuesta.cookies.set(COOKIE_CORREO_VERIFICADO, token, opcionesCookieCorreoVerificado());
+      respuesta.cookies.delete({ name: COOKIE_OAUTH_GOOGLE, path: "/api/auth/google" });
+      return respuesta;
+    } catch (error) {
+      console.error("No se pudo firmar el correo verificado:", error);
+      return fallar("error");
+    }
   }
 
   let respuestaApi: Response;

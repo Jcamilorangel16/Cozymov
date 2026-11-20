@@ -9,6 +9,8 @@ export interface DatosPersonalesRegistro {
   segundoApellido: string | null;
   edad: number;
   ocupacion: string;
+  /** Celular obligatorio, normalizado a E.164 (+573001234567), para recuperar la contraseña. */
+  telefono: string;
 }
 
 /** Datos validados que se guardan al crear una cuenta. */

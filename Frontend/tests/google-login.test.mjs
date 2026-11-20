@@ -200,3 +200,18 @@ test("la URL de autorización usa PKCE S256, state y nonce sin exponer el secret
   assert.ok(!url.toString().includes("secreto-que-no-debe-aparecer"));
   assert.ok(!url.toString().includes(parametros.verifier));
 });
+
+test("la URL de autorización sugiere el correo a verificar solo si se pide", () => {
+  const config = {
+    clientId: CLIENT_ID,
+    clientSecret: "secreto",
+    redirectUri: "https://app.example/api/auth/google/callback",
+  };
+  const conCorreo = new URL(
+    construirUrlAutorizacion(config, crearParametrosOAuth(), "ana@uni.edu.co"),
+  );
+  assert.equal(conCorreo.searchParams.get("login_hint"), "ana@uni.edu.co");
+
+  const sinCorreo = new URL(construirUrlAutorizacion(config, crearParametrosOAuth()));
+  assert.equal(sinCorreo.searchParams.has("login_hint"), false);
+});
