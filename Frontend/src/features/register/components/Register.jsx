@@ -3,6 +3,7 @@
 
 import DatosPersonalesRegistro from "./DatosPersonalesRegistro";
 import CredencialesRegistro from "./CredencialesRegistro";
+import BotonGoogle from "../../../components/BotonGoogle";
 import { useRegisterForm } from "../hooks/useRegisterForm";
 import "../styles/register.css";
 
@@ -33,6 +34,16 @@ export default function Register() {
         <h2 className="display-6 text-center fw-bold text-primary mb-3">Cozymov</h2>
         <h1 className="text-center mb-3 titulo-icono"><i className="bi bi-person-heart" aria-hidden="true" /> Crear cuenta</h1>
         <h5 className="text-center text-muted mb-4">Únete a nosotros y empieza tu viaje</h5>
+
+        <div className="d-grid gap-2 mb-3">
+          <BotonGoogle texto="Registrarse con Google" deshabilitado={guardando} />
+          <p className="small text-muted text-center mb-0">
+            Solo con tu correo @unicesar.edu.co
+          </p>
+        </div>
+        <div className="separador-google mb-3" role="separator" aria-label="o">
+          <span>o</span>
+        </div>
 
         <div className="row g-3">
           <DatosPersonalesRegistro

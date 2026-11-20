@@ -1,5 +1,9 @@
 // Define los datos y las reglas de validación de las cuentas de usuario.
-import type { DatosRegistroUsuario } from "../types/usuarios";
+import type {
+  DatosPersonalesRegistro,
+  DatosRegistroGoogle,
+  DatosRegistroUsuario,
+} from "../types/usuarios";
 
 type ResultadoValidacion<T> =
   | { valido: true; datos: T }
@@ -10,6 +14,8 @@ type ResultadoValidacion<T> =
 const ES_DESARROLLO = process.env.NODE_ENV !== "production";
 const EXPRESION_CORREO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
 const EXPRESION_CORREO_INSTITUCIONAL = /^[^\s@]+@[^\s@]+\.edu\.co$/i;
+const ERROR_INCOMPLETO = "Completa todos los campos.";
+const ERROR_LONGITUD = "Uno o más campos superan la longitud permitida.";
 
 /**
  * Comprueba que el valor sea un objeto JSON no nulo ni una lista.
@@ -30,17 +36,24 @@ function esTextoNoVacio(valor: unknown): valor is string {
 }
 
 /**
- * Valida y normaliza los datos que se guardan para una cuenta de usuario.
- * @param valor Cuerpo desconocido de la solicitud.
- * @returns Datos de cuenta normalizados o error de validación.
+ * Comprueba la política de contraseñas: entre 8 caracteres y 72 bytes (límite de bcrypt).
+ * @param contrasena Contraseña ingresada.
+ * @returns Mensaje de error o null si es válida.
  */
-export function validarRegistroUsuario(
-  valor: unknown,
-): ResultadoValidacion<DatosRegistroUsuario> {
-  if (!esRegistro(valor)) {
-    return { valido: false, error: "Completa todos los campos." };
-  }
+function errorContrasena(contrasena: string): string | null {
+  return contrasena.length < 8 || new TextEncoder().encode(contrasena).length > 72
+    ? "La contraseña debe tener entre 8 y 72 bytes."
+    : null;
+}
 
+/**
+ * Valida y normaliza cédula, nombres, edad y ocupación.
+ * @param valor Cuerpo ya comprobado como objeto.
+ * @returns Datos personales normalizados o error de validación.
+ */
+function validarDatosPersonales(
+  valor: Record<string, unknown>,
+): ResultadoValidacion<DatosPersonalesRegistro> {
   const {
     idUsuario,
     primerNombre,
@@ -48,8 +61,6 @@ export function validarRegistroUsuario(
     primerApellido,
     segundoApellido,
     edad,
-    correo,
-    contrasena,
     ocupacion,
   } = valor;
 
@@ -57,11 +68,9 @@ export function validarRegistroUsuario(
     !esTextoNoVacio(idUsuario) ||
     !esTextoNoVacio(primerNombre) ||
     !esTextoNoVacio(primerApellido) ||
-    !esTextoNoVacio(correo) ||
-    !esTextoNoVacio(ocupacion) ||
-    typeof contrasena !== "string"
+    !esTextoNoVacio(ocupacion)
   ) {
-    return { valido: false, error: "Completa todos los campos." };
+    return { valido: false, error: ERROR_INCOMPLETO };
   }
 
   if (
@@ -78,7 +87,6 @@ export function validarRegistroUsuario(
   const apellido = primerApellido.trim();
   const segundoApellidoNormalizado =
     typeof segundoApellido === "string" ? segundoApellido.trim() || null : null;
-  const correoNormalizado = correo.replace(/\s+/g, "").toLowerCase();
   const ocupacionNormalizada = ocupacion.trim();
 
   if (!/^\d{1,10}$/.test(usuarioId)) {
@@ -93,13 +101,9 @@ export function validarRegistroUsuario(
     (segundoNombreNormalizado !== null && segundoNombreNormalizado.length > 50) ||
     apellido.length > 50 ||
     (segundoApellidoNormalizado !== null && segundoApellidoNormalizado.length > 50) ||
-    correoNormalizado.length > 150 ||
     ocupacionNormalizada.length > 50
   ) {
-    return {
-      valido: false,
-      error: "Uno o más campos superan la longitud permitida.",
-    };
+    return { valido: false, error: ERROR_LONGITUD };
   }
 
   if (
@@ -114,6 +118,47 @@ export function validarRegistroUsuario(
     };
   }
 
+  return {
+    valido: true,
+    datos: {
+      idUsuario: usuarioId,
+      primerNombre: nombre,
+      segundoNombre: segundoNombreNormalizado,
+      primerApellido: apellido,
+      segundoApellido: segundoApellidoNormalizado,
+      edad,
+      ocupacion: ocupacionNormalizada,
+    },
+  };
+}
+
+/**
+ * Valida y normaliza los datos que se guardan para una cuenta de usuario.
+ * @param valor Cuerpo desconocido de la solicitud.
+ * @returns Datos de cuenta normalizados o error de validación.
+ */
+export function validarRegistroUsuario(
+  valor: unknown,
+): ResultadoValidacion<DatosRegistroUsuario> {
+  if (!esRegistro(valor)) {
+    return { valido: false, error: ERROR_INCOMPLETO };
+  }
+
+  const { correo, contrasena } = valor;
+  if (!esTextoNoVacio(correo) || typeof contrasena !== "string") {
+    return { valido: false, error: ERROR_INCOMPLETO };
+  }
+
+  const personales = validarDatosPersonales(valor);
+  if (!personales.valido) {
+    return personales;
+  }
+
+  const correoNormalizado = correo.replace(/\s+/g, "").toLowerCase();
+  if (correoNormalizado.length > 150) {
+    return { valido: false, error: ERROR_LONGITUD };
+  }
+
   const expresionCorreo = ES_DESARROLLO
     ? EXPRESION_CORREO
     : EXPRESION_CORREO_INSTITUCIONAL;
@@ -126,27 +171,59 @@ export function validarRegistroUsuario(
     };
   }
 
-  if (contrasena.length < 8 || new TextEncoder().encode(contrasena).length > 72) {
-    return {
-      valido: false,
-      error: "La contraseña debe tener entre 8 y 72 bytes.",
-    };
+  const errorClave = errorContrasena(contrasena);
+  if (errorClave) {
+    return { valido: false, error: errorClave };
   }
 
   return {
     valido: true,
-    datos: {
-      idUsuario: usuarioId,
-      primerNombre: nombre,
-      segundoNombre: segundoNombreNormalizado,
-      primerApellido: apellido,
-      segundoApellido: segundoApellidoNormalizado,
-      edad,
-      correo: correoNormalizado,
-      contrasena,
-      ocupacion: ocupacionNormalizada,
-    },
+    datos: { ...personales.datos, correo: correoNormalizado, contrasena },
   };
+}
+
+/**
+ * Valida los datos que completa el usuario al registrarse con Google, incluida
+ * la contraseña obligatoria. El correo no se acepta del cliente: lo aporta la
+ * identidad firmada de Google.
+ * @param valor Cuerpo desconocido de la solicitud.
+ * @returns Datos normalizados (sin correo) o error de validación.
+ */
+export function validarRegistroGoogle(
+  valor: unknown,
+): ResultadoValidacion<DatosRegistroGoogle> {
+  if (!esRegistro(valor)) {
+    return { valido: false, error: ERROR_INCOMPLETO };
+  }
+  const { contrasena } = valor;
+  if (typeof contrasena !== "string") {
+    return { valido: false, error: ERROR_INCOMPLETO };
+  }
+
+  const personales = validarDatosPersonales(valor);
+  if (!personales.valido) {
+    return personales;
+  }
+
+  const errorClave = errorContrasena(contrasena);
+  if (errorClave) {
+    return { valido: false, error: errorClave };
+  }
+
+  return { valido: true, datos: { ...personales.datos, contrasena } };
+}
+
+/**
+ * Comprueba que los campos obligatorios del formulario tengan contenido.
+ * @param valor Datos capturados por el formulario.
+ * @param campos Nombres de los campos obligatorios.
+ * @returns Si falta alguno.
+ */
+function faltanCampos(valor: Record<string, unknown>, campos: string[]): boolean {
+  return campos.some((campo) => {
+    const contenido = valor[campo];
+    return typeof contenido !== "string" || !contenido.trim();
+  });
 }
 
 /**
@@ -162,20 +239,16 @@ export function validarFormularioRegistro(
   if (!esRegistro(valor)) {
     return { valido: false, error: "Por favor, completa todos los campos." };
   }
-  const camposObligatorios = [
-    "primerNombre",
-    "primerApellido",
-    "idUsuario",
-    "edad",
-    "correo",
-    "contrasena",
-    "ocupacion",
-  ];
   if (
-    camposObligatorios.some((campo) => {
-      const contenido = valor[campo];
-      return typeof contenido !== "string" || !contenido.trim();
-    }) ||
+    faltanCampos(valor, [
+      "primerNombre",
+      "primerApellido",
+      "idUsuario",
+      "edad",
+      "correo",
+      "contrasena",
+      "ocupacion",
+    ]) ||
     confirmarContrasena === ""
   ) {
     return { valido: false, error: "Por favor, completa todos los campos." };
@@ -186,6 +259,42 @@ export function validarFormularioRegistro(
   }
 
   return validarRegistroUsuario({
+    ...valor,
+    edad: Number(valor.edad),
+  });
+}
+
+/**
+ * Comprueba el formulario para completar el registro con Google: todos los
+ * campos obligatorios y que ambas contraseñas coincidan.
+ * @param valor Datos capturados por el formulario.
+ * @param confirmarContrasena Contraseña de confirmación ingresada.
+ * @returns Datos validados o error para mostrar.
+ */
+export function validarFormularioRegistroGoogle(
+  valor: unknown,
+  confirmarContrasena: string,
+): ResultadoValidacion<DatosRegistroGoogle> {
+  if (
+    !esRegistro(valor) ||
+    faltanCampos(valor, [
+      "primerNombre",
+      "primerApellido",
+      "idUsuario",
+      "edad",
+      "ocupacion",
+      "contrasena",
+    ]) ||
+    confirmarContrasena === ""
+  ) {
+    return { valido: false, error: "Por favor, completa todos los campos." };
+  }
+
+  if (valor.contrasena !== confirmarContrasena) {
+    return { valido: false, error: "Las contraseñas no coinciden." };
+  }
+
+  return validarRegistroGoogle({
     ...valor,
     edad: Number(valor.edad),
   });

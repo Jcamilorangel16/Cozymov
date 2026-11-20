@@ -61,6 +61,8 @@ Tablas_ccozy/ Bóveda Obsidian local opcional, ignorada por Git
   columnas `EmailVerificado` y `CodigoRecuperacion*` se eliminaron (migración
   `QuitarVerificacionYRecuperacionCorreo`). La contraseña solo se cambia desde
   Configuración conociendo la actual.
+- Registro e inicio de sesión con Google (ver "Registro con Google" abajo):
+  crear una cuenta con Google solo se admite con correos `@unicesar.edu.co`.
 - Inicio y cierre de sesión, sesión firmada en el servidor y rutas protegidas.
 - Perfil y configuración de usuario.
 - Publicación, búsqueda, consulta y edición de viajes; aceptación y cancelación
@@ -169,11 +171,16 @@ dotnet ef database update --project Backend/Backend.csproj --startup-project Bac
 ## Estado conocido y precauciones
 
 - El conflicto anterior de `Backend/Controllers/UsuariosController.cs` ya fue
-  resuelto; el último build del backend y sus 42 pruebas pasaron. Si se retoca
+  resuelto; el último build del backend y sus 65 pruebas pasaron. Si se retoca
   ese controlador, vuelve a compilar y probar.
-- El frontend pasó `npm --prefix Frontend run build` y sus 15 pruebas. ESLint
-  terminó sin errores; informó tres advertencias existentes: un `<img>` en
-  `BuscarViajes.jsx` y dos valores sin uso en `MenuPrincipal.jsx`.
+- `Backend/Tests/Backend.Tests.csproj` no está en el repositorio (solo los
+  `.cs`). Para correr las pruebas hay que recrearlo: net10.0, xunit 2.9.3,
+  `Microsoft.EntityFrameworkCore.InMemory` y `Microsoft.AspNetCore.Mvc.Testing`
+  10.0.14, `Microsoft.NET.Test.Sdk`, `<Using Include="Xunit" />` y referencia a
+  `Backend/Backend.csproj`.
+- El frontend pasó `npm --prefix Frontend run build` y sus 158 pruebas. ESLint
+  terminó sin errores; informó cinco advertencias existentes: un `<img>` en
+  `BuscarViajes.jsx` y cuatro constantes sin uso en `src/lib/mapa.ts`.
 - La revisión visual del último trabajo llegó a la pantalla de inicio de
   sesión; no había una sesión autenticada disponible para inspeccionar las
   nuevas vistas.
@@ -240,6 +247,39 @@ clave.
   (`mensajeErrorSeguro()`).
 - CORS del backend está cerrado salvo `Cors:OrigenesPermitidos`.
 - Las falencias pendientes están en [`INFORME_SEGURIDAD.md`](INFORME_SEGURIDAD.md).
+
+### Registro con Google
+
+El botón de Google (en el login, "Continuar con Google", y en `/register`,
+"Registrarse con Google") inicia el mismo flujo OAuth con PKCE
+(`/api/auth/google`, scopes `openid email profile`). En el callback, el backend
+`POST /api/Usuarios/LoginGoogle` busca la cuenta por `sub` o por correo y la
+vincula en `identidad_externa`. Si no existe:
+
+- Si el correo está verificado por Google y es exactamente `@unicesar.edu.co`
+  (sin subdominios), el callback firma la identidad en la cookie httpOnly
+  `google_registro` (15 min, clave derivada de `SESSION_SECRET`, distinta de
+  la de sesión) y redirige a `/register/google`. No se entra a la app sin
+  completar esa página, que exige cédula, nombres (precargados con
+  `given_name`/`family_name`; segundo nombre y segundo apellido opcionales,
+  como en el registro normal), edad, ocupación y una contraseña con
+  confirmación (8–72 bytes).
+- `POST /api/registro/google` toma sub y correo de la cookie, nunca del
+  cuerpo, y llama a `POST /api/Usuarios/RegistroGoogle`. Este endpoint vuelve a
+  exigir el dominio, también en Development, y crea `Usuarios` +
+  `IdentidadExterna` en un solo `SaveChanges`. Después el proxy deja la sesión
+  iniciada.
+- En otro caso, el callback redirige con `google_error=sin_cuenta`.
+
+unicesar.edu.co usa Microsoft 365, no Google Workspace: Google no envía `hd` y
+no es autoritativo para esos correos. Se confía en `email_verified`, que Google
+fijó al crear la cuenta, así que si la universidad da de baja el buzón, la
+cuenta de Google sigue funcionando. Las cuentas creadas con Google pueden
+entrar con Google o con correo y contraseña, y cambiar la contraseña desde
+Configuración. El registro con contraseña sigue aceptando cualquier `.edu.co`.
+El login con correo y contraseña no redirige al registro cuando la cuenta no
+existe: responde igual que con una clave incorrecta para no revelar qué
+correos están registrados.
 
 ### Finalización de viajes y calificaciones
 

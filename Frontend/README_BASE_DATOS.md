@@ -23,6 +23,12 @@ agrega `https://cozymov.com` en "Orígenes autorizados de JavaScript" y
 `https://cozymov.com/api/auth/google/callback` en "URI de redireccionamiento
 autorizados". Si usas también `www`, agrégalo igual y redirige uno al otro.
 
+El flujo pide los scopes `openid`, `email` y `profile` (no sensibles; en la
+pantalla de consentimiento basta con tenerlos listados). Con Google también se
+puede crear una cuenta, pero solo con correos `@unicesar.edu.co`: la identidad
+pendiente viaja en la cookie `google_registro`, firmada con una clave derivada
+de `SESSION_SECRET`. No requiere variables nuevas.
+
 En el backend, `Cors__OrigenesPermitidos` es opcional y está vacío por defecto:
 el navegador no llama a la API directamente, así que no hace falta abrir CORS.
 
