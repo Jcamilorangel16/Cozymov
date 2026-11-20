@@ -216,11 +216,12 @@ dotnet ef database update --project Backend/Backend.csproj --startup-project Bac
   pruebas de integración (`FabricaTiempoReal`) usan el entorno `Testing` y base
   en memoria: no aplican migraciones ni leen User Secrets. Último resultado: 138
   pruebas correctas.
-- El frontend pasó `npm --prefix Frontend run build`; de sus 245 pruebas, la
-  de memoria de `tests/registro.test.mjs` falla de forma intermitente (no
-  relacionada con el perfil público). ESLint
-  terminó sin errores; informó cinco advertencias existentes: un `<img>` en
-  `BuscarViajes.jsx` y cuatro constantes sin uso en `src/lib/mapa.ts`.
+- El frontend pasó `npm --prefix Frontend run build` y sus 245 pruebas (la de
+  memoria de `tests/registro.test.mjs` falla a veces de forma intermitente).
+  ESLint terminó sin errores; informó cuatro advertencias existentes:
+  constantes sin uso en `src/lib/mapa.ts`.
+- `dotnet-ef` es una herramienta local (`dotnet-tools.json`): ejecuta
+  `dotnet tool restore` antes de usar `dotnet ef`.
 - La revisión visual del último trabajo llegó a la pantalla de inicio de
   sesión; no había una sesión autenticada disponible para inspeccionar las
   nuevas vistas.

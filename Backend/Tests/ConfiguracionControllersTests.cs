@@ -423,8 +423,11 @@ public sealed class ConfiguracionControllersTests
         var context = NewContext();
         var hasher = new PasswordHasher<Usuarios>();
         context.Usuarios.AddRange(NuevoUsuario(1, hasher), NuevoUsuario(2, hasher));
-        context.Vehiculos.Add(new Vehiculo { IdVehiculo = 5, Tipo = "Automovil", Modelo = "Mazda 2", Capacidad = 3, IdUsuario = 1 });
-        context.Automoviles.Add(new Automovil { IdVehiculo = 5, NumeroPuertas = 4 });
+        // Con herencia TPT, el automóvil es el propio vehículo (una sola entidad).
+        context.Automoviles.Add(new Automovil
+        {
+            IdVehiculo = 5, Tipo = "Automovil", Modelo = "Mazda 2", Capacidad = 3, IdUsuario = 1, NumeroPuertas = 4
+        });
         await context.SaveChangesAsync();
         return context;
     }
@@ -440,10 +443,10 @@ public sealed class ConfiguracionControllersTests
         });
 
         Assert.IsType<NoContentResult>(result);
-        var vehiculo = await context.Vehiculos.Include(v => v.Automovil).FirstAsync(v => v.IdVehiculo == 5);
+        var vehiculo = await context.Automoviles.FirstAsync(v => v.IdVehiculo == 5);
         Assert.Equal("Kia Picanto", vehiculo.Modelo);
         Assert.Equal(2, vehiculo.Capacidad);
-        Assert.Equal((short)5, vehiculo.Automovil!.NumeroPuertas);
+        Assert.Equal((short)5, vehiculo.NumeroPuertas);
         Assert.Equal(1, vehiculo.IdUsuario);
     }
 
