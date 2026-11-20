@@ -1,6 +1,7 @@
 using Backend.Data;
 using Backend.DTOs;
 using Backend.Models;
+using Backend.TiempoReal;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,10 +12,12 @@ namespace Backend.Controllers
     public class MensajesController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly INotificadorTiempoReal _notificador;
 
-        public MensajesController(AppDbContext context)
+        public MensajesController(AppDbContext context, INotificadorTiempoReal? notificador = null)
         {
             _context = context;
+            _notificador = notificador ?? NotificadorTiempoRealNulo.Instancia;
         }
 
         // GET: api/Mensajes/contactos?yo=1&q=ana
@@ -131,6 +134,13 @@ namespace Backend.Controllers
                 foreach (var m in pendientes)
                     m.Leido = true;
                 await _context.SaveChangesAsync();
+
+                // Ya guardado: el emisor ve sus mensajes como leídos sin esperar a recargar.
+                _notificador.PublicarMensajesLeidos(new MensajesLeidosEvento(
+                    VersionEventos.Actual,
+                    IdLector: yo,
+                    IdEmisor: otro,
+                    HastaIdMensaje: pendientes.Max(m => m.IdMensaje)));
             }
 
             return mensajes.Select(m => new MensajeDTO
@@ -191,10 +201,13 @@ namespace Backend.Controllers
             if (idEmisor == mensajeCreate.IdReceptor)
                 return BadRequest("No puedes enviarte un mensaje a ti mismo.");
 
-            var existen = await _context.Usuarios
-                .CountAsync(u => u.IdPersonas == idEmisor || u.IdPersonas == mensajeCreate.IdReceptor);
-            if (existen < 2)
+            var participantes = await _context.Usuarios
+                .Where(u => u.IdPersonas == idEmisor || u.IdPersonas == mensajeCreate.IdReceptor)
+                .Select(u => new { u.IdPersonas, u.PrimerNombre, u.PrimerApellido })
+                .ToListAsync();
+            if (participantes.Count < 2)
                 return NotFound("El emisor o el destinatario no existe.");
+            var emisor = participantes.First(u => u.IdPersonas == idEmisor);
 
             var mensaje = new Mensaje
             {
@@ -207,6 +220,16 @@ namespace Backend.Controllers
 
             _context.Mensajes.Add(mensaje);
             await _context.SaveChangesAsync();
+
+            // Ya guardado: el receptor lo recibe al instante (y el emisor, en sus otras pestañas).
+            _notificador.PublicarMensajeNuevo(new MensajeNuevoEvento(
+                VersionEventos.Actual,
+                mensaje.IdMensaje,
+                mensaje.IdEmisor,
+                mensaje.IdReceptor,
+                NombreEmisor: $"{emisor.PrimerNombre} {emisor.PrimerApellido}".Trim(),
+                mensaje.Contenido,
+                mensaje.FechaHora));
 
             var respuesta = new MensajeDTO
             {

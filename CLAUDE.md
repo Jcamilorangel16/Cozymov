@@ -86,7 +86,8 @@ Tablas_ccozy/ Bóveda Obsidian local opcional, ignorada por Git
   de reservas.
 - Registro y consulta de vehículos, con detalles separados para automóvil,
   moto y bicicleta eléctrica.
-- Mensajería: contactos, conversaciones, mensajes y estado de lectura.
+- Mensajería: contactos, conversaciones, mensajes y estado de lectura, con
+  mensajes nuevos y lecturas en tiempo real (SignalR, ver abajo).
 - Teléfonos y preferencias de movilidad desde Configuración.
 - Solicitudes de viaje: creación, consulta, edición, eliminación y consulta de
   viajes coincidentes por ruta, día, presupuesto y hora límite.
@@ -168,7 +169,8 @@ estado.
   `src/features/viaje-en-curso/utils/compartir.js` y no incluye ids. No lleva
   vehículo: la reserva activa no lo devuelve y `vehiculo` no tiene placa.
 - `useRedirigirViajeEnCurso` (menú principal) consulta `/api/viajes/en-curso`
-  cada 15 s y al volver a la pestaña. Con un viaje activo que el usuario no
+  al abrir, al volver a la pestaña y con cada evento `ViajeActualizado` (sin
+  tiempo real, cada 15 s). Con un viaje activo que el usuario no
   había visto (clave `rol:idViaje` en `sessionStorage`) lo lleva a "En curso"
   y avisa; al abrir la app con un viaje activo también entra ahí. La decisión
   está en `menu-principal/utils/viajeActivo.js`. Mientras "En curso" muestra un
@@ -203,12 +205,15 @@ dotnet ef database update --project Backend/Backend.csproj --startup-project Bac
 - El conflicto anterior de `Backend/Controllers/UsuariosController.cs` ya fue
   resuelto; el último build del backend y sus 81 pruebas pasaron. Si se retoca
   ese controlador, vuelve a compilar y probar.
-- `Backend/Tests/Backend.Tests.csproj` no está en el repositorio (solo los
-  `.cs`). Para correr las pruebas hay que recrearlo: net10.0, xunit 2.9.3,
-  `Microsoft.EntityFrameworkCore.InMemory` y `Microsoft.AspNetCore.Mvc.Testing`
-  10.0.14, `Microsoft.NET.Test.Sdk`, `<Using Include="Xunit" />` y referencia a
-  `Backend/Backend.csproj`.
-- El frontend pasó `npm --prefix Frontend run build` y sus 193 pruebas. ESLint
+- `Backend/Tests/Backend.Tests.csproj` no estaba en el repositorio (solo los
+  `.cs`). Si falta, recréalo: net10.0, xunit 2.9.3, xunit.runner.visualstudio,
+  `Microsoft.EntityFrameworkCore.InMemory`, `Microsoft.AspNetCore.Mvc.Testing` y
+  `Microsoft.AspNetCore.SignalR.Client` 10.0.14, `Microsoft.NET.Test.Sdk`,
+  `<Using Include="Xunit" />` y referencia a `Backend/Backend.csproj`. Las
+  pruebas de integración (`FabricaTiempoReal`) usan el entorno `Testing` y base
+  en memoria: no aplican migraciones ni leen User Secrets. Último resultado: 126
+  pruebas correctas.
+- El frontend pasó `npm --prefix Frontend run build` y sus 235 pruebas. ESLint
   terminó sin errores; informó cinco advertencias existentes: un `<img>` en
   `BuscarViajes.jsx` y cuatro constantes sin uso en `src/lib/mapa.ts`.
 - La revisión visual del último trabajo llegó a la pantalla de inicio de
@@ -277,6 +282,32 @@ clave.
   (`mensajeErrorSeguro()`).
 - CORS del backend está cerrado salvo `Cors:OrigenesPermitidos`.
 - Las falencias pendientes están en [`INFORME_SEGURIDAD.md`](INFORME_SEGURIDAD.md).
+
+### Tiempo real (SignalR)
+
+Detalle completo en [`README_TIEMPO_REAL.md`](README_TIEMPO_REAL.md). En resumen:
+
+- Hub de solo envío `TiempoRealHub` en `/hubs/tiempo-real` (fuera de `/api`, sin
+  `X-Internal-Api-Key`). Solo WebSocket, sin negociación ni CORS; lista blanca de
+  `Origin` en `TiempoReal:OrigenesPermitidos`. No tiene métodos invocables: el
+  servidor elige a los destinatarios desde la base y envía con
+  `Clients.Users(...)`; no hay grupos que el cliente pueda pedir.
+- El navegador conecta directamente al backend (Vercel no mantiene WebSockets)
+  con un ticket de un solo uso (60 s, 256 bits, solo su hash en memoria) que
+  pide a `POST /api/tiempo-real/ticket`; Next.js lo obtiene de
+  `POST /api/tiempo-real/tickets` (con la clave interna) para el usuario de la
+  sesión. La conexión se cierra al cabo de 1 h para revalidar la sesión.
+- Eventos v1: `MensajeNuevo`, `MensajesLeidos` y `ViajeActualizado` (`motivo`,
+  `idViaje`). Se publican con `INotificadorTiempoReal` **después** de
+  `SaveChanges`/`Commit`, sin esperar al envío; un fallo solo se registra. Si
+  añades un flujo que cambie mensajes, reservas o viajes, publica ahí también.
+- Cliente: `src/lib/tiempoReal/gestor.js` (una conexión por pestaña, espera
+  progresiva, ticket nuevo por intento) y `src/hooks/useTiempoReal.js`. Tras
+  cada (re)conexión las vistas se resincronizan por HTTP; sin conexión vuelven
+  a sus consultas periódicas. La CSP incluye el origen `wss://` del Hub, que se
+  calcula al compilar desde `SIGNALR_HUB_URL` o `VITE_API_URL`.
+- Todo vive en memoria (una sola instancia). Con varias harían falta almacén de
+  tickets compartido y backplane.
 
 ### Registro con Google
 

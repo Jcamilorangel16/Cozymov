@@ -41,7 +41,9 @@ INTERNAL_API_KEY=el-mismo-valor-configurado-en-el-backend
 ```
 
 En el servidor, configura `INTERNAL_API_KEY` en el backend (Render) y
-`VITE_API_URL` e `INTERNAL_API_KEY` en Vercel.
+`VITE_API_URL` e `INTERNAL_API_KEY` en Vercel. Para las actualizaciones en
+tiempo real, configura además `TiempoReal__OrigenesPermitidos` en el backend
+(ver [README_TIEMPO_REAL.md](./README_TIEMPO_REAL.md)); en local no hace falta.
 
 Inicia el backend (`dotnet run --project Backend/Backend.csproj`) y el
 frontend (`npm --prefix Frontend run dev`).
@@ -49,7 +51,7 @@ frontend (`npm --prefix Frontend run dev`).
 Las pruebas automatizadas se ejecutan con:
 
 ```powershell
-dotnet test Backend.Tests/Backend.Tests.csproj
+dotnet test Backend/Tests/Backend.Tests.csproj
 npm --prefix Frontend run test
 npm --prefix Frontend run lint
 ```

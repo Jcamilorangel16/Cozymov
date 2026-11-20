@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Swal from "sweetalert2";
+import { useTiempoReal } from "../../../hooks/useTiempoReal";
 import { formatearFecha, formatearPrecioViaje } from "../../buscar-viajes/utils/viajes";
+import { avisoCambioViaje } from "../utils/cambiosViaje";
 import { viajeEnTrayecto } from "../utils/trayecto";
 import { textoCompartirViaje, urlCompartirWhatsApp } from "../utils/compartir";
 import {
@@ -47,6 +49,33 @@ export default function ViajeEnCurso({ onNavigate, onMensajeConductor, onViajeAc
   const finalizandoRef = useRef(false);
   // Se actualiza cada medio minuto: al llegar la hora de salida el viaje pasa a estar en trayecto.
   const [ahora, setAhora] = useState(() => Date.now());
+
+  // Lo que se muestra ahora, para saber qué cambió cuando avisa el servidor.
+  const mostradoRef = useRef({ viaje: null, rol: "pasajero" });
+  useEffect(() => {
+    mostradoRef.current = { viaje, rol };
+  });
+  // Evento pendiente de aplicar cuando llegue la consulta, y si esa consulta es en segundo plano.
+  const cambioPendienteRef = useRef(null);
+  const enSegundoPlanRef = useRef(false);
+
+  // Si la otra parte sale, finaliza, cancela o edita el viaje, se vuelve a consultar por HTTP.
+  useTiempoReal(
+    {
+      ViajeActualizado: (evento) => {
+        const { viaje: actual, rol: rolActual } = mostradoRef.current;
+        cambioPendienteRef.current = { motivo: evento.motivo, rolAnterior: actual ? rolActual : null };
+        enSegundoPlanRef.current = true;
+        setIntento((actualIntento) => actualIntento + 1);
+      },
+    },
+    {
+      alResincronizar: () => {
+        enSegundoPlanRef.current = true;
+        setIntento((actualIntento) => actualIntento + 1);
+      },
+    },
+  );
 
   // Momento (ms) en que el GPS confirmó la llegada; desde ahí corre la hora para el cierre automático.
   const [llegada, setLlegada] = useState(null);
@@ -172,7 +201,9 @@ export default function ViajeEnCurso({ onNavigate, onMensajeConductor, onViajeAc
 
   useEffect(() => {
     const controlador = new AbortController();
-    fetch("/api/viajes/en-curso", { signal: controlador.signal })
+    const enSegundoPlan = enSegundoPlanRef.current;
+    enSegundoPlanRef.current = false;
+    fetch("/api/viajes/en-curso", { signal: controlador.signal, cache: "no-store" })
       .then(async (respuesta) => {
         const resultado = await respuesta.json();
         if (!respuesta.ok) {
@@ -181,19 +212,31 @@ export default function ViajeEnCurso({ onNavigate, onMensajeConductor, onViajeAc
         if (!("viaje" in resultado)) {
           throw new Error("La respuesta del servidor no contiene tu viaje.");
         }
+        const rolNuevo = resultado.rol === "conductor" ? "conductor" : "pasajero";
         setViaje(resultado.viaje);
-        setRol(resultado.rol === "conductor" ? "conductor" : "pasajero");
+        setRol(rolNuevo);
         // Si el pasajero ya había llegado antes de recargar, retoma la hora de espera.
         setLlegada(
           resultado.viaje && resultado.rol !== "conductor"
             ? leerLlegada(window.localStorage, resultado.viaje.id_viaje)
             : null,
         );
+
+        const cambio = cambioPendienteRef.current;
+        cambioPendienteRef.current = null;
+        const aviso = cambio
+          ? avisoCambioViaje({ ...cambio, rolNuevo: resultado.viaje ? rolNuevo : null })
+          : null;
+        // No se tapa otra ventana abierta (p. ej. una confirmación en curso).
+        if (aviso && !Swal.isVisible()) {
+          void Swal.fire({ icon: aviso.icono, title: aviso.titulo, text: aviso.texto });
+        }
       })
       .catch((errorConsulta) => {
-        if (errorConsulta.name !== "AbortError") {
-          setError(errorConsulta.message || "No se pudo consultar tu viaje en curso.");
-        }
+        if (errorConsulta.name === "AbortError") return;
+        // Una actualización en segundo plano que falla no reemplaza lo que ya se ve.
+        if (enSegundoPlan) return;
+        setError(errorConsulta.message || "No se pudo consultar tu viaje en curso.");
       })
       .finally(() => {
         if (!controlador.signal.aborted) setCargando(false);

@@ -1,6 +1,7 @@
 using Backend.Data;
 using Backend.DTOs;
 using Backend.Models;
+using Backend.TiempoReal;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
@@ -12,10 +13,12 @@ namespace Backend.Controllers
     public class ViajesController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly INotificadorTiempoReal _notificador;
 
-        public ViajesController(AppDbContext context)
+        public ViajesController(AppDbContext context, INotificadorTiempoReal? notificador = null)
         {
             _context = context;
+            _notificador = notificador ?? NotificadorTiempoRealNulo.Instancia;
         }
 
         // GET: api/Viajes
@@ -233,6 +236,9 @@ namespace Backend.Controllers
             await _context.SaveChangesAsync(cancellationToken);
             await transaccion.CommitAsync(cancellationToken);
 
+            PublicarCambioViaje(MotivoViaje.ReservaCancelada, reserva.IdViaje,
+                [reserva.Viaje.IdUsuario, reserva.IdPasajero]);
+
             return Ok(new { cancelada = true, id_viaje = reserva.IdViaje });
         }
 
@@ -244,6 +250,7 @@ namespace Backend.Controllers
             CancellationToken cancellationToken)
         {
             var reserva = await _context.ReservasViaje
+                .Include(r => r.Viaje)
                 .FirstOrDefaultAsync(
                     r => r.IdPasajero == id_pasajero && r.Estado == "activa",
                     cancellationToken);
@@ -255,6 +262,10 @@ namespace Backend.Controllers
 
             reserva.Estado = "completada";
             await _context.SaveChangesAsync(cancellationToken);
+
+            // El viaje y sus cupos no cambian; el conductor se entera de que este pasajero terminó.
+            PublicarCambioViaje(MotivoViaje.ReservaFinalizada, reserva.IdViaje,
+                [reserva.Viaje.IdUsuario, reserva.IdPasajero]);
 
             return Ok(new { finalizada = true, id_reserva = reserva.IdReserva, id_viaje = reserva.IdViaje });
         }
@@ -351,6 +362,9 @@ namespace Backend.Controllers
                 await transaccion.RollbackAsync(cancellationToken);
                 return Conflict("El viaje cambió mientras lo cancelabas. Inténtalo de nuevo.");
             }
+
+            PublicarCambioViaje(MotivoViaje.ViajeCancelado, viaje.IdViaje,
+                reservas.Select(r => r.IdPasajero).Append(id_conductor));
 
             return Ok(new
             {
@@ -456,6 +470,9 @@ namespace Backend.Controllers
                 return Conflict("No se pudo reservar el viaje porque ya no está disponible.");
             }
 
+            PublicarCambioViaje(MotivoViaje.ReservaCreada, viaje.IdViaje,
+                [viaje.IdUsuario, reserva.IdPasajero]);
+
             return Ok(CrearReservaDTO(reserva, viaje));
         }
 
@@ -479,6 +496,7 @@ namespace Backend.Controllers
                 return BadRequest($"El usuario {viajeUpdate.IdUsuario} no existe.");
             }
 
+            var conductorAnterior = viaje.IdUsuario;
             viaje.IdUsuario = viajeUpdate.IdUsuario;
             viaje.IdRuta = viajeUpdate.IdRuta;
             if (viajeUpdate.Origen is not null)
@@ -508,6 +526,11 @@ namespace Backend.Controllers
                 }
                 throw;
             }
+
+            // Quienes van en el viaje ven la hora, el precio o los cupos nuevos.
+            var pasajeros = await PasajerosActivos(id_viaje, cancellationToken);
+            PublicarCambioViaje(MotivoViaje.ViajeModificado, id_viaje,
+                pasajeros.Append(viaje.IdUsuario).Append(conductorAnterior));
 
             return NoContent();
         }
@@ -621,8 +644,14 @@ namespace Backend.Controllers
                 return NotFound();
             }
 
+            // Las reservas se borran en cascada: se avisa a quienes iban en el viaje.
+            var pasajeros = await PasajerosActivos(id_viaje, cancellationToken);
+
             _context.Viajes.Remove(viaje);
             await _context.SaveChangesAsync(cancellationToken);
+
+            PublicarCambioViaje(MotivoViaje.ViajeEliminado, id_viaje,
+                pasajeros.Append(viaje.IdUsuario));
 
             return NoContent();
         }
@@ -655,6 +684,22 @@ namespace Backend.Controllers
             return _context.Viajes.AnyAsync(
                 v => v.IdUsuario == idUsuario && v.Estado.ToLower() == "activo",
                 cancellationToken);
+        }
+
+        private Task<List<int>> PasajerosActivos(long idViaje, CancellationToken cancellationToken)
+        {
+            return _context.ReservasViaje
+                .Where(r => r.IdViaje == idViaje && r.Estado == "activa")
+                .Select(r => r.IdPasajero)
+                .ToListAsync(cancellationToken);
+        }
+
+        /// <summary>Se llama solo después de guardar (y de confirmar la transacción, si la hay).</summary>
+        private void PublicarCambioViaje(string motivo, long idViaje, IEnumerable<int> destinatarios)
+        {
+            _notificador.PublicarViajeActualizado(
+                new ViajeActualizadoEvento(VersionEventos.Actual, motivo, idViaje),
+                destinatarios);
         }
 
         private Task<bool> ViajeExists(long id_viaje, CancellationToken cancellationToken)

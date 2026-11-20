@@ -3,13 +3,14 @@
 
 import { useEffect, useRef } from "react";
 import Swal from "sweetalert2";
+import { useTiempoReal } from "../../../hooks/useTiempoReal";
 import {
   claveViajeActivo,
   decidirRedireccion,
   textoViajeAceptado,
 } from "../utils/viajeActivo";
 
-/** Cada cuánto se consulta si hay un viaje activo. */
+/** Sin tiempo real, cada cuánto se consulta si hay un viaje activo. */
 const INTERVALO_MS = 15_000;
 const CLAVE_VISTO = "cozymov-viaje-en-curso-visto";
 
@@ -30,19 +31,27 @@ function guardarVisto(clave) {
 }
 
 /**
- * Consulta periódicamente /api/viajes/en-curso. Cuando aparece un viaje activo
- * que el usuario no había visto (un conductor aceptó su solicitud o un pasajero
- * tomó su viaje publicado), lo lleva a «En curso» y lo avisa. Al abrir la app
- * con un viaje activo también entra directo a «En curso».
+ * Consulta /api/viajes/en-curso al abrir la app, al volver a la pestaña y cada vez que el
+ * servidor avisa de un cambio en una reserva o un viaje del usuario (sin tiempo real, cada
+ * 15 s). Cuando aparece un viaje activo que el usuario no había visto (un conductor aceptó
+ * su solicitud o un pasajero tomó su viaje publicado), lo lleva a «En curso» y lo avisa. Al
+ * abrir la app con un viaje activo también entra directo a «En curso».
  * @param {string} idUsuario Usuario autenticado.
  * @param {{vistaActiva: string, irAVista: (id: string) => void}} navegacion Vista y navegación del menú.
  * @returns {void}
  */
 export function useRedirigirViajeEnCurso(idUsuario, { vistaActiva, irAVista }) {
   const navegacionRef = useRef({ vistaActiva, irAVista });
+  const consultarRef = useRef(null);
   useEffect(() => {
     navegacionRef.current = { vistaActiva, irAVista };
   });
+
+  // El evento no trae los datos: se consultan por HTTP, con la autorización de siempre.
+  const { conectado } = useTiempoReal(
+    { ViajeActualizado: () => void consultarRef.current?.() },
+    { activo: Boolean(idUsuario), alResincronizar: () => void consultarRef.current?.() },
+  );
 
   useEffect(() => {
     if (!idUsuario) return undefined;
@@ -81,20 +90,27 @@ export function useRedirigirViajeEnCurso(idUsuario, { vistaActiva, irAVista }) {
           void Swal.fire({ icon: "success", title: titulo, text: texto, confirmButtonText: "Ver viaje" });
         }
       } catch {
-        // Un fallo de red se reintenta en el siguiente ciclo.
+        // Un fallo de red se reintenta en la siguiente consulta.
       }
     }
 
+    consultarRef.current = consultar;
     void consultar();
-    const temporizador = setInterval(consultar, INTERVALO_MS);
     const alVolverVisible = () => {
       if (document.visibilityState === "visible") void consultar();
     };
     document.addEventListener("visibilitychange", alVolverVisible);
     return () => {
       controlador.abort();
-      clearInterval(temporizador);
+      consultarRef.current = null;
       document.removeEventListener("visibilitychange", alVolverVisible);
     };
   }, [idUsuario]);
+
+  // Respaldo HTTP mientras no hay conexión de tiempo real.
+  useEffect(() => {
+    if (!idUsuario || conectado) return undefined;
+    const temporizador = setInterval(() => void consultarRef.current?.(), INTERVALO_MS);
+    return () => clearInterval(temporizador);
+  }, [idUsuario, conectado]);
 }
