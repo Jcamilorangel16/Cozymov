@@ -162,6 +162,11 @@ estado.
 - El proxy `Frontend/app/api/viajes/en-curso/route.ts` expone GET (reserva activa),
   POST (finalizar) y DELETE (cancelar). El ID numérico del conductor para
   calificar viene de `/api/viajes/completados`.
+- En "Viaje en curso", solo el pasajero ve "Compartir viaje por WhatsApp": un
+  enlace `https://wa.me/?text=…` (sin número, el usuario elige el contacto)
+  con origen, destino, salida, conductor, precio y estado. El texto se arma en
+  `src/features/viaje-en-curso/utils/compartir.js` y no incluye ids. No lleva
+  vehículo: la reserva activa no lo devuelve y `vehiculo` no tiene placa.
 
 ## Ejecutar y validar
 
@@ -195,7 +200,7 @@ dotnet ef database update --project Backend/Backend.csproj --startup-project Bac
   `Microsoft.EntityFrameworkCore.InMemory` y `Microsoft.AspNetCore.Mvc.Testing`
   10.0.14, `Microsoft.NET.Test.Sdk`, `<Using Include="Xunit" />` y referencia a
   `Backend/Backend.csproj`.
-- El frontend pasó `npm --prefix Frontend run build` y sus 183 pruebas. ESLint
+- El frontend pasó `npm --prefix Frontend run build` y sus 187 pruebas. ESLint
   terminó sin errores; informó cinco advertencias existentes: un `<img>` en
   `BuscarViajes.jsx` y cuatro constantes sin uso en `src/lib/mapa.ts`.
 - La revisión visual del último trabajo llegó a la pantalla de inicio de

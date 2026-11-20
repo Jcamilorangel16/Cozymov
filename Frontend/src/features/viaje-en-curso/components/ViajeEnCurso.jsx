@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import Swal from "sweetalert2";
 import { formatearFecha, formatearPrecioViaje } from "../../buscar-viajes/utils/viajes";
 import { viajeEnTrayecto } from "../utils/trayecto";
+import { textoCompartirViaje, urlCompartirWhatsApp } from "../utils/compartir";
 import {
   borrarLlegada,
   debeAutofinalizar,
@@ -246,6 +247,16 @@ export default function ViajeEnCurso({ onNavigate, onMensajeConductor }) {
   const fechaSalida = viaje.fecha_salida
     ? `${formatearFecha(viaje.fecha_salida)}${viaje.hora_salida ? ` · ${viaje.hora_salida}` : ""}`
     : "No disponible";
+  const estadoViaje = esConductor
+    ? "Solicitud aceptada"
+    : llegada !== null
+      ? "Llegaste"
+      : enTrayecto
+        ? "En trayecto"
+        : "Reserva confirmada";
+  const enlaceWhatsApp = esConductor
+    ? ""
+    : urlCompartirWhatsApp(textoCompartirViaje(viaje, estadoViaje));
   const escribirAlConductor = () => {
     onMensajeConductor?.(String(idContraparte), nombreContraparte);
     onNavigate("mensajes");
@@ -343,15 +354,7 @@ export default function ViajeEnCurso({ onNavigate, onMensajeConductor }) {
           <h3 className="mb-0 letra-contenido">
             {esConductor ? "Viaje que estás atendiendo" : "Tu viaje en curso"}
           </h3>
-          <span className="estado-viaje">
-            {esConductor
-              ? "Solicitud aceptada"
-              : llegada !== null
-                ? "Llegaste"
-                : enTrayecto
-                  ? "En trayecto"
-                  : "Reserva confirmada"}
-          </span>
+          <span className="estado-viaje">{estadoViaje}</span>
         </div>
         <section className="panel-lateral viaje-resumen-ruta">
           <small className="texto-secundario">Tu ruta</small>
@@ -404,6 +407,15 @@ export default function ViajeEnCurso({ onNavigate, onMensajeConductor }) {
             </>
           ) : (
             <>
+              <a
+                href={enlaceWhatsApp}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-whatsapp w-100 mt-2"
+                aria-label="Compartir la información del viaje por WhatsApp (se abre en otra pestaña)"
+              >
+                <i className="bi bi-whatsapp" aria-hidden="true" /> Compartir viaje por WhatsApp
+              </a>
               <button
                 type="button"
                 className="btn btn-success w-100 mt-2"
