@@ -15,6 +15,22 @@ public class Automovil
     [Range(2, 5)]
     public short NumeroPuertas { get; set; }
 
+    [StringLength(500)]
+    [Column("foto_placa")]
+    public string? FotoPlaca { get; set; }
+
+    [StringLength(500)]
+    [Column("foto_licencia")]
+    public string? FotoLicencia { get; set; }
+
+    [StringLength(500)]
+    [Column("doc_tecnomecanica")]
+    public string? DocTecnomecanica { get; set; }
+
+    [StringLength(500)]
+    [Column("doc_soat")]
+    public string? DocSoat { get; set; }
+
     [JsonIgnore]
     public Vehiculo Vehiculo { get; set; } = null!;
 }

@@ -11,6 +11,11 @@ public class Vehiculo
     public long IdVehiculo { get; set; }
 
     [Required]
+    [StringLength(100)]
+    [Column("marca")]
+    public string Marca { get; set; } = string.Empty;
+
+    [Required]
     public string Tipo { get; set; } = string.Empty;
 
     [Required]
@@ -18,6 +23,19 @@ public class Vehiculo
 
     public int Capacidad { get; set; }
     public string? Foto { get; set; }
+
+    [StringLength(500)]
+    [Column("foto_frontal")]
+    public string? FotoFrontal { get; set; }
+
+    [StringLength(500)]
+    [Column("foto_lateral")]
+    public string? FotoLateral { get; set; }
+
+    [StringLength(500)]
+    [Column("foto_perfil")]
+    public string? FotoPerfil { get; set; }
+
     public int IdUsuario { get; set; }
 
     public Usuarios Usuario { get; set; } = null!;
