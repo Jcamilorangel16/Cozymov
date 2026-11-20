@@ -116,4 +116,51 @@ public sealed class SolicitudAceptarViajePublicadoTests
         Assert.IsType<OkObjectResult>(resultado.Result);
         Assert.Equal("Activo", (await context.Viajes.FindAsync(11L))!.Estado);
     }
+
+    [Fact]
+    public async Task AceptarEliminaLaSolicitudPendienteDelConductor()
+    {
+        await using var context = await ContextoBase();
+        context.Solicitudes.AddRange(
+            new Solicitud
+            {
+                IdSolicitud = 101, IdUsuario = Conductor, IdRuta = 1,
+                FechaHora = DateTime.SpecifyKind(DateTime.Now.AddHours(1), DateTimeKind.Unspecified),
+                Estado = Solicitud.EstadoPendiente
+            },
+            new Solicitud
+            {
+                IdSolicitud = 102, IdUsuario = 3, IdRuta = 1,
+                FechaHora = DateTime.SpecifyKind(DateTime.Now.AddHours(1), DateTimeKind.Unspecified),
+                Estado = Solicitud.EstadoPendiente
+            });
+        await context.SaveChangesAsync();
+
+        var resultado = await Aceptar(context);
+
+        Assert.IsType<OkObjectResult>(resultado.Result);
+        Assert.Null(await context.Solicitudes.FindAsync(101L));
+        // La aceptada y las de otros usuarios se conservan.
+        Assert.Equal(Solicitud.EstadoAceptada, (await context.Solicitudes.FindAsync(100L))!.Estado);
+        Assert.NotNull(await context.Solicitudes.FindAsync(102L));
+    }
+
+    [Fact]
+    public async Task AceptarRechazadoNoEliminaLaSolicitudDelConductor()
+    {
+        await using var context = await ContextoBase();
+        context.Solicitudes.Add(new Solicitud
+        {
+            IdSolicitud = 101, IdUsuario = Conductor, IdRuta = 1,
+            FechaHora = DateTime.SpecifyKind(DateTime.Now.AddHours(1), DateTimeKind.Unspecified),
+            Estado = Solicitud.EstadoPendiente
+        });
+        context.ReservasViaje.Add(new ReservaViaje { IdReserva = 20, IdViaje = 99, IdPasajero = Conductor, Estado = "activa" });
+        await context.SaveChangesAsync();
+
+        var resultado = await Aceptar(context);
+
+        Assert.IsType<ConflictObjectResult>(resultado.Result);
+        Assert.NotNull(await context.Solicitudes.FindAsync(101L));
+    }
 }

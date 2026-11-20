@@ -204,6 +204,13 @@ public class SolicitudesController(AppDbContext context, INotificadorTiempoReal?
         // (Si tuviera pasajeros activos, ya se habría rechazado la solicitud arriba.)
         await RetirarViajesPublicados(dto.IdConductor, cancellationToken);
 
+        // Quien acepta pasa a ser conductor: su propia solicitud como pasajero (pendiente)
+        // deja de tener sentido y se elimina en el mismo guardado.
+        var propiasPendientes = await context.Solicitudes
+            .Where(s => s.IdUsuario == dto.IdConductor && s.Estado == Solicitud.EstadoPendiente)
+            .ToListAsync(cancellationToken);
+        context.Solicitudes.RemoveRange(propiasPendientes);
+
         var viaje = new Viaje
         {
             IdUsuario = dto.IdConductor,
