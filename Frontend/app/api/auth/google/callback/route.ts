@@ -7,11 +7,18 @@ import {
 import { getBackendApiConfig } from "../../../../../src/lib/backendApi";
 import {
   COOKIE_OAUTH_GOOGLE,
+  datosSesionDeUsuario,
   intercambiarCodigo,
   obtenerConfigGoogle,
   origenPublico,
   verificarIdTokenGoogle,
 } from "../../../../../src/lib/google";
+import {
+  COOKIE_REGISTRO_GOOGLE,
+  esCorreoRegistroGoogle,
+  firmarRegistroGoogle,
+  opcionesCookieRegistroGoogle,
+} from "../../../../../src/lib/registroGoogle";
 
 export const runtime = "nodejs";
 
@@ -34,6 +41,8 @@ function leerCookieOAuth(valor: string | undefined): DatosOAuth | null {
 /**
  * Recibe el callback de Google, valida la identidad en el servidor y, si hay
  * una cuenta Cozymov asociada, emite la misma cookie de sesión del login normal.
+ * Si no la hay y el correo es @unicesar.edu.co, guarda la identidad en una
+ * cookie firmada y lleva a `/register/google` para completar el registro.
  * @param request Solicitud con code y state de Google.
  * @returns Redirección a la app o al login con un código de error.
  */
@@ -92,38 +101,40 @@ export async function GET(request: NextRequest) {
   }
 
   if (!respuestaApi.ok) {
-    if (respuestaApi.status === 404) return fallar("sin_cuenta");
+    if (respuestaApi.status === 404) {
+      // Sin cuenta: solo un correo verificado @unicesar.edu.co puede crearla con Google.
+      if (!identidad.emailVerificado || !esCorreoRegistroGoogle(identidad.correo)) {
+        return fallar("sin_cuenta");
+      }
+      try {
+        const token = await firmarRegistroGoogle({
+          sub: identidad.sub,
+          correo: identidad.correo,
+          nombres: identidad.nombres,
+          apellidos: identidad.apellidos,
+        });
+        const respuesta = NextResponse.redirect(new URL("/register/google", origen));
+        respuesta.cookies.set(COOKIE_REGISTRO_GOOGLE, token, opcionesCookieRegistroGoogle());
+        respuesta.cookies.delete({ name: COOKIE_OAUTH_GOOGLE, path: "/api/auth/google" });
+        return respuesta;
+      } catch (error) {
+        console.error("No se pudo preparar el registro con Google:", error);
+        return fallar("error");
+      }
+    }
     if (respuestaApi.status === 403 || respuestaApi.status === 409) {
       return fallar("restringido");
     }
     return fallar("error");
   }
 
-  const usuario = (await respuestaApi.json().catch(() => null)) as Record<
-    string,
-    unknown
-  > | null;
-  const id = usuario?.idPersonas ?? usuario?.IdPersonas;
-  const correo = usuario?.correo ?? usuario?.Correo;
-  const nombre = ["primerNombre", "segundoNombre", "primerApellido", "segundoApellido"]
-    .map((campo) => usuario?.[campo])
-    .filter((parte): parte is string => typeof parte === "string" && parte.trim() !== "")
-    .map((parte) => parte.trim())
-    .join(" ");
-
-  if (
-    typeof id !== "number" ||
-    !Number.isInteger(id) ||
-    id <= 0 ||
-    typeof correo !== "string" ||
-    !correo ||
-    !nombre
-  ) {
+  const sesion = datosSesionDeUsuario(await respuestaApi.json().catch(() => null));
+  if (!sesion) {
     return fallar("error");
   }
 
   try {
-    const token = await firmarSesion({ id: String(id), correo, nombre });
+    const token = await firmarSesion(sesion);
     // La página intermedia copia el id al sessionStorage, como hace el login normal.
     const respuesta = NextResponse.redirect(new URL("/auth/google", origen));
     respuesta.cookies.set(NOMBRE_COOKIE_SESION, token, opcionesCookieSesion());

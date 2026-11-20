@@ -19,18 +19,6 @@ namespace Backend.Models
         public string ocupacion { get; set; }
         public DateTime fechaderegistro { get; set; } = DateTime.UtcNow;
 
-        /// <summary>
-        /// Indica si el usuario confirmó su correo. Las cuentas creadas antes
-        /// de esta verificación se consideran confirmadas para no bloquearlas.
-        /// </summary>
-        public bool EmailVerificado { get; set; } = true;
-
-        /// <summary>HMAC del código vigente de recuperación (nunca el código en claro).</summary>
-        public string? CodigoRecuperacionHash { get; set; }
-        public DateTime? CodigoRecuperacionVence { get; set; }
-        public int CodigoRecuperacionIntentos { get; set; }
-        public DateTime? CodigoRecuperacionEnviado { get; set; }
-
         public ICollection<Vehiculo> Vehiculos { get; set; } = new List<Vehiculo>();
         public ICollection<Viaje> Viajes { get; set; } = new List<Viaje>();
         public ICollection<TelefonoUsuario> Telefonos { get; set; } = new List<TelefonoUsuario>();

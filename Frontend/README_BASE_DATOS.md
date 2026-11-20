@@ -23,6 +23,12 @@ agrega `https://cozymov.com` en "Orígenes autorizados de JavaScript" y
 `https://cozymov.com/api/auth/google/callback` en "URI de redireccionamiento
 autorizados". Si usas también `www`, agrégalo igual y redirige uno al otro.
 
+El flujo pide los scopes `openid`, `email` y `profile` (no sensibles; en la
+pantalla de consentimiento basta con tenerlos listados). Con Google también se
+puede crear una cuenta, pero solo con correos `@unicesar.edu.co`: la identidad
+pendiente viaja en la cookie `google_registro`, firmada con una clave derivada
+de `SESSION_SECRET`. No requiere variables nuevas.
+
 En el backend, `Cors__OrigenesPermitidos` es opcional y está vacío por defecto:
 el navegador no llama a la API directamente, así que no hace falta abrir CORS.
 
@@ -62,15 +68,6 @@ desde la raíz:
 ```powershell
 dotnet ef database update --project Backend\Backend.csproj --startup-project Backend\Backend.csproj
 ```
-
-## Recuperación de contraseña
-
-La recuperación de contraseña quedó fuera de la migración actual: su endpoint
-de Next.js todavía consulta PostgreSQL directamente y la pantalla aún no está
-conectada a ese endpoint ni tiene configurado el envío de correo. Mientras se
-migre ese flujo, su endpoint puede seguir necesitando `DATABASE_URL` en el
-entorno del frontend. Por tanto, para quitar completamente esa variable de
-Vercel habrá que migrar o deshabilitar también la recuperación de contraseña.
 
 ## Comprobaciones locales
 

@@ -54,8 +54,6 @@ namespace Backend.DTOs
         public string rol { get; set; }
         [StringLength(50)]
         public string ocupacion { get; set; }
-
-        public VerificacionCorreoRegistroDTO? Verificacion { get; set; }
     }
 }
 
@@ -104,4 +102,34 @@ public class UsuariosLoginGoogleDTO
     public string Sub { get; set; } = string.Empty;
     public string Correo { get; set; } = string.Empty;
     public bool EmailVerificado { get; set; }
+}
+
+/// <summary>
+/// Cuenta nueva a partir de una identidad de Google ya validada por el servidor
+/// de Next.js. Sub, correo y verificación vienen de Google; el resto, incluida
+/// la contraseña, lo completa el usuario.
+/// </summary>
+public class UsuariosRegistroGoogleDTO
+{
+    [StringLength(255)]
+    public string Sub { get; set; } = string.Empty;
+    [StringLength(150)]
+    public string Correo { get; set; } = string.Empty;
+    public bool EmailVerificado { get; set; }
+    [Required, RegularExpression(@"^\d{1,10}$", ErrorMessage = "La cédula debe contener solo números y máximo 10 dígitos.")]
+    public string Cedula { get; set; } = string.Empty;
+    [Required, StringLength(50)]
+    public string PrimerNombre { get; set; } = string.Empty;
+    [StringLength(50)]
+    public string? SegundoNombre { get; set; }
+    [Required, StringLength(50)]
+    public string PrimerApellido { get; set; } = string.Empty;
+    [StringLength(50)]
+    public string? SegundoApellido { get; set; }
+    [Range(16, 120)]
+    public int Edad { get; set; }
+    [Required, StringLength(50)]
+    public string Ocupacion { get; set; } = string.Empty;
+    [Required, StringLength(200)]
+    public string Contrasena { get; set; } = string.Empty;
 }

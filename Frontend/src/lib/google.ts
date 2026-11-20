@@ -14,9 +14,11 @@ export const MENSAJES_ERROR_GOOGLE: Record<string, string> = {
   cancelado: "Cancelaste el inicio de sesión con Google.",
   invalido: "No se pudo validar el inicio de sesión con Google. Inténtalo de nuevo.",
   sin_cuenta:
-    "No existe una cuenta de Cozymov con ese correo de Google. Regístrate primero.",
+    "No existe una cuenta de Cozymov con ese correo. Con Google solo puedes registrarte usando tu correo @unicesar.edu.co; con otro correo institucional, usa el formulario de registro.",
   restringido:
-    "Esa cuenta de Google no puede entrar. Usa tu correo institucional (.edu.co) y confirma tu correo en Cozymov.",
+    "Esa cuenta de Google no puede entrar. Usa tu correo institucional (.edu.co).",
+  registro_vencido:
+    "El tiempo para completar tu registro con Google venció. Vuelve a intentarlo.",
   configuracion: "El inicio de sesión con Google no está disponible en este momento.",
   error: "No se pudo iniciar sesión con Google. Inténtalo de nuevo.",
 };
@@ -93,7 +95,8 @@ export function construirUrlAutorizacion(
   url.searchParams.set("client_id", config.clientId);
   url.searchParams.set("redirect_uri", config.redirectUri);
   url.searchParams.set("response_type", "code");
-  url.searchParams.set("scope", "openid email");
+  // profile da nombres y apellidos para precargar el registro con Google.
+  url.searchParams.set("scope", "openid email profile");
   url.searchParams.set("state", parametros.state);
   url.searchParams.set("nonce", parametros.nonce);
   url.searchParams.set("code_challenge", parametros.challenge);
@@ -140,6 +143,10 @@ export type IdentidadGoogle = {
   sub: string;
   correo: string;
   emailVerificado: boolean;
+  /** given_name de Google; vacío si no lo envía. */
+  nombres: string;
+  /** family_name de Google; vacío si no lo envía. */
+  apellidos: string;
 };
 
 let clavesGoogle: JWTVerifyGetKey | undefined;
@@ -165,7 +172,13 @@ export async function verificarIdTokenGoogle(
   });
 
   if (payload.nonce !== nonce) throw new Error("El nonce no coincide.");
-  const { sub, email, email_verified: verificado } = payload;
+  const {
+    sub,
+    email,
+    email_verified: verificado,
+    given_name: nombres,
+    family_name: apellidos,
+  } = payload;
   if (typeof sub !== "string" || !sub) throw new Error("Falta el sub.");
   if (typeof email !== "string" || !email) throw new Error("Falta el correo.");
 
@@ -173,5 +186,38 @@ export async function verificarIdTokenGoogle(
     sub,
     correo: email.trim().toLowerCase(),
     emailVerificado: verificado === true || verificado === "true",
+    nombres: typeof nombres === "string" ? nombres.trim() : "",
+    apellidos: typeof apellidos === "string" ? apellidos.trim() : "",
   };
+}
+
+/**
+ * Extrae de un usuario devuelto por el backend los datos que van en la sesión.
+ * @param usuario Cuerpo JSON de la respuesta del backend.
+ * @returns Id, correo y nombre, o null si la respuesta no los trae bien formados.
+ */
+export function datosSesionDeUsuario(
+  usuario: unknown,
+): { id: string; correo: string; nombre: string } | null {
+  if (typeof usuario !== "object" || usuario === null) return null;
+  const datos = usuario as Record<string, unknown>;
+  const id = datos.idPersonas ?? datos.IdPersonas;
+  const correo = datos.correo ?? datos.Correo;
+  const nombre = ["primerNombre", "segundoNombre", "primerApellido", "segundoApellido"]
+    .map((campo) => datos[campo])
+    .filter((parte): parte is string => typeof parte === "string" && parte.trim() !== "")
+    .map((parte) => parte.trim())
+    .join(" ");
+
+  if (
+    typeof id !== "number" ||
+    !Number.isInteger(id) ||
+    id <= 0 ||
+    typeof correo !== "string" ||
+    !correo ||
+    !nombre
+  ) {
+    return null;
+  }
+  return { id: String(id), correo, nombre };
 }
