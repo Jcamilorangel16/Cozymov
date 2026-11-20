@@ -23,11 +23,19 @@ const MapaRuta = dynamic(() => import("./MapaRuta"), {
 
 /**
  * Presenta la reserva activa del usuario.
- * @param {{onNavigate: (id: string) => void, onMensajeConductor?: (id: string, nombre: string) => void}} props
+ * @param {{onNavigate: (id: string) => void, onMensajeConductor?: (id: string, nombre: string) => void, onViajeActivo?: (activo: boolean) => void}} props
+ *   `onViajeActivo` informa si la vista muestra un viaje activo (el menú pide
+ *   confirmación para salir mientras lo haya).
  * @returns Vista del viaje en curso o un estado de carga/error/vacío.
  */
-export default function ViajeEnCurso({ onNavigate, onMensajeConductor }) {
+export default function ViajeEnCurso({ onNavigate, onMensajeConductor, onViajeActivo }) {
   const [viaje, setViaje] = useState(null);
+
+  useEffect(() => {
+    onViajeActivo?.(Boolean(viaje));
+  }, [viaje, onViajeActivo]);
+  // Al salir de la vista ya no hay viaje mostrado.
+  useEffect(() => () => onViajeActivo?.(false), [onViajeActivo]);
   // "pasajero" con reserva propia; "conductor" cuando atiende una solicitud que aceptó.
   const [rol, setRol] = useState("pasajero");
   const [cargando, setCargando] = useState(true);

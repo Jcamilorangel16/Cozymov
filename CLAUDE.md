@@ -167,6 +167,14 @@ estado.
   con origen, destino, salida, conductor, precio y estado. El texto se arma en
   `src/features/viaje-en-curso/utils/compartir.js` y no incluye ids. No lleva
   vehículo: la reserva activa no lo devuelve y `vehiculo` no tiene placa.
+- `useRedirigirViajeEnCurso` (menú principal) consulta `/api/viajes/en-curso`
+  cada 15 s y al volver a la pestaña. Con un viaje activo que el usuario no
+  había visto (clave `rol:idViaje` en `sessionStorage`) lo lleva a "En curso"
+  y avisa; al abrir la app con un viaje activo también entra ahí. La decisión
+  está en `menu-principal/utils/viajeActivo.js`. Mientras "En curso" muestra un
+  viaje activo, salir por el menú lateral, "Volver" o los avisos pide
+  confirmación (`salirDeEnCursoSiConfirma` en `MenuPrincipal.jsx`); las
+  acciones propias de la vista (enviar mensaje, calificar al finalizar) no.
 
 ## Ejecutar y validar
 
@@ -200,7 +208,7 @@ dotnet ef database update --project Backend/Backend.csproj --startup-project Bac
   `Microsoft.EntityFrameworkCore.InMemory` y `Microsoft.AspNetCore.Mvc.Testing`
   10.0.14, `Microsoft.NET.Test.Sdk`, `<Using Include="Xunit" />` y referencia a
   `Backend/Backend.csproj`.
-- El frontend pasó `npm --prefix Frontend run build` y sus 187 pruebas. ESLint
+- El frontend pasó `npm --prefix Frontend run build` y sus 193 pruebas. ESLint
   terminó sin errores; informó cinco advertencias existentes: un `<img>` en
   `BuscarViajes.jsx` y cuatro constantes sin uso en `src/lib/mapa.ts`.
 - La revisión visual del último trabajo llegó a la pantalla de inicio de

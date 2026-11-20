@@ -1,8 +1,10 @@
 ﻿// Compone el cabezal de navegaciÃ³n y las vistas del menÃº principal.
 "use client";
 
-import { useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
+import Swal from "sweetalert2";
 import { sincronizarIdSesion } from "../../../hooks/useSessionUserId";
+import { useRedirigirViajeEnCurso } from "../hooks/useRedirigirViajeEnCurso";
 import OfrecerViajes from "../../ofrecer-viajes/components/OfrecerViajes";
 import MensajesView from "../../mensajes/components/MensajesView";
 import "../styles/menu-principal.css";
@@ -56,9 +58,43 @@ export default function MenuPrincipal({ usuarioActualId }) {
     vistaAnterior,
   } = useMenuPrincipal();
 
+  // Cuando aceptan su viaje, conductor y pasajero pasan solos a «En curso».
+  useRedirigirViajeEnCurso(usuarioActualId, { vistaActiva, irAVista });
+
+  // «En curso» informa si muestra un viaje activo; mientras lo haya, salir de la sección se confirma.
+  const viajeActivoRef = useRef(false);
+  const alCambiarViajeActivo = useCallback((activo) => {
+    viajeActivoRef.current = activo;
+  }, []);
+
+  /**
+   * Ejecuta una navegación; si sale de «En curso» con un viaje activo, antes pregunta.
+   * @param {string} destino Sección a la que se va.
+   * @param {() => void} navegar Acción que cambia de sección.
+   */
+  async function salirDeEnCursoSiConfirma(destino, navegar) {
+    if (vistaActiva !== "en-curso" || destino === "en-curso" || !viajeActivoRef.current) {
+      navegar();
+      return;
+    }
+    const respuesta = await Swal.fire({
+      icon: "warning",
+      title: "¿Salir de «En curso»?",
+      text: "Tienes un viaje activo. ¿De verdad quieres salir de esta sección? El viaje sigue activo y puedes volver desde «En Curso» en el menú.",
+      showCancelButton: true,
+      confirmButtonText: "Sí, salir",
+      cancelButtonText: "Quedarme en el viaje",
+      reverseButtons: true,
+      allowOutsideClick: false,
+    });
+    if (respuesta.isConfirmed) navegar();
+  }
+
+  const navegarConConfirmacion = (id) => salirDeEnCursoSiConfirma(id, () => irAVista(id));
+
   // Los conductores reciben aviso de las solicitudes de viaje nuevas.
   const { pendientes, aviso, cerrarAviso } = useAvisosSolicitudes(usuarioActualId, () =>
-    irAVista("buscar"),
+    navegarConConfirmacion("buscar"),
   );
 
   // Todos los usuarios reciben aviso de los mensajes nuevos. No hace falta avisar si ya están
@@ -66,7 +102,8 @@ export default function MenuPrincipal({ usuarioActualId }) {
   const { aviso: avisoMensaje, cerrarAviso: cerrarAvisoMensaje } = useAvisosMensajes(
     usuarioActualId,
     {
-      alAbrirChat: abrirChatConUsuario,
+      alAbrirChat: (contacto) =>
+        salirDeEnCursoSiConfirma("mensajes", () => abrirChatConUsuario(contacto)),
       silenciar: () => vistaActiva === "mensajes" && document.visibilityState === "visible",
     },
   );
@@ -77,7 +114,7 @@ export default function MenuPrincipal({ usuarioActualId }) {
         <div className="menu-fondo" aria-hidden="true" />
         <SidebarMenu
           vistaActiva={vistaActiva}
-          onNavigate={irAVista}
+          onNavigate={navegarConConfirmacion}
           solicitudesPendientes={pendientes}
         />
         <AvisoSolicitudes
@@ -85,7 +122,7 @@ export default function MenuPrincipal({ usuarioActualId }) {
           onCerrar={cerrarAviso}
           onVer={() => {
             cerrarAviso();
-            irAVista("buscar");
+            void navegarConConfirmacion("buscar");
           }}
         />
 
@@ -97,7 +134,9 @@ export default function MenuPrincipal({ usuarioActualId }) {
           onVer={() => {
             const contacto = avisoMensaje?.contacto;
             cerrarAvisoMensaje();
-            if (contacto) abrirChatConUsuario(contacto);
+            if (contacto) {
+              void salirDeEnCursoSiConfirma("mensajes", () => abrirChatConUsuario(contacto));
+            }
           }}
         />
 
@@ -107,7 +146,7 @@ export default function MenuPrincipal({ usuarioActualId }) {
               <button
                 type="button"
                 className="btn-volver-vista"
-                onClick={volver}
+                onClick={() => salirDeEnCursoSiConfirma(vistaAnterior, volver)}
                 aria-label={`Volver a ${etiquetaDeVista(vistaAnterior)}`}
               >
                 <i className="bi bi-arrow-left" aria-hidden="true" />
@@ -152,7 +191,8 @@ export default function MenuPrincipal({ usuarioActualId }) {
 
             {vistaActiva === "en-curso" && (
               <div className="vista">
-                <ViajeEnCurso onNavigate={irAVista} />
+                {/* Sus acciones propias (mensaje, calificar al finalizar) no piden confirmación. */}
+                <ViajeEnCurso onNavigate={irAVista} onViajeActivo={alCambiarViajeActivo} />
               </div>
             )}
 
