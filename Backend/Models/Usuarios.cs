@@ -18,6 +18,10 @@ namespace Backend.Models
         public string rol { get; set; }
         public string ocupacion { get; set; }
         public DateTime fechaderegistro { get; set; } = DateTime.UtcNow;
+        /// <summary>Foto de perfil pública como data URL de imagen (JPEG, PNG o WEBP).</summary>
+        public string? FotoPerfil { get; set; }
+        /// <summary>Descripción breve que ven otros usuarios (máx. 160 caracteres).</summary>
+        public string? Descripcion { get; set; }
 
         public ICollection<Vehiculo> Vehiculos { get; set; } = new List<Vehiculo>();
         public ICollection<Viaje> Viajes { get; set; } = new List<Viaje>();

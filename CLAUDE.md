@@ -93,11 +93,14 @@ Tablas_ccozy/ Bóveda Obsidian local opcional, ignorada por Git
   viajes coincidentes por ruta, día, presupuesto y hora límite.
 - Calificaciones: consulta de recibidas y enviadas, promedio, creación para
   una reserva propia completada y eliminación de calificaciones propias.
+- Perfil público (ver "Perfil público" abajo): desde Buscar viajes, "Ver perfil
+  y reseñas" abre el perfil del conductor de un viaje o de quien hizo una
+  solicitud pendiente.
 
 Rutas de API de backend destacadas: `/api/Usuarios`, `/api/registro`,
 `/api/Viajes`, `/api/rutas`, `/api/vehiculos`, `/api/automoviles`,
 `/api/motos`, `/api/bicicletas-electricas`, `/api/Mensajes`, `/api/telefonos`,
-`/api/preferencias`, `/api/solicitudes` y `/api/calificaciones`. Revisa los
+`/api/preferencias`, `/api/solicitudes`, `/api/calificaciones` y `/api/perfiles`. Revisa los
 controladores para verbos, parámetros y DTOs exactos.
 
 ## Modelo relacional actual
@@ -211,9 +214,11 @@ dotnet ef database update --project Backend/Backend.csproj --startup-project Bac
   `Microsoft.AspNetCore.SignalR.Client` 10.0.14, `Microsoft.NET.Test.Sdk`,
   `<Using Include="Xunit" />` y referencia a `Backend/Backend.csproj`. Las
   pruebas de integración (`FabricaTiempoReal`) usan el entorno `Testing` y base
-  en memoria: no aplican migraciones ni leen User Secrets. Último resultado: 126
+  en memoria: no aplican migraciones ni leen User Secrets. Último resultado: 138
   pruebas correctas.
-- El frontend pasó `npm --prefix Frontend run build` y sus 235 pruebas. ESLint
+- El frontend pasó `npm --prefix Frontend run build`; de sus 245 pruebas, la
+  de memoria de `tests/registro.test.mjs` falla de forma intermitente (no
+  relacionada con el perfil público). ESLint
   terminó sin errores; informó cinco advertencias existentes: un `<img>` en
   `BuscarViajes.jsx` y cuatro constantes sin uso en `src/lib/mapa.ts`.
 - La revisión visual del último trabajo llegó a la pantalla de inicio de
@@ -354,6 +359,25 @@ calificaciones, que lista las reservas completadas aún sin calificar. El backen
 exige `reserva.Estado == "completada"` para aceptar una calificación. Hoy solo
 el pasajero califica al conductor desde la UI; el backend admite también la
 dirección inversa.
+
+### Perfil público
+
+- `Usuarios` tiene `foto_perfil` (text, data URL) y `descripcion` (160),
+  ambas opcionales (migración `PerfilPublico`). No hay almacenamiento de
+  archivos: el navegador recorta la foto a 256 px JPEG
+  (`prepararFotoPerfil` en `src/features/perfil-publico/utils/perfil.js`).
+- `GET /api/perfiles/{id}` (`PerfilesController`) devuelve nombre (primer
+  nombre y apellido), ocupación, descripción, foto, fecha de registro,
+  promedio y total de calificaciones, viajes publicados, viajes completados
+  como pasajero, vehículos (tipo y modelo) y las 20 reseñas más recientes
+  **anónimas** (solo puntuación y comentario). Nunca cédula, correo,
+  teléfonos, edad ni evaluador. `PUT` cambia foto y descripción; solo acepta
+  data URLs JPEG/PNG/WEBP de ≤ 350 000 caracteres cuya firma coincide con el
+  tipo (no SVG).
+- Proxy `Frontend/app/api/perfil`: `GET ?id=N` (sin id, el propio) y `PUT`
+  siempre sobre el usuario de la sesión. Modal:
+  `src/features/perfil-publico/components/PerfilPublicoModal.jsx`; edición en
+  Configuración > Tu perfil (nombre y ocupación son de solo lectura).
 
 ### Calificaciones anónimas
 

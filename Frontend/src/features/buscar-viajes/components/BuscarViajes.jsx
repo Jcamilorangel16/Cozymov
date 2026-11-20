@@ -1,6 +1,8 @@
 // Presenta el formulario de búsqueda y los viajes activos disponibles.
 "use client";
 
+import { useState } from "react";
+import PerfilPublicoModal from "../../perfil-publico/components/PerfilPublicoModal";
 import { puedeAceptarViaje } from "../../viajes/validations/viajes";
 import { useBuscarViajes } from "../hooks/useBuscarViajes";
 import { esModoColaboracion, formatearFecha, formatearPrecio } from "../utils/viajes";
@@ -45,6 +47,8 @@ export default function BuscarViajes({ onEnviarMensaje, onNavigate, usuarioActua
     eliminandoSolicitudId,
     handleEliminarSolicitud,
   } = useBuscarViajes(usuarioActualId);
+  // Perfil público abierto: { id, nombre } o null.
+  const [perfilAbierto, setPerfilAbierto] = useState(null);
 
   return (
     <div className="container py-4">
@@ -122,6 +126,9 @@ export default function BuscarViajes({ onEnviarMensaje, onNavigate, usuarioActua
         onAceptar={(solicitud) =>
           handleAceptarSolicitud(solicitud, () => onNavigate?.("en-curso"))
         }
+        onVerPerfil={(solicitud) =>
+          setPerfilAbierto({ id: solicitud.idUsuario, nombre: solicitud.nombreUsuario })
+        }
       />
 
       <section className="mt-4" aria-live="polite">
@@ -179,6 +186,24 @@ export default function BuscarViajes({ onEnviarMensaje, onNavigate, usuarioActua
                               <div className="texto-secundario small">
                                 {viaje.ocupacion_conductor}
                               </div>
+                            )}
+                            {viaje.id_usuario != null && (
+                              <button
+                                type="button"
+                                className="btn btn-link btn-sm p-0"
+                                onClick={() =>
+                                  setPerfilAbierto({
+                                    id: viaje.id_usuario,
+                                    nombre:
+                                      viaje.nombre_conductor ||
+                                      [viaje.primer_nombre, viaje.primer_apellido]
+                                        .filter(Boolean)
+                                        .join(" "),
+                                  })
+                                }
+                              >
+                                Ver perfil y reseñas
+                              </button>
                             )}
                           </div>
                         </div>
@@ -333,6 +358,12 @@ export default function BuscarViajes({ onEnviarMensaje, onNavigate, usuarioActua
           </>
         )}
       </section>
+
+      <PerfilPublicoModal
+        idUsuario={perfilAbierto?.id ?? null}
+        nombre={perfilAbierto?.nombre}
+        onCerrar={() => setPerfilAbierto(null)}
+      />
     </div>
   );
 }

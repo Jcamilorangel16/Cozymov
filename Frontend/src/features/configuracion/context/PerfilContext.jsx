@@ -11,6 +11,7 @@ export function PerfilProvider({ children }) {
     fotoUrl: null,
     ocupacion: "",
     cedula: "",
+    descripcion: "",
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -20,11 +21,15 @@ export function PerfilProvider({ children }) {
 
     async function cargarPerfil() {
       try {
-        const respuesta = await fetch("/api/usuario", {
-          cache: "no-store",
-          signal: controlador.signal,
-        });
+        const [respuesta, respuestaPublico] = await Promise.all([
+          fetch("/api/usuario", { cache: "no-store", signal: controlador.signal }),
+          // Foto y descripción guardadas; si falla, el resto del perfil sigue sirviendo.
+          fetch("/api/perfil", { cache: "no-store", signal: controlador.signal }).catch(() => null),
+        ]);
         const data = await respuesta.json();
+        const publico = respuestaPublico?.ok
+          ? await respuestaPublico.json().catch(() => null)
+          : null;
         if (!respuesta.ok) {
           throw new Error(data.error || "No se pudo cargar tu perfil.");
         }
@@ -35,9 +40,10 @@ export function PerfilProvider({ children }) {
 
         setPerfil({
           nombre: data.nombre.trim(),
-          fotoUrl: data.fotoUrl || null,
+          fotoUrl: publico?.fotoPerfil || data.fotoUrl || null,
           ocupacion: data.ocupacion || "",
           cedula: data.cedula || "",
+          descripcion: publico?.descripcion || "",
         });
       } catch (error) {
         if (error.name !== "AbortError") {

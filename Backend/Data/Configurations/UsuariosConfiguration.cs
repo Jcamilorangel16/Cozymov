@@ -10,5 +10,7 @@ public sealed class UsuariosConfiguration : IEntityTypeConfiguration<Usuarios>
     {
         entity.ToTable("Usuarios");
         entity.HasKey(u => u.IdPersonas);
+        entity.Property(u => u.FotoPerfil).HasColumnName("foto_perfil");
+        entity.Property(u => u.Descripcion).HasColumnName("descripcion").HasMaxLength(160);
     }
 }
