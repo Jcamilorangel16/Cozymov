@@ -1,8 +1,4 @@
-import {
-  validarRegistroUsuario,
-  validarCodigoVerificacion,
-  validarComprobanteVerificacion,
-} from "../../../src/features/register/validations/usuarios.ts";
+import { validarRegistroUsuario } from "../../../src/features/register/validations/usuarios.ts";
 import { cabecerasIpCliente, getBackendApiConfig } from "../../../src/lib/backendApi.ts";
 
 export const runtime = "nodejs";
@@ -19,26 +15,6 @@ export async function POST(request: Request) {
   const validacion = validarRegistroUsuario(body);
   if (!validacion.valido) {
     return Response.json({ error: validacion.error }, { status: 400 });
-  }
-
-  const verificacion = body && typeof body === "object"
-    ? (body as Record<string, unknown>).verificacion
-    : undefined;
-  if (!verificacion || typeof verificacion !== "object" || Array.isArray(verificacion)) {
-    return Response.json(
-      { error: "Debes confirmar tu correo antes de crear la cuenta." },
-      { status: 400 },
-    );
-  }
-
-  const camposVerificacion = verificacion as Record<string, unknown>;
-  const comprobante = validarComprobanteVerificacion(camposVerificacion.comprobante);
-  const codigo = validarCodigoVerificacion(camposVerificacion.codigo);
-  if (!comprobante.valido) {
-    return Response.json({ error: comprobante.error }, { status: 400 });
-  }
-  if (!codigo.valido) {
-    return Response.json({ error: codigo.error }, { status: 400 });
   }
 
   const config = getBackendApiConfig();
@@ -72,10 +48,6 @@ export async function POST(request: Request) {
         Contrasena: usuario.contrasena,
         rol: "usuario",
         ocupacion: usuario.ocupacion,
-        Verificacion: {
-          Comprobante: comprobante.datos,
-          Codigo: codigo.datos,
-        },
       }),
       cache: "no-store",
     });

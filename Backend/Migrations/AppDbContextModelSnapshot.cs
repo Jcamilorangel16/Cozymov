@@ -344,21 +344,6 @@ namespace Backend.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<DateTime?>("CodigoRecuperacionEnviado")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CodigoRecuperacionHash")
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<int>("CodigoRecuperacionIntentos")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0);
-
-                    b.Property<DateTime?>("CodigoRecuperacionVence")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<string>("Contrasena")
                         .IsRequired()
                         .HasColumnType("text");
@@ -369,11 +354,6 @@ namespace Backend.Migrations
 
                     b.Property<int>("Edad")
                         .HasColumnType("integer");
-
-                    b.Property<bool>("EmailVerificado")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
 
                     b.Property<string>("PrimerApellido")
                         .IsRequired()

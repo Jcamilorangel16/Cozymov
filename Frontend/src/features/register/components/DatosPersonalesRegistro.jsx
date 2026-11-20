@@ -2,7 +2,8 @@
 
 /**
  * Muestra los campos personales del nuevo usuario.
- * @param {object} props Valores y controladores de los campos personales.
+ * @param {object} props Valores y controladores de los campos personales;
+ *   `campoTrasOcupacion` es el campo que recibe el foco al pulsar Enter en Ocupación.
  * @returns Campos personales del formulario.
  */
 export default function DatosPersonalesRegistro({
@@ -15,6 +16,7 @@ export default function DatosPersonalesRegistro({
   setOcupacionOtro,
   manejarCambio,
   manejarTeclado,
+  campoTrasOcupacion = "correo",
 }) {
   return (
     <>
@@ -121,7 +123,7 @@ export default function DatosPersonalesRegistro({
           onKeyDown={(evento) => {
             if (evento.key === "Enter") {
               evento.preventDefault();
-              enfocarCampo(tipoOcupacion === "otro" ? "ocupacionOtro" : "correo");
+              enfocarCampo(tipoOcupacion === "otro" ? "ocupacionOtro" : campoTrasOcupacion);
             }
           }}
           ref={asignarRef("tipoOcupacion")}

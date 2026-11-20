@@ -14,21 +14,27 @@ public class UsuariosController : ControllerBase
 {
     private readonly AppDbContext _context;
     private readonly IPasswordHasher<Usuarios> _passwordHasher;
-    private readonly IVerificadorCorreo _verificadorCorreo;
     private readonly LimitadorIntentos _limitadorIntentos;
 
     private const string ErrorDemasiadosIntentos =
         "Demasiados intentos fallidos. Espera unos minutos antes de volver a intentarlo.";
 
+    private const string ProveedorGoogle = "google";
+
+    /// <summary>Único dominio con el que se puede crear una cuenta usando Google.</summary>
+    private const string DominioRegistroGoogle = "unicesar.edu.co";
+
+    private static readonly System.Text.RegularExpressions.Regex FormatoCorreo = new(
+        @"^[^\s@]+@[^\s@]+\.[^\s@]+$",
+        System.Text.RegularExpressions.RegexOptions.Compiled);
+
     public UsuariosController(
         AppDbContext context,
         IPasswordHasher<Usuarios> passwordHasher,
-        IVerificadorCorreo verificadorCorreo,
         LimitadorIntentos limitadorIntentos)
     {
         _context = context;
         _passwordHasher = passwordHasher;
-        _verificadorCorreo = verificadorCorreo;
         _limitadorIntentos = limitadorIntentos;
     }
 
@@ -98,14 +104,13 @@ public class UsuariosController : ControllerBase
         usuario.PrimerApellido = datos.PrimerApellido;
         usuario.SegundoApellido = datos.SegundoApellido;
         usuario.Edad = datos.Edad;
-        // Cambiar el correo exigiría verificarlo de nuevo; mientras no exista ese
-        // flujo, esta ruta no puede asignar una dirección sin confirmar.
+        // El correo identifica la cuenta y no se puede cambiar desde el perfil.
         if (!string.Equals(
                 NormalizarCorreo(datos.Correo),
                 NormalizarCorreo(usuario.Correo),
                 StringComparison.Ordinal))
         {
-            return BadRequest("El correo no se puede cambiar sin verificarlo.");
+            return BadRequest("El correo no se puede cambiar.");
         }
 
         usuario.ocupacion = datos.ocupacion;
@@ -116,7 +121,6 @@ public class UsuariosController : ControllerBase
     }
 
     // POST: api/Usuarios and api/registro
-    // El comprobante se valida de nuevo en el servidor justo antes de crear la cuenta.
     [HttpPost]
     [HttpPost("/api/registro")]
     [EnableRateLimiting("registro")]
@@ -131,14 +135,18 @@ public class UsuariosController : ControllerBase
             return BadRequest("El correo es obligatorio.");
         }
 
+        // Fuera de Development solo se admiten correos institucionales .edu.co.
+        var entorno = HttpContext.RequestServices.GetRequiredService<IHostEnvironment>();
+        if (correo.Length > 150 ||
+            !FormatoCorreo.IsMatch(correo) ||
+            (!entorno.IsDevelopment() && !correo.EndsWith(".edu.co", StringComparison.Ordinal)))
+        {
+            return BadRequest("Ingresa un correo institucional válido que termine en .edu.co.");
+        }
+
         if (string.IsNullOrWhiteSpace(usuarios.Contrasena))
         {
             return BadRequest("La contraseña es obligatoria.");
-        }
-
-        if (usuarios.Verificacion is null)
-        {
-            return BadRequest("Debes confirmar tu correo antes de crear la cuenta.");
         }
 
         if (await _context.Usuarios.AnyAsync(
@@ -156,25 +164,6 @@ public class UsuariosController : ControllerBase
             return Conflict("Esa cédula ya está registrada.");
         }
 
-        ResultadoVerificacionCorreo resultadoVerificacion;
-        try
-        {
-            resultadoVerificacion = _verificadorCorreo.Verificar(
-                correo,
-                usuarios.Verificacion.Comprobante,
-                usuarios.Verificacion.Codigo);
-        }
-        catch (VerificacionCorreoNoConfiguradaException)
-        {
-            return StatusCode(
-                StatusCodes.Status503ServiceUnavailable,
-                "La verificación del correo no está configurada.");
-        }
-        if (!resultadoVerificacion.EsValido)
-        {
-            return BadRequest(resultadoVerificacion.Error);
-        }
-
         var usuario = new Usuarios
         {
             Cedula = usuarios.Cedula,
@@ -185,8 +174,7 @@ public class UsuariosController : ControllerBase
             Edad = usuarios.Edad,
             Correo = correo,
             rol = usuarios.rol,
-            ocupacion = usuarios.ocupacion,
-            EmailVerificado = true
+            ocupacion = usuarios.ocupacion
         };
         usuario.Contrasena = _passwordHasher.HashPassword(usuario, usuarios.Contrasena);
 
@@ -261,14 +249,6 @@ public class UsuariosController : ControllerBase
 
         _limitadorIntentos.Reiniciar(claveIntentos);
 
-        // Sin correo confirmado no se permite iniciar sesión.
-        if (!usuario.EmailVerificado)
-        {
-            return StatusCode(
-                StatusCodes.Status403Forbidden,
-                "Debes confirmar tu correo electrónico antes de iniciar sesión.");
-        }
-
         var respuesta = new UsuariosDTO
         {
             IdPersonas = usuario.IdPersonas,
@@ -336,7 +316,7 @@ public class UsuariosController : ControllerBase
     //POST: api/Usuarios/LoginGoogle
     // Solo lo invoca el servidor de Next.js (X-Internal-Api-Key) después de
     // validar el ID token de Google. No crea cuentas: únicamente identifica o
-    // vincula una cuenta Cozymov existente y verificada.
+    // vincula una cuenta Cozymov existente.
     [HttpPost("LoginGoogle")]
     public async Task<ActionResult<UsuariosDTO>> LoginGoogle(
         UsuariosLoginGoogleDTO datos,
@@ -382,13 +362,6 @@ public class UsuariosController : ControllerBase
                 return NotFound("No existe una cuenta de Cozymov con ese correo. Regístrate primero.");
             }
 
-            if (!usuario.EmailVerificado)
-            {
-                return StatusCode(
-                    StatusCodes.Status403Forbidden,
-                    "Debes confirmar tu correo electrónico antes de iniciar sesión.");
-            }
-
             _context.IdentidadesExternas.Add(new IdentidadExterna
             {
                 IdUsuario = usuario.IdPersonas,
@@ -415,13 +388,6 @@ public class UsuariosController : ControllerBase
             }
         }
 
-        if (!usuario.EmailVerificado)
-        {
-            return StatusCode(
-                StatusCodes.Status403Forbidden,
-                "Debes confirmar tu correo electrónico antes de iniciar sesión.");
-        }
-
         return Ok(new UsuariosDTO
         {
             IdPersonas = usuario.IdPersonas,
@@ -436,6 +402,135 @@ public class UsuariosController : ControllerBase
             ocupacion = usuario.ocupacion,
             fechaderegistro = usuario.fechaderegistro
         });
+    }
+
+    //POST: api/Usuarios/RegistroGoogle
+    // Solo lo invoca el servidor de Next.js (X-Internal-Api-Key) con la identidad
+    // de Google que validó en el callback y la contraseña que creó el usuario.
+    // Crea la cuenta y la vincula a Google en la misma transacción. Solo admite
+    // correos verificados @unicesar.edu.co, también en Development.
+    [HttpPost("RegistroGoogle")]
+    [EnableRateLimiting("registro")]
+    public async Task<ActionResult<UsuariosDTO>> RegistroGoogle(
+        UsuariosRegistroGoogleDTO datos,
+        CancellationToken cancellationToken)
+    {
+        var sub = (datos.Sub ?? string.Empty).Trim();
+        var correo = NormalizarCorreo(datos.Correo);
+        if (sub.Length is 0 or > 255 ||
+            correo.Length is 0 or > 150 ||
+            !FormatoCorreo.IsMatch(correo))
+        {
+            return BadRequest("La identidad de Google no es válida.");
+        }
+
+        if (!datos.EmailVerificado)
+        {
+            return StatusCode(
+                StatusCodes.Status403Forbidden,
+                "Google no confirmó el correo de esta cuenta.");
+        }
+
+        // Coincidencia exacta del dominio: se rechazan subdominios y sufijos
+        // como "unicesar.edu.co.otro.com".
+        if (!correo.EndsWith("@" + DominioRegistroGoogle, StringComparison.Ordinal))
+        {
+            return StatusCode(
+                StatusCodes.Status403Forbidden,
+                $"Solo puedes registrarte con Google usando tu correo @{DominioRegistroGoogle}.");
+        }
+
+        var cedula = (datos.Cedula ?? string.Empty).Trim();
+        var primerNombre = (datos.PrimerNombre ?? string.Empty).Trim();
+        var primerApellido = (datos.PrimerApellido ?? string.Empty).Trim();
+        var ocupacion = (datos.Ocupacion ?? string.Empty).Trim();
+        if (cedula.Length == 0 || primerNombre.Length == 0 ||
+            primerApellido.Length == 0 || ocupacion.Length == 0)
+        {
+            return BadRequest("Completa todos los campos.");
+        }
+
+        // Misma política que el registro normal: entre 8 y 72 bytes (límite de bcrypt/Identity).
+        var contrasena = datos.Contrasena ?? string.Empty;
+        if (contrasena.Length < 8 || System.Text.Encoding.UTF8.GetByteCount(contrasena) > 72)
+        {
+            return BadRequest("La contraseña debe tener entre 8 y 72 bytes.");
+        }
+
+        if (await _context.IdentidadesExternas.AnyAsync(
+                i => i.Proveedor == ProveedorGoogle && i.Sub == sub,
+                cancellationToken))
+        {
+            return Conflict("Esta cuenta de Google ya está registrada. Inicia sesión con Google.");
+        }
+
+        if (await _context.Usuarios.AnyAsync(
+                usuario => usuario.Correo.ToLower() == correo,
+                cancellationToken))
+        {
+            return Conflict("Ese correo ya está registrado. Inicia sesión con Google.");
+        }
+
+        if (await _context.Usuarios.AnyAsync(
+                usuario => usuario.Cedula == cedula,
+                cancellationToken))
+        {
+            return Conflict("Esa cédula ya está registrada.");
+        }
+
+        var usuario = new Usuarios
+        {
+            Cedula = cedula,
+            PrimerNombre = primerNombre,
+            SegundoNombre = (datos.SegundoNombre ?? string.Empty).Trim(),
+            PrimerApellido = primerApellido,
+            SegundoApellido = (datos.SegundoApellido ?? string.Empty).Trim(),
+            Edad = datos.Edad,
+            Correo = correo,
+            rol = "usuario",
+            ocupacion = ocupacion
+        };
+        // Con esta contraseña la cuenta también puede entrar sin Google.
+        usuario.Contrasena = _passwordHasher.HashPassword(usuario, contrasena);
+
+        _context.Usuarios.Add(usuario);
+        _context.IdentidadesExternas.Add(new IdentidadExterna
+        {
+            Usuario = usuario,
+            Proveedor = ProveedorGoogle,
+            Sub = sub,
+        });
+
+        try
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            // Otra solicitud registró el mismo correo, cédula o cuenta de Google a la vez.
+            return Conflict(
+                "No se pudo crear la cuenta. Verifica que el correo y la cédula no estén registrados.");
+        }
+
+        var respuesta = new UsuariosDTO
+        {
+            IdPersonas = usuario.IdPersonas,
+            Cedula = usuario.Cedula,
+            PrimerNombre = usuario.PrimerNombre,
+            SegundoNombre = usuario.SegundoNombre,
+            PrimerApellido = usuario.PrimerApellido,
+            SegundoApellido = usuario.SegundoApellido,
+            Edad = usuario.Edad,
+            Correo = usuario.Correo,
+            rol = usuario.rol,
+            ocupacion = usuario.ocupacion,
+            fechaderegistro = usuario.fechaderegistro
+        };
+
+        return CreatedAtAction(
+            "GetUsuarios",
+            new { idpersonas = usuario.IdPersonas },
+            respuesta);
     }
 
     // DELETE: api/Usuarios/5

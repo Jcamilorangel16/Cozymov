@@ -7,6 +7,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Hosting.Internal;
 
 namespace Backend.Tests;
 
@@ -42,7 +45,7 @@ public sealed class ConfiguracionControllersTests
         AppDbContext context,
         IPasswordHasher<Usuarios> hasher,
         LimitadorIntentos? limitador = null) =>
-        new(context, hasher, null!, limitador ?? new LimitadorIntentos(TimeProvider.System));
+        new(context, hasher, limitador ?? new LimitadorIntentos(TimeProvider.System));
 
     private static int? Estado<T>(ActionResult<T> respuesta) =>
         (respuesta.Result as ObjectResult)?.StatusCode;
@@ -195,6 +198,163 @@ public sealed class ConfiguracionControllersTests
         });
 
         Assert.IsType<NotFoundObjectResult>(result);
+    }
+
+    private static UsuariosController ControladorRegistro(AppDbContext context, string entorno)
+    {
+        var servicios = new ServiceCollection()
+            .AddSingleton<IHostEnvironment>(new HostingEnvironment { EnvironmentName = entorno })
+            .BuildServiceProvider();
+        var controlador = Controlador(context, new PasswordHasher<Usuarios>());
+        controlador.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext { RequestServices = servicios }
+        };
+        return controlador;
+    }
+
+    private static UsuariosCreateDTO NuevoRegistro(string correo) => new()
+    {
+        Cedula = "777", PrimerNombre = "Nueva", SegundoNombre = "", PrimerApellido = "Persona",
+        SegundoApellido = "", Edad = 20, Correo = correo, Contrasena = "ClaveSegura1",
+        rol = "usuario", ocupacion = "Estudiante"
+    };
+
+    [Fact]
+    public async Task RegistroCreaLaCuentaSinCodigoDeVerificacion()
+    {
+        await using var context = NewContext();
+
+        var result = await ControladorRegistro(context, "Production")
+            .PostUsuarios(NuevoRegistro(" Nueva@Uni.EDU.co "), CancellationToken.None);
+
+        Assert.IsType<CreatedAtActionResult>(result.Result);
+        var usuario = await context.Usuarios.SingleAsync();
+        Assert.Equal("nueva@uni.edu.co", usuario.Correo);
+        Assert.NotEqual("ClaveSegura1", usuario.Contrasena);
+    }
+
+    [Fact]
+    public async Task RegistroRechazaCorreoNoInstitucionalFueraDeDevelopment()
+    {
+        await using var context = NewContext();
+
+        var result = await ControladorRegistro(context, "Production")
+            .PostUsuarios(NuevoRegistro("nueva@gmail.com"), CancellationToken.None);
+
+        Assert.IsType<BadRequestObjectResult>(result.Result);
+        Assert.False(await context.Usuarios.AnyAsync());
+    }
+
+    private static UsuariosRegistroGoogleDTO NuevoRegistroGoogle(
+        string correo = "nueva@unicesar.edu.co",
+        string sub = "sub-google-1",
+        string cedula = "888",
+        bool verificado = true,
+        string contrasena = "ClaveGoogle1") => new()
+    {
+        Sub = sub, Correo = correo, EmailVerificado = verificado, Cedula = cedula,
+        PrimerNombre = " Nueva ", SegundoNombre = null, PrimerApellido = "Persona",
+        SegundoApellido = null, Edad = 20, Ocupacion = "Estudiante", Contrasena = contrasena
+    };
+
+    [Fact]
+    public async Task RegistroGoogleCreaLaCuentaVinculadaYLuegoEntraConGoogle()
+    {
+        await using var context = NewContext();
+        var controlador = ControladorRegistro(context, "Production");
+
+        var result = await controlador.RegistroGoogle(
+            NuevoRegistroGoogle(correo: " Nueva@Unicesar.EDU.co "), CancellationToken.None);
+
+        Assert.IsType<CreatedAtActionResult>(result.Result);
+        var usuario = await context.Usuarios.SingleAsync();
+        Assert.Equal("nueva@unicesar.edu.co", usuario.Correo);
+        Assert.Equal("Nueva", usuario.PrimerNombre);
+        Assert.Equal("", usuario.SegundoNombre);
+        Assert.Equal("usuario", usuario.rol);
+        Assert.NotEqual("ClaveGoogle1", usuario.Contrasena);
+        var identidad = await context.IdentidadesExternas.SingleAsync();
+        Assert.Equal(("google", "sub-google-1", usuario.IdPersonas),
+            (identidad.Proveedor, identidad.Sub, identidad.IdUsuario));
+
+        var login = await controlador.LoginGoogle(new UsuariosLoginGoogleDTO
+        {
+            Sub = "sub-google-1", Correo = "nueva@unicesar.edu.co", EmailVerificado = true
+        }, CancellationToken.None);
+        var dto = Assert.IsType<UsuariosDTO>(Assert.IsType<OkObjectResult>(login.Result).Value);
+        Assert.Equal(usuario.IdPersonas, dto.IdPersonas);
+
+        // La contraseña creada en el registro también sirve para el login normal.
+        var conContrasena = await controlador.Login(new UsuariosLoginDTO
+        {
+            Correo = "nueva@unicesar.edu.co", Contrasena = "ClaveGoogle1"
+        });
+        Assert.Equal(StatusCodes.Status200OK, Estado(conContrasena));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("corta12")]
+    public async Task RegistroGoogleExigeUnaContrasenaValida(string contrasena)
+    {
+        await using var context = NewContext();
+
+        var result = await ControladorRegistro(context, "Production")
+            .RegistroGoogle(NuevoRegistroGoogle(contrasena: contrasena), CancellationToken.None);
+
+        Assert.IsType<BadRequestObjectResult>(result.Result);
+        Assert.False(await context.Usuarios.AnyAsync());
+        Assert.False(await context.IdentidadesExternas.AnyAsync());
+    }
+
+    [Theory]
+    [InlineData("Production", "nueva@otra.edu.co")]
+    [InlineData("Production", "nueva@est.unicesar.edu.co")]
+    [InlineData("Production", "nueva@unicesar.edu.co.otro.com")]
+    [InlineData("Development", "nueva@gmail.com")]
+    [InlineData("Development", "nueva@otra.edu.co")]
+    public async Task RegistroGoogleSoloAdmiteCorreosUnicesarEnCualquierEntorno(string entorno, string correo)
+    {
+        await using var context = NewContext();
+
+        var result = await ControladorRegistro(context, entorno)
+            .RegistroGoogle(NuevoRegistroGoogle(correo: correo), CancellationToken.None);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, Estado(result));
+        Assert.False(await context.Usuarios.AnyAsync());
+        Assert.False(await context.IdentidadesExternas.AnyAsync());
+    }
+
+    [Fact]
+    public async Task RegistroGoogleRechazaCorreoNoVerificadoPorGoogle()
+    {
+        await using var context = NewContext();
+
+        var result = await ControladorRegistro(context, "Production")
+            .RegistroGoogle(NuevoRegistroGoogle(verificado: false), CancellationToken.None);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, Estado(result));
+        Assert.False(await context.Usuarios.AnyAsync());
+    }
+
+    [Theory]
+    [InlineData("otra@unicesar.edu.co", "sub-google-1", "999")]
+    [InlineData("nueva@unicesar.edu.co", "sub-google-2", "999")]
+    [InlineData("otra@unicesar.edu.co", "sub-google-2", "888")]
+    public async Task RegistroGoogleRechazaCuentaGoogleCorreoOCedulaYaRegistrados(
+        string correo, string sub, string cedula)
+    {
+        await using var context = NewContext();
+        var controlador = ControladorRegistro(context, "Production");
+        await controlador.RegistroGoogle(NuevoRegistroGoogle(), CancellationToken.None);
+
+        var result = await controlador.RegistroGoogle(
+            NuevoRegistroGoogle(correo: correo, sub: sub, cedula: cedula), CancellationToken.None);
+
+        Assert.Equal(StatusCodes.Status409Conflict, Estado(result));
+        Assert.Equal(1, await context.Usuarios.CountAsync());
+        Assert.Equal(1, await context.IdentidadesExternas.CountAsync());
     }
 
     private static async Task<AppDbContext> ContextoConVehiculo()

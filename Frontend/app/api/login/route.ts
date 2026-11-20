@@ -88,19 +88,6 @@ export async function POST(request: Request) {
 
   if (!respuestaApi.ok) {
     const esCredencialIncorrecta = respuestaApi.status === 401;
-    const correoNoConfirmado = respuestaApi.status === 403;
-
-    if (correoNoConfirmado) {
-      const detalle = await respuestaApi.text().catch(() => "");
-      return NextResponse.json(
-        {
-          error:
-            detalle.trim() ||
-            "Debes confirmar tu correo electrónico antes de iniciar sesión.",
-        },
-        { status: 403 },
-      );
-    }
 
     // El backend bloquea temporalmente la cuenta o la IP tras muchos fallos.
     if (respuestaApi.status === 429) {

@@ -71,17 +71,7 @@ builder.Services.AddCors(options =>
     }));
 builder.Services.AddScoped<IPasswordHasher<Usuarios>,PasswordHasher<Usuarios>>();
 builder.Services.AddSingleton(TimeProvider.System);
-builder.Services.AddSingleton<IVerificadorCorreo, VerificadorCorreoHmac>();
 builder.Services.AddSingleton<LimitadorIntentos>();
-builder.Services.AddHttpClient<IEnviadorCorreo, BrevoEnviadorCorreo>(client =>
-{
-    client.Timeout = TimeSpan.FromSeconds(15);
-});
-builder.Services.AddHttpClient<IAlmacenArchivos, SupabaseAlmacenArchivos>(client =>
-{
-    client.Timeout = TimeSpan.FromSeconds(60);
-});
-builder.Services.AddScoped<VehiculoRegistroService>();
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -91,24 +81,6 @@ builder.Services.AddRateLimiter(options =>
             new { error = "Has realizado demasiados intentos. Inténtalo de nuevo más tarde." },
             cancellationToken);
     };
-    options.AddPolicy("codigo-correo", context =>
-        RateLimitPartition.GetFixedWindowLimiter(ObtenerClaveIp(context), _ =>
-            new FixedWindowRateLimiterOptions
-            {
-                AutoReplenishment = true,
-                PermitLimit = 5,
-                Window = TimeSpan.FromMinutes(15),
-                QueueLimit = 0
-            }));
-    options.AddPolicy("verificar-codigo", context =>
-        RateLimitPartition.GetFixedWindowLimiter(ObtenerClaveIp(context), _ =>
-            new FixedWindowRateLimiterOptions
-            {
-                AutoReplenishment = true,
-                PermitLimit = 10,
-                Window = TimeSpan.FromMinutes(15),
-                QueueLimit = 0
-            }));
     // Frena el rociado de contraseñas desde una misma IP. El cupo es amplio
     // porque una red universitaria comparte IP entre muchos usuarios; la fuerza
     // bruta sobre una cuenta concreta la corta LimitadorIntentos.

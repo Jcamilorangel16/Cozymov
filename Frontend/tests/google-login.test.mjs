@@ -5,6 +5,7 @@ import { exportJWK, generateKeyPair, SignJWT } from "jose";
 import {
   construirUrlAutorizacion,
   crearParametrosOAuth,
+  datosSesionDeUsuario,
   origenPublico,
   verificarIdTokenGoogle,
 } from "../src/lib/google.ts";
@@ -63,8 +64,37 @@ test("acepta un ID token válido y normaliza el correo", async () => {
     sub: "sub-estable-123",
     correo: "persona@universidad.edu.co",
     emailVerificado: true,
+    nombres: "",
+    apellidos: "",
   });
   assert.equal(jwk.kty, "RSA");
+});
+
+test("devuelve nombres y apellidos del perfil de Google", async () => {
+  const identidad = await verificarIdTokenGoogle(
+    await firmarToken({ extra: { given_name: " Ana María ", family_name: "Díaz" } }),
+    CLIENT_ID,
+    NONCE,
+    claves,
+  );
+  assert.equal(identidad.nombres, "Ana María");
+  assert.equal(identidad.apellidos, "Díaz");
+});
+
+test("datosSesionDeUsuario arma la sesión o rechaza respuestas incompletas", () => {
+  assert.deepEqual(
+    datosSesionDeUsuario({
+      idPersonas: 9,
+      correo: "ana@unicesar.edu.co",
+      primerNombre: " Ana ",
+      segundoNombre: "",
+      primerApellido: "Díaz",
+    }),
+    { id: "9", correo: "ana@unicesar.edu.co", nombre: "Ana Díaz" },
+  );
+  assert.equal(datosSesionDeUsuario(null), null);
+  assert.equal(datosSesionDeUsuario({ idPersonas: "9", correo: "a@b.co", primerNombre: "A" }), null);
+  assert.equal(datosSesionDeUsuario({ idPersonas: 9, correo: "a@b.co" }), null);
 });
 
 test("rechaza audiencia incorrecta", async () => {
@@ -159,7 +189,7 @@ test("la URL de autorización usa PKCE S256, state y nonce sin exponer el secret
 
   assert.equal(url.origin, "https://accounts.google.com");
   assert.equal(url.searchParams.get("response_type"), "code");
-  assert.equal(url.searchParams.get("scope"), "openid email");
+  assert.equal(url.searchParams.get("scope"), "openid email profile");
   assert.equal(url.searchParams.get("state"), parametros.state);
   assert.equal(url.searchParams.get("nonce"), parametros.nonce);
   assert.equal(url.searchParams.get("code_challenge_method"), "S256");
