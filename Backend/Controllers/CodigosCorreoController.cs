@@ -74,7 +74,7 @@ public partial class CodigosCorreoController(
 
         if (!enviador.Configurado)
         {
-            logger.LogError("No se puede enviar el código: falta la configuración Smtp (Servidor, Usuario, Contrasena).");
+            logger.LogError("No se puede enviar el código: falta la configuración de correo (Resend:ApiKey y Resend:Remitente, o Smtp:Servidor, Smtp:Usuario y Smtp:Contrasena).");
             return StatusCode(StatusCodes.Status503ServiceUnavailable,
                 new { error = "El envío de correos no está disponible.", motivo = "smtp_sin_configurar" });
         }
@@ -96,9 +96,9 @@ public partial class CodigosCorreoController(
         catch (Exception error) when (error is not OperationCanceledException)
         {
             codigos.Descartar(proposito, correo);
-            // El mensaje del servidor SMTP (p. ej. "5.7.139 Authentication
-            // unsuccessful") explica la causa y no contiene la contraseña.
-            logger.LogError("No se pudo enviar el código por SMTP: {Tipo}: {Mensaje}",
+            // El mensaje del servidor SMTP o de Resend (p. ej. "5.7.139
+            // Authentication unsuccessful") explica la causa y no contiene claves.
+            logger.LogError("No se pudo enviar el código por correo: {Tipo}: {Mensaje}",
                 error.GetType().Name, error.Message);
             return StatusCode(StatusCodes.Status503ServiceUnavailable,
                 new { error = "No se pudo enviar el correo. Inténtalo más tarde.", motivo = "envio_fallido" });

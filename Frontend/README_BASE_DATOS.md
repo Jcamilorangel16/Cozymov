@@ -32,8 +32,19 @@ de `SESSION_SECRET`. No requiere variables nuevas.
 
 ### Correo (SMTP) para los códigos de registro y recuperación
 
-Los códigos de 6 dígitos los envía el **backend** por SMTP. Configúralo en el
-servicio del backend (no en Vercel):
+Los códigos de 6 dígitos los envía el **backend**. Configúralo en el servicio
+del backend (no en Vercel). Si está `Resend__ApiKey`, se usa la API HTTPS de
+Resend (puerto 443) y se ignora `Smtp__*`. Úsala si el host bloquea los puertos
+SMTP: el plan gratis de Render bloquea el 25, el 465 y el 587, y el envío falla
+con `TimeoutException`.
+
+| Variable | Uso |
+| --- | --- |
+| `Resend__ApiKey` | Clave API de Resend con permiso de envío. Secreta. |
+| `Resend__Remitente` | Dirección de un dominio verificado en Resend, por ejemplo `noreply@cozymov.com`. |
+| `Resend__NombreRemitente` | Opcional. Por defecto `Cozymov`. |
+
+Sin Resend, se envía por SMTP:
 
 | Variable | Uso |
 | --- | --- |
@@ -45,8 +56,8 @@ servicio del backend (no en Vercel):
 | `Smtp__NombreRemitente` | Opcional. Por defecto `Cozymov`. |
 
 En desarrollo usa User Secrets (`dotnet user-secrets set "Smtp:Usuario" ...`).
-Sin `Smtp:Usuario` o `Smtp:Contrasena`, enviar un código responde 503 y el log
-del backend lo explica. Si el servidor SMTP rechaza la autenticación, el log
+Sin Resend ni `Smtp:Usuario` y `Smtp:Contrasena`, enviar un código responde
+503 y el log del backend lo explica. Si el servidor SMTP rechaza la autenticación, el log
 muestra su mensaje (por ejemplo `5.7.139 Authentication unsuccessful`).
 
 En Microsoft 365 el SMTP con contraseña debe estar habilitado para el buzón

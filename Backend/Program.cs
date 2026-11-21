@@ -80,11 +80,23 @@ builder.Services.AddScoped<VehiculoRegistroService>();
 builder.Services.AddSingleton<LimitadorIntentos>();
 
 // Códigos por correo (confirmar correo del registro y restablecer contraseña).
-// La sección Smtp se completa con User Secrets o variables Smtp__*; sin ella,
-// los endpoints de /api/codigos-correo responden 503.
+// Con Resend:ApiKey se envía por la API HTTPS de Resend (sirve donde el host
+// bloquea los puertos SMTP, como Render gratis); si no, por la sección Smtp.
+// Ambas se completan con User Secrets o variables Resend__* / Smtp__*; sin
+// ninguna, los endpoints de /api/codigos-correo responden 503.
 builder.Services.AddSingleton<CodigosVerificacion>();
-builder.Services.AddSingleton(builder.Configuration.GetSection("Smtp").Get<OpcionesSmtp>() ?? new OpcionesSmtp());
-builder.Services.AddSingleton<IEnviadorCorreo, EnviadorCorreoSmtp>();
+var opcionesResend = builder.Configuration.GetSection("Resend").Get<OpcionesResend>() ?? new OpcionesResend();
+if (!string.IsNullOrWhiteSpace(opcionesResend.ApiKey))
+{
+    builder.Services.AddSingleton(opcionesResend);
+    builder.Services.AddHttpClient<IEnviadorCorreo, EnviadorCorreoResend>(cliente =>
+        cliente.Timeout = TimeSpan.FromSeconds(20));
+}
+else
+{
+    builder.Services.AddSingleton(builder.Configuration.GetSection("Smtp").Get<OpcionesSmtp>() ?? new OpcionesSmtp());
+    builder.Services.AddSingleton<IEnviadorCorreo, EnviadorCorreoSmtp>();
+}
 
 // Tiempo real (SignalR). El navegador conecta al Hub directamente con un ticket de un
 // solo uso que pide el servidor de Next.js tras verificar la sesión. Ver README_TIEMPO_REAL.md.
