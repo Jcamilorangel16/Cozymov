@@ -34,8 +34,6 @@ mock.module("next/headers.js", {
   },
 });
 
-const FOTO = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQ==";
-
 let perfilRoute;
 let firmarSesion;
 let utilidades;
@@ -78,14 +76,6 @@ function simularBackend(manejador) {
   };
 }
 
-function put(cuerpo) {
-  return new Request("http://localhost/api/perfil", {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(cuerpo),
-  });
-}
-
 test("perfil: GET exige sesión", async () => {
   simularBackend(() => ({ cuerpo: {} }));
   const res = await perfilRoute.GET(new Request("http://localhost/api/perfil?id=3"));
@@ -116,38 +106,12 @@ test("perfil: GET sin id devuelve el propio y rechaza ids no válidos", async ()
   assert.equal(llamadas.length, 1);
 });
 
-test("perfil: PUT edita solo el perfil de la sesión y solo los campos admitidos", async () => {
-  await iniciarSesion("7");
-  simularBackend(() => ({ status: 204 }));
-  const res = await perfilRoute.PUT(
-    put({ idUsuario: 99, descripcion: "  Hola  ", fotoPerfil: FOTO, cedula: "123" }),
-  );
-  assert.equal(res.status, 204);
-  assert.equal(llamadas[0].url, "https://backend.example/api/perfiles/7");
-  assert.equal(llamadas[0].opciones.method, "PUT");
-  assert.deepEqual(JSON.parse(llamadas[0].opciones.body), { descripcion: "Hola", fotoPerfil: FOTO });
-});
-
-test("perfil: PUT rechaza fotos externas, SVG y descripciones largas sin llamar al backend", async () => {
-  await iniciarSesion("7");
-  simularBackend(() => ({ status: 204 }));
-  for (const cuerpo of [
-    { fotoPerfil: "https://ejemplo.com/a.png" },
-    { fotoPerfil: "data:image/svg+xml;base64,PHN2Zz4=" },
-    { fotoPerfil: "data:image/jpeg;base64," + "A".repeat(utilidades.MAX_LONGITUD_FOTO) },
-    { descripcion: "x".repeat(utilidades.MAX_DESCRIPCION + 1) },
-    { descripcion: 5 },
-  ]) {
-    const res = await perfilRoute.PUT(put(cuerpo));
-    assert.equal(res.status, 400, JSON.stringify(cuerpo).slice(0, 60));
-  }
-  assert.equal(llamadas.length, 0);
+test("perfil: la ruta es de solo lectura (sin PUT)", () => {
+  assert.equal(perfilRoute.PUT, undefined);
+  assert.equal(typeof perfilRoute.GET, "function");
 });
 
 test("perfil: utilidades de presentación", () => {
-  assert.equal(utilidades.esFotoMostrable(FOTO), true);
-  assert.equal(utilidades.esFotoMostrable("https://ejemplo.com/a.png"), false);
-  assert.equal(utilidades.esFotoMostrable(null), false);
   assert.equal(utilidades.inicialNombre(" ana"), "A");
   assert.equal(utilidades.inicialNombre(""), "?");
   assert.equal(utilidades.estrellasLlenas(4.5), 5);

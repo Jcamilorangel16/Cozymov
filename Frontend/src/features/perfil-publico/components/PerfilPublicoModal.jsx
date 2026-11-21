@@ -3,7 +3,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  esFotoMostrable,
   estrellasLlenas,
   formatearMiembroDesde,
   inicialNombre,
@@ -21,8 +20,8 @@ function Estrellas({ valor, etiqueta }) {
 }
 
 /**
- * Muestra foto, nombre, ocupación, descripción, estadísticas, vehículos y
- * reseñas (anónimas) de un usuario.
+ * Muestra nombre, ocupación, antigüedad, estadísticas, vehículos y reseñas
+ * (anónimas) de un usuario.
  * @param {{idUsuario: string|number|null, nombre?: string, onCerrar: () => void}} props
  *   `idUsuario` null oculta la ventana; `nombre` se muestra mientras carga.
  */
@@ -70,7 +69,6 @@ function VentanaPerfil({ idUsuario, nombre, onCerrar }) {
   }, [onCerrar]);
 
   const nombreVisible = perfil?.nombre || nombre || "Usuario";
-  const foto = esFotoMostrable(perfil?.fotoPerfil) ? perfil.fotoPerfil : null;
 
   return (
     <>
@@ -103,25 +101,13 @@ function VentanaPerfil({ idUsuario, nombre, onCerrar }) {
               {perfil && (
                 <>
                   <div className="d-flex align-items-center gap-3 mb-3">
-                    {foto ? (
-                      // Data URL validada: next/image no aporta nada aquí.
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={foto}
-                        alt={`Foto de perfil de ${nombreVisible}`}
-                        width="80"
-                        height="80"
-                        className="rounded-circle object-fit-cover flex-shrink-0"
-                      />
-                    ) : (
-                      <div
-                        className="rounded-circle bg-primary-subtle text-primary-emphasis d-flex align-items-center justify-content-center fs-2 fw-bold flex-shrink-0"
-                        style={{ width: 80, height: 80 }}
-                        aria-hidden="true"
-                      >
-                        {inicialNombre(nombreVisible)}
-                      </div>
-                    )}
+                    <div
+                      className="rounded-circle bg-primary-subtle text-primary-emphasis d-flex align-items-center justify-content-center fs-2 fw-bold flex-shrink-0"
+                      style={{ width: 80, height: 80 }}
+                      aria-hidden="true"
+                    >
+                      {inicialNombre(nombreVisible)}
+                    </div>
                     <div>
                       <div className="h5 mb-1">{nombreVisible}</div>
                       {perfil.ocupacion && <div className="texto-secundario">{perfil.ocupacion}</div>}
@@ -130,8 +116,6 @@ function VentanaPerfil({ idUsuario, nombre, onCerrar }) {
                       )}
                     </div>
                   </div>
-
-                  {perfil.descripcion && <p className="mb-3">{perfil.descripcion}</p>}
 
                   <div className="row g-2 text-center mb-3">
                     <div className="col-4">

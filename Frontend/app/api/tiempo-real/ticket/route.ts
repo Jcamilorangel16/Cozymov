@@ -7,18 +7,45 @@ import {
 	llamarBackend,
 	respuestaError,
 } from "../../../../src/lib/proxyUsuario";
-import { urlHubTiempoReal } from "../../../../src/lib/tiempoRealUrl";
+import { EXPLICACION_MOTIVO_SIN_HUB, evaluarUrlHub } from "../../../../src/lib/tiempoRealUrl";
 
 export const runtime = "nodejs";
 
 const FORMATO_TICKET = /^[0-9a-f]{64}$/;
 
-function noDisponible() {
+/**
+ * Causas por las que el servidor no dará ticket aunque se reintente. `motivo` es un
+ * código sin datos de configuración para diagnosticar el 503 desde el navegador; el
+ * detalle (qué variable revisar) va a los logs del servidor.
+ */
+type MotivoNoDisponible =
+	| keyof typeof EXPLICACION_MOTIVO_SIN_HUB
+	| "clave_interna_rechazada"
+	| "usuario_inexistente"
+	| "backend_sin_tiempo_real";
+
+const EXPLICACION_BACKEND: Record<string, string> = {
+	clave_interna_rechazada:
+		"El backend respondió 401 al pedir el ticket: INTERNAL_API_KEY no coincide entre Next.js y la API.",
+	usuario_inexistente: "El backend no encontró al usuario de la sesión (cuenta borrada).",
+	backend_sin_tiempo_real:
+		"El backend respondió 404 en /api/tiempo-real/tickets: la API desplegada no incluye el tiempo real (despliega una versión con SignalR).",
+};
+
+function noDisponible(motivo: MotivoNoDisponible) {
+	const explicacion =
+		(EXPLICACION_MOTIVO_SIN_HUB as Record<string, string>)[motivo] ?? EXPLICACION_BACKEND[motivo];
+	console.warn(`Tiempo real no disponible (${motivo}): ${explicacion}`);
 	// `desactivado` le indica al navegador que no reintente: seguirá con HTTP.
 	return NextResponse.json(
-		{ error: "Las actualizaciones en tiempo real no están disponibles.", desactivado: true },
+		{ error: "Las actualizaciones en tiempo real no están disponibles.", desactivado: true, motivo },
 		{ status: 503 },
 	);
+}
+
+/** El 404 de «usuario no existe» lo envía el controlador; uno sin ese texto es de rutas. */
+function motivo404(detalle: string): MotivoNoDisponible {
+	return detalle.includes("El usuario no existe") ? "usuario_inexistente" : "backend_sin_tiempo_real";
 }
 
 /**
@@ -32,10 +59,11 @@ export async function POST() {
 		return ctx;
 	}
 
-	const url = urlHubTiempoReal(process.env);
-	if (!url) {
-		return noDisponible();
+	const hub = evaluarUrlHub(process.env);
+	if (hub.url === null) {
+		return noDisponible(hub.motivo);
 	}
+	const url = hub.url;
 
 	const respuesta = await llamarBackend(ctx, "/api/tiempo-real/tickets", "POST", {
 		idUsuario: ctx.idUsuario,
@@ -48,9 +76,11 @@ export async function POST() {
 		const detalle = await respuesta.text();
 		// 404: la cuenta ya no existe o el backend aún no tiene la función. 401: la clave
 		// interna no coincide. Reintentar no lo arregla.
-		if (respuesta.status === 404 || respuesta.status === 401) {
-			console.error(`El backend rechazó el ticket de tiempo real (HTTP ${respuesta.status}).`);
-			return noDisponible();
+		if (respuesta.status === 401) {
+			return noDisponible("clave_interna_rechazada");
+		}
+		if (respuesta.status === 404) {
+			return noDisponible(motivo404(detalle));
 		}
 		return respuestaError(
 			mensajeErrorSeguro(respuesta.status, detalle, "No se pudo preparar la conexión en tiempo real."),

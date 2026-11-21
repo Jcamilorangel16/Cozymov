@@ -214,13 +214,16 @@ dotnet ef database update --project Backend/Backend.csproj --startup-project Bac
   `Microsoft.AspNetCore.SignalR.Client` 10.0.14, `Microsoft.NET.Test.Sdk`,
   `<Using Include="Xunit" />` y referencia a `Backend/Backend.csproj`. Las
   pruebas de integración (`FabricaTiempoReal`) usan el entorno `Testing` y base
-  en memoria: no aplican migraciones ni leen User Secrets. Último resultado: 138
-  pruebas correctas.
-- El frontend pasó `npm --prefix Frontend run build`; de sus 245 pruebas, la
-  de memoria de `tests/registro.test.mjs` falla de forma intermitente (no
-  relacionada con el perfil público). ESLint
-  terminó sin errores; informó cinco advertencias existentes: un `<img>` en
-  `BuscarViajes.jsx` y cuatro constantes sin uso en `src/lib/mapa.ts`.
+  en memoria: no aplican migraciones ni leen User Secrets. Último resultado: 137
+  pruebas correctas. Si Windows (Smart App Control) bloquea `Backend.Tests.dll`
+  con "Una directiva de Control de aplicaciones bloqueó este archivo", ejecuta
+  las pruebas con `--artifacts-path` apuntando a una carpeta fuera de OneDrive.
+- El frontend pasó `npm --prefix Frontend run build` y sus 248 pruebas (la de
+  memoria de `tests/registro.test.mjs` falla a veces de forma intermitente).
+  ESLint terminó sin errores; informó cuatro advertencias existentes:
+  constantes sin uso en `src/lib/mapa.ts`.
+- `dotnet-ef` es una herramienta local (`dotnet-tools.json`): ejecuta
+  `dotnet tool restore` antes de usar `dotnet ef`.
 - La revisión visual del último trabajo llegó a la pantalla de inicio de
   sesión; no había una sesión autenticada disponible para inspeccionar las
   nuevas vistas.
@@ -311,6 +314,10 @@ Detalle completo en [`README_TIEMPO_REAL.md`](README_TIEMPO_REAL.md). En resumen
   cada (re)conexión las vistas se resincronizan por HTTP; sin conexión vuelven
   a sus consultas periódicas. La CSP incluye el origen `wss://` del Hub, que se
   calcula al compilar desde `SIGNALR_HUB_URL` o `VITE_API_URL`.
+- Si el ticket no se puede dar, `/api/tiempo-real/ticket` responde 503
+  `desactivado` con un `motivo` (`sin_configurar`, `requiere_https`,
+  `backend_sin_tiempo_real`, `clave_interna_rechazada`, …) y lo explica en el log
+  sin revelar URLs ni claves. Tabla de causas en `README_TIEMPO_REAL.md`.
 - Todo vive en memoria (una sola instancia). Con varias harían falta almacén de
   tickets compartido y backplane.
 
@@ -362,22 +369,20 @@ dirección inversa.
 
 ### Perfil público
 
-- `Usuarios` tiene `foto_perfil` (text, data URL) y `descripcion` (160),
-  ambas opcionales (migración `PerfilPublico`). No hay almacenamiento de
-  archivos: el navegador recorta la foto a 256 px JPEG
-  (`prepararFotoPerfil` en `src/features/perfil-publico/utils/perfil.js`).
+- Solo lectura y **sin cambios de esquema**: usa columnas que ya existen en
+  `main`. (Una versión anterior añadía `foto_perfil` y `descripcion` a
+  `Usuarios` con la migración `PerfilPublico`; se retiró porque la base
+  desplegada sigue el esquema de `main` y las consultas daban 500.)
 - `GET /api/perfiles/{id}` (`PerfilesController`) devuelve nombre (primer
-  nombre y apellido), ocupación, descripción, foto, fecha de registro,
-  promedio y total de calificaciones, viajes publicados, viajes completados
-  como pasajero, vehículos (tipo y modelo) y las 20 reseñas más recientes
-  **anónimas** (solo puntuación y comentario). Nunca cédula, correo,
-  teléfonos, edad ni evaluador. `PUT` cambia foto y descripción; solo acepta
-  data URLs JPEG/PNG/WEBP de ≤ 350 000 caracteres cuya firma coincide con el
-  tipo (no SVG).
-- Proxy `Frontend/app/api/perfil`: `GET ?id=N` (sin id, el propio) y `PUT`
-  siempre sobre el usuario de la sesión. Modal:
-  `src/features/perfil-publico/components/PerfilPublicoModal.jsx`; edición en
-  Configuración > Tu perfil (nombre y ocupación son de solo lectura).
+  nombre y apellido), ocupación, fecha de registro, promedio y total de
+  calificaciones, viajes publicados, viajes completados como pasajero,
+  vehículos (tipo y modelo) y las 20 reseñas más recientes **anónimas** (solo
+  puntuación y comentario). Nunca cédula, correo, teléfonos, edad ni evaluador.
+- Proxy `Frontend/app/api/perfil` (solo GET, `?id=N`; sin id, el propio).
+  Modal: `src/features/perfil-publico/components/PerfilPublicoModal.jsx`, con
+  la inicial del nombre como avatar. La foto y la descripción de
+  Configuración > Tu perfil siguen sin guardarse (`TODO` en `TuPerfil.jsx`):
+  guardarlas exige una migración acordada con `main`.
 
 ### Calificaciones anónimas
 
