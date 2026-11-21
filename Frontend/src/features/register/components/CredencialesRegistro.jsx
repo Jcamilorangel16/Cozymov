@@ -14,11 +14,13 @@ export default function CredencialesRegistro({
   setConfirmarContrasena,
   guardando,
   correoEstaVerificado,
-  verificarCorreo,
+  enviandoCodigo,
+  confirmarCorreo,
   manejarCambio,
   manejarTeclado,
   manejarSiguiente,
 }) {
+  const ocupado = guardando || enviandoCodigo;
   const [verContrasena, setVerContrasena] = useState(false);
   const [verConfirmacion, setVerConfirmacion] = useState(false);
 
@@ -44,22 +46,25 @@ export default function CredencialesRegistro({
         />
         {correoEstaVerificado ? (
           <div id="correo-ayuda" className="form-text text-success" role="status">
-            <i className="bi bi-patch-check-fill" aria-hidden="true" /> Correo verificado con Google.
+            <i className="bi bi-patch-check-fill" aria-hidden="true" /> Correo verificado.
           </div>
         ) : (
           <>
             <button
-              id="verificar-correo"
+              id="confirmar-correo"
               type="button"
-              className="btn btn-google w-100 mt-2"
-              onClick={verificarCorreo}
-              ref={asignarRef("verificar-correo")}
-              disabled={guardando}
+              className="btn btn-outline-primary w-100 mt-2"
+              onClick={confirmarCorreo}
+              ref={asignarRef("confirmar-correo")}
+              disabled={ocupado}
+              aria-busy={enviandoCodigo}
             >
-              <i className="bi bi-google" aria-hidden="true" /> Verificar con Google
+              <i className="bi bi-envelope-check" aria-hidden="true" />{" "}
+              {enviandoCodigo ? "Enviando código..." : "Confirmar correo"}
             </button>
             <div id="correo-ayuda" className="form-text">
-              Obligatorio: entra con la cuenta de Google de este correo para confirmar que es tuyo.
+              Obligatorio: te enviaremos un código de 6 dígitos a tu correo de Outlook para
+              confirmar que es tuyo.
             </div>
           </>
         )}

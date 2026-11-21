@@ -5,12 +5,22 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "reac
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
 import {
+  abrirVentanaCodigoRegistro,
+  ESPERA_REENVIO_MS,
+  solicitarCodigo,
+} from "../../../lib/codigoCorreoCliente";
+import {
   validarCorreoRegistro,
   validarFormularioRegistro,
 } from "../validations/usuarios";
 
-// Lo escrito antes de ir a Google para verificar el correo. Nunca incluye las
-// contraseñas, que hay que volver a escribir.
+// El código vence a los 10 minutos en el servidor; pasado este margen se pide
+// uno nuevo en vez de reabrir la ventana.
+const VIGENCIA_CODIGO_MS = 9 * 60 * 1000;
+
+// Borrador de lo escrito (sin contraseñas). Lo guardaba la antigua
+// verificación con Google antes de salir de la página; se sigue leyendo por si
+// quedó uno en la pestaña.
 const CLAVE_BORRADOR = "cozymov:registro-borrador";
 const CAMPOS_BORRADOR = [
   "idUsuario",
@@ -89,6 +99,11 @@ export function useRegisterForm({ correoVerificado: correoVerificadoInicial = ""
   const [guardando, setGuardando] = useState(false);
   const [correoVerificado, setCorreoVerificado] = useState(correoVerificadoInicial);
 
+  // Confirmación del correo con un código enviado por SMTP.
+  const [enviandoCodigo, setEnviandoCodigo] = useState(false);
+  // Último envío: a qué correo, cuándo y desde cuándo se puede reenviar.
+  const ultimoEnvio = useRef({ correo: "", enviadoEn: 0, reenvioDesde: 0 });
+
   const correoNormalizado = datosUsuario.correo.replace(/\s+/g, "").toLowerCase();
   const correoEstaVerificado = correoVerificado !== "" && correoNormalizado === correoVerificado;
 
@@ -106,6 +121,64 @@ export function useRegisterForm({ correoVerificado: correoVerificadoInicial = ""
     () => () => window.clearTimeout(temporizadorRegistro.current),
     [],
   );
+
+  function segundosParaReenviar(correo) {
+    const envio = ultimoEnvio.current;
+    if (envio.correo !== correo) return 0;
+    return Math.max(0, Math.ceil((envio.reenvioDesde - Date.now()) / 1000));
+  }
+
+  /** Pide un código y anota el envío (o la espera que exige el servidor). */
+  async function enviarCodigoA(correo) {
+    const envio = await solicitarCodigo(correo, "registro");
+    const ahora = Date.now();
+    if (envio.ok) {
+      ultimoEnvio.current = { correo, enviadoEn: ahora, reenvioDesde: ahora + ESPERA_REENVIO_MS };
+    } else if (typeof envio.esperar === "number") {
+      ultimoEnvio.current = { ...ultimoEnvio.current, correo, reenvioDesde: ahora + envio.esperar * 1000 };
+    }
+    return envio;
+  }
+
+  /**
+   * Envía un código al correo del formulario y abre la ventana para
+   * escribirlo. Si ya se envió uno a ese correo hace menos de 10 minutos, solo
+   * reabre la ventana (desde ahí se puede reenviar).
+   */
+  async function confirmarCorreo() {
+    if (guardando || enviandoCodigo) return;
+    const correo = validarCorreoRegistro(datosUsuario.correo);
+    if (!correo.valido) {
+      mostrarError(correo.error);
+      enfocarCampo("correo");
+      return;
+    }
+
+    const envio = ultimoEnvio.current;
+    const codigoVigente = envio.correo === correo.datos && envio.enviadoEn > Date.now() - VIGENCIA_CODIGO_MS;
+    setEnviandoCodigo(true);
+    try {
+      if (!codigoVigente) {
+        const resultado = await enviarCodigoA(correo.datos);
+        if (!resultado.ok) {
+          mostrarError(resultado.error);
+          return;
+        }
+      }
+      const verificado = await abrirVentanaCodigoRegistro({
+        correo: correo.datos,
+        segundosParaReenviar: () => segundosParaReenviar(correo.datos),
+        reenviar: () => enviarCodigoA(correo.datos),
+      });
+      if (verificado) {
+        setCorreoVerificado(correo.datos);
+        ultimoEnvio.current = { correo: "", enviadoEn: 0, reenvioDesde: 0 };
+        void Swal.fire({ icon: "success", text: "Correo confirmado.", timer: 1500, showConfirmButton: false });
+      }
+    } finally {
+      setEnviandoCodigo(false);
+    }
+  }
 
   function manejarCambio(evento) {
     const { name, value } = evento.target;
@@ -147,37 +220,6 @@ export function useRegisterForm({ correoVerificado: correoVerificadoInicial = ""
     }
   }
 
-  /**
-   * Guarda lo escrito (sin contraseñas) y va a Google para confirmar que el
-   * correo del formulario es del usuario.
-   */
-  function verificarCorreo() {
-    if (guardando) return;
-    const correo = validarCorreoRegistro(datosUsuario.correo);
-    if (!correo.valido) {
-      mostrarError(correo.error);
-      enfocarCampo("correo");
-      return;
-    }
-
-    try {
-      window.sessionStorage.setItem(
-        CLAVE_BORRADOR,
-        JSON.stringify({
-          ...Object.fromEntries(CAMPOS_BORRADOR.map((campo) => [campo, datosUsuario[campo]])),
-          tipoOcupacion,
-          ocupacionOtro,
-        }),
-      );
-    } catch {
-      // Sin sessionStorage solo se pierde lo escrito; la verificación sigue.
-    }
-    // Navegación completa: es una ruta API que redirige a Google, no una página.
-    const destino = new URL("/api/auth/google", window.location.origin);
-    destino.searchParams.set("verificar", correo.datos);
-    window.location.assign(destino.toString());
-  }
-
   async function manejarSiguiente() {
     if (guardando) return;
 
@@ -195,9 +237,9 @@ export function useRegisterForm({ correoVerificado: correoVerificadoInicial = ""
 
     if (!correoEstaVerificado) {
       mostrarError(
-        "Antes de crear la cuenta, pulsa «Verificar con Google» y entra con la cuenta de Google de ese correo.",
+        "Antes de crear la cuenta, pulsa «Confirmar correo» y escribe el código que te llegue.",
       );
-      refs.current["verificar-correo"]?.focus();
+      enfocarCampo("confirmar-correo");
       return;
     }
 
@@ -274,7 +316,8 @@ export function useRegisterForm({ correoVerificado: correoVerificadoInicial = ""
     setConfirmarContrasena,
     guardando,
     correoEstaVerificado,
-    verificarCorreo,
+    enviandoCodigo,
+    confirmarCorreo,
     manejarCambio,
     manejarTeclado,
     manejarSiguiente,

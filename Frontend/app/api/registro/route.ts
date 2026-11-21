@@ -10,9 +10,9 @@ import {
 export const runtime = "nodejs";
 
 /**
- * Crea una cuenta con contraseña. Exige la cookie `correo_verificado`, que el
- * callback de Google firma cuando el usuario entra con el mismo correo que
- * escribió en el formulario.
+ * Crea una cuenta con contraseña. Exige la cookie `correo_verificado`, que se
+ * firma al confirmar el código enviado por correo (`/api/verificacion-correo`)
+ * o al entrar con Google usando ese mismo correo.
  */
 export async function POST(request: Request) {
   let body: unknown;
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
   if (!verificado || verificado.correo !== validacion.datos.correo) {
     return Response.json(
       {
-        error: "Verifica tu correo con Google antes de crear la cuenta.",
+        error: "Confirma tu correo con el código que te enviamos antes de crear la cuenta.",
         verificar: true,
       },
       { status: 403 },

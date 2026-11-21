@@ -79,6 +79,13 @@ builder.Services.AddHttpClient<IAlmacenArchivos, SupabaseAlmacenArchivos>();
 builder.Services.AddScoped<VehiculoRegistroService>();
 builder.Services.AddSingleton<LimitadorIntentos>();
 
+// Códigos por correo (confirmar correo del registro y restablecer contraseña).
+// La sección Smtp se completa con User Secrets o variables Smtp__*; sin ella,
+// los endpoints de /api/codigos-correo responden 503.
+builder.Services.AddSingleton<CodigosVerificacion>();
+builder.Services.AddSingleton(builder.Configuration.GetSection("Smtp").Get<OpcionesSmtp>() ?? new OpcionesSmtp());
+builder.Services.AddSingleton<IEnviadorCorreo, EnviadorCorreoSmtp>();
+
 // Tiempo real (SignalR). El navegador conecta al Hub directamente con un ticket de un
 // solo uso que pide el servidor de Next.js tras verificar la sesión. Ver README_TIEMPO_REAL.md.
 builder.Services.AddSingleton(
@@ -123,6 +130,17 @@ builder.Services.AddRateLimiter(options =>
                 AutoReplenishment = true,
                 PermitLimit = 5,
                 Window = TimeSpan.FromHours(1),
+                QueueLimit = 0
+            }));
+    // Pedir, verificar y usar códigos por correo. Cada correo tiene además su
+    // propia espera de reenvío y tope de intentos (CodigosVerificacion).
+    options.AddPolicy("codigos", context =>
+        RateLimitPartition.GetFixedWindowLimiter(ObtenerClaveIp(context), _ =>
+            new FixedWindowRateLimiterOptions
+            {
+                AutoReplenishment = true,
+                PermitLimit = 30,
+                Window = TimeSpan.FromMinutes(15),
                 QueueLimit = 0
             }));
 });

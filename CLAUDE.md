@@ -63,21 +63,36 @@ Tablas_ccozy/ Bóveda Obsidian local opcional, ignorada por Git
   `telefono_usuario` en el mismo `SaveChanges` que la cuenta (sin migración).
   Las cuentas anteriores pueden no tener teléfono, y desde Configuración aún
   se puede borrar el último.
-- Verificación del correo con Google antes del registro con contraseña: en
-  `/register`, "Verificar con Google" va a `/api/auth/google?verificar=<correo>`
-  (que añade `login_hint` y guarda el correo en la cookie OAuth). El callback,
-  en ese modo, no inicia sesión: exige `email_verified` y el mismo correo, firma
-  la cookie httpOnly `correo_verificado` (30 min, clave derivada de
-  `SESSION_SECRET` y distinta de las demás; `src/lib/verificacionCorreo.ts`) y
-  vuelve a `/register`. Los errores vuelven con `?verificacion_error=`.
+- Confirmación del correo con código (SMTP) antes del registro con
+  contraseña: en `/register`, "Confirmar correo" llama a
+  `POST /api/codigo-correo` (`proposito: "registro"`) y abre una ventana
+  emergente (SweetAlert2, `src/lib/codigoCorreoCliente.js`) para escribir el
+  código, con "Reenviar código". `POST /api/verificacion-correo` comprueba el
+  código y firma la cookie httpOnly `correo_verificado` (30 min, clave derivada
+  de `SESSION_SECRET` y distinta de las demás; `src/lib/verificacionCorreo.ts`).
   `POST /api/registro` responde 403 sin esa cookie o si su correo no coincide, y
-  la borra al crear la cuenta. Lo escrito (sin contraseñas) se conserva en
-  `sessionStorage` durante la ida a Google. El backend no lo comprueba: confía
-  en el proxy, como el resto de la autorización. No hay confirmación de
-  correo ni recuperación de contraseña por correo: ambos flujos, Brevo y las
-  columnas `EmailVerificado` y `CodigoRecuperacion*` se eliminaron (migración
-  `QuitarVerificacionYRecuperacionCorreo`). La contraseña solo se cambia desde
-  Configuración conociendo la actual.
+  la borra al crear la cuenta. El backend no lo comprueba: confía en el proxy,
+  como el resto de la autorización. La interfaz ya no ofrece "Verificar con
+  Google", pero `/api/auth/google?verificar=` sigue existiendo y firma la misma
+  cookie (con `gsub`).
+- Recuperación de contraseña con código: `/recuperar` (enlace "¿Olvidaste tu
+  contraseña?" del login) pide el código con `proposito: "recuperacion"` (la
+  respuesta no revela si la cuenta existe) y `POST /api/recuperacion` cambia la
+  contraseña sin iniciar sesión. Las sesiones ya abiertas siguen valiendo (JWT
+  sin estado).
+- Backend de códigos: `CodigosCorreoController` (`/api/codigos-correo/enviar`,
+  `verificar`, `restablecer-contrasena`), `Services/CodigosVerificacion.cs`
+  (6 dígitos, HMAC en memoria, 10 min, 5 intentos, un solo uso, reenvío cada
+  60 s y 5 envíos por hora por correo; límite por IP `codigos`) y
+  `Services/EnviadorCorreo.cs` (MailKit). Configuración `Smtp:Servidor`
+  (por defecto `smtp.office365.com`), `Smtp:Puerto` (587), `Smtp:Usuario`,
+  `Smtp:Contrasena`, `Smtp:Remitente` y `Smtp:NombreRemitente`, en User
+  Secrets o variables `Smtp__*`. Sin configuración responde 503. No hay
+  migración: los códigos no se guardan en la base (las columnas
+  `EmailVerificado` y `CodigoRecuperacion*` y el flujo con Brevo se eliminaron
+  en `QuitarVerificacionYRecuperacionCorreo`). Microsoft 365 desactiva por
+  defecto el SMTP con contraseña desde diciembre de 2026; si deja de
+  funcionar, cambia `Smtp:*` a otro proveedor.
 - Registro e inicio de sesión con Google (ver "Registro con Google" abajo):
   crear una cuenta con Google solo se admite con correos `@unicesar.edu.co`.
 - Inicio y cierre de sesión, sesión firmada en el servidor y rutas protegidas.

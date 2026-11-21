@@ -13,7 +13,7 @@ import "../styles/register.css";
 /**
  * Presenta el formulario de creación de cuenta.
  * @param {{correoVerificado?: string, errorVerificacion?: string}} props Correo
- *   que Google ya confirmó y error del último intento de verificación.
+ *   ya confirmado (con código o con Google) y error del último intento con Google.
  * @returns Interfaz de registro de usuario.
  */
 export default function Register({ correoVerificado = "", errorVerificacion = "" }) {
@@ -56,7 +56,8 @@ function FormularioRegistro({ correoVerificado, borrador }) {
     setConfirmarContrasena,
     guardando,
     correoEstaVerificado,
-    verificarCorreo,
+    enviandoCodigo,
+    confirmarCorreo,
     manejarCambio,
     manejarTeclado,
     manejarSiguiente,
@@ -98,7 +99,8 @@ function FormularioRegistro({ correoVerificado, borrador }) {
             setConfirmarContrasena={setConfirmarContrasena}
             guardando={guardando}
             correoEstaVerificado={correoEstaVerificado}
-            verificarCorreo={verificarCorreo}
+            enviandoCodigo={enviandoCodigo}
+            confirmarCorreo={confirmarCorreo}
             manejarCambio={manejarCambio}
             manejarTeclado={manejarTeclado}
             manejarSiguiente={manejarSiguiente}

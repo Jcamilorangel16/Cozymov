@@ -1,6 +1,8 @@
-// Verificación del correo antes del registro con contraseña: el usuario entra
-// con Google usando el correo que escribió y el callback firma ese correo en
-// una cookie de corta duración. Sin ella, /api/registro no crea la cuenta.
+// Verificación del correo antes del registro con contraseña. El usuario la
+// obtiene de dos formas: con el código de 6 dígitos que se le envía por correo
+// (`/api/verificacion-correo`) o entrando con Google usando ese correo (el
+// callback). En ambos casos se firma el correo en una cookie de corta
+// duración; sin ella, /api/registro no crea la cuenta.
 // No importa nada de next/* para poder usarse desde rutas probadas con node.
 import { createHmac } from "node:crypto";
 import { jwtVerify, SignJWT } from "jose";
@@ -24,7 +26,8 @@ export const MENSAJES_ERROR_VERIFICACION: Record<string, string> = {
   error: "No se pudo verificar el correo con Google. Inténtalo de nuevo.",
 };
 
-export type CorreoVerificado = { correo: string; sub: string };
+/** `sub` solo existe si el correo se verificó con Google. */
+export type CorreoVerificado = { correo: string; sub?: string };
 
 /**
  * Clave para firmar el correo verificado, derivada de SESSION_SECRET. Es
@@ -41,12 +44,12 @@ function claveVerificacion(): Uint8Array {
 }
 
 /**
- * Firma el correo que Google confirmó como propio del usuario.
- * @param datos Correo normalizado y sub de Google.
+ * Firma el correo que el usuario demostró como propio (código o Google).
+ * @param datos Correo normalizado y, si fue con Google, su sub.
  * @returns Token para la cookie `correo_verificado`.
  */
 export async function firmarCorreoVerificado(datos: CorreoVerificado): Promise<string> {
-  return new SignJWT({ correo: datos.correo, gsub: datos.sub })
+  return new SignJWT({ correo: datos.correo, ...(datos.sub ? { gsub: datos.sub } : {}) })
     .setProtectedHeader({ alg: ALGORITMO })
     .setAudience(AUDIENCIA)
     .setIssuedAt()
@@ -57,7 +60,7 @@ export async function firmarCorreoVerificado(datos: CorreoVerificado): Promise<s
 /**
  * Verifica la cookie de correo verificado.
  * @param token Valor de la cookie, si existe.
- * @returns Correo y sub, o null si falta, venció o no es válida.
+ * @returns Correo (y sub si fue con Google), o null si falta, venció o no es válida.
  */
 export async function verificarCorreoVerificado(
   token: string | undefined,
@@ -69,10 +72,10 @@ export async function verificarCorreoVerificado(
       audience: AUDIENCIA,
     });
     const { correo, gsub } = payload;
-    if (typeof correo !== "string" || !correo || typeof gsub !== "string" || !gsub) {
+    if (typeof correo !== "string" || !correo || (gsub !== undefined && typeof gsub !== "string")) {
       return null;
     }
-    return { correo, sub: gsub };
+    return gsub ? { correo, sub: gsub } : { correo };
   } catch {
     return null;
   }
@@ -87,6 +90,17 @@ export function opcionesCookieCorreoVerificado() {
     path: "/",
     maxAge: DURACION_CORREO_VERIFICADO_SEGUNDOS,
   };
+}
+
+/**
+ * Cabecera Set-Cookie que fija la cookie de correo verificado, para rutas que
+ * responden con un Response normal.
+ * @param token Token firmado con firmarCorreoVerificado.
+ * @returns Valor de la cabecera.
+ */
+export function cabeceraCorreoVerificado(token: string): string {
+  const seguro = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  return `${COOKIE_CORREO_VERIFICADO}=${token}; Path=/; Max-Age=${DURACION_CORREO_VERIFICADO_SEGUNDOS}; HttpOnly; SameSite=Lax${seguro}`;
 }
 
 /**

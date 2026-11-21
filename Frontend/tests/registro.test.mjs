@@ -127,7 +127,7 @@ for (const [caso, cookie] of [
 
     assert.equal(respuesta.status, 403);
     assert.deepEqual(await respuesta.json(), {
-      error: "Verifica tu correo con Google antes de crear la cuenta.",
+      error: "Confirma tu correo con el código que te enviamos antes de crear la cuenta.",
       verificar: true,
     });
     assert.equal(llamado, false);

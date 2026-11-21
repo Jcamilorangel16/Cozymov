@@ -30,6 +30,31 @@ puede crear una cuenta, pero solo con correos `@unicesar.edu.co`: la identidad
 pendiente viaja en la cookie `google_registro`, firmada con una clave derivada
 de `SESSION_SECRET`. No requiere variables nuevas.
 
+### Correo (SMTP) para los códigos de registro y recuperación
+
+Los códigos de 6 dígitos los envía el **backend** por SMTP. Configúralo en el
+servicio del backend (no en Vercel):
+
+| Variable | Uso |
+| --- | --- |
+| `Smtp__Servidor` | Opcional. Por defecto `smtp.office365.com`. |
+| `Smtp__Puerto` | Opcional. Por defecto `587` (STARTTLS); `465` usa TLS directo. |
+| `Smtp__Usuario` | Cuenta que se autentica en el SMTP (por ejemplo, el correo de Outlook remitente). |
+| `Smtp__Contrasena` | Contraseña (o contraseña de aplicación) de esa cuenta. Secreta. |
+| `Smtp__Remitente` | Opcional. Dirección "De"; por defecto, `Smtp__Usuario`. Debe ser una dirección que el servidor permita enviar. |
+| `Smtp__NombreRemitente` | Opcional. Por defecto `Cozymov`. |
+
+En desarrollo usa User Secrets (`dotnet user-secrets set "Smtp:Usuario" ...`).
+Sin `Smtp:Usuario` o `Smtp:Contrasena`, enviar un código responde 503 y el log
+del backend lo explica. Si el servidor SMTP rechaza la autenticación, el log
+muestra su mensaje (por ejemplo `5.7.139 Authentication unsuccessful`).
+
+En Microsoft 365 el SMTP con contraseña debe estar habilitado para el buzón
+(lo controla TI), no funciona si la cuenta exige MFA sin contraseña de
+aplicación, y Microsoft lo desactiva por defecto desde diciembre de 2026.
+Envía siempre por el SMTP del propio dominio del remitente: un remitente
+`@unicesar.edu.co` enviado desde otro proveedor no pasa DMARC (`p=reject`).
+
 En el backend, `Cors__OrigenesPermitidos` es opcional y está vacío por defecto:
 el navegador no llama a la API directamente, así que no hace falta abrir CORS.
 

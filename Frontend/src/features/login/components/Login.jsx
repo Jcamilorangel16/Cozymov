@@ -95,6 +95,12 @@ function Login({ errorGoogle = '' }) {
                         </div>
                     </div>
 
+                    <div className="text-end mb-3">
+                        <Link href="/recuperar" className="small">
+                            ¿Olvidaste tu contraseña?
+                        </Link>
+                    </div>
+
                     {(errorLogin || errorGoogle) && (
                         <p
                             className="small text-danger mb-3"
