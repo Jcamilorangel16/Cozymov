@@ -17,10 +17,15 @@ function inicialDe(nombre) {
 
 /**
  * Muestra los chats del usuario, el buscador de usuarios o la conversación abierta.
- * @param {{usuarioActualId: string, contactoInicial?: {id: string, nombre: string}|null}} props Identidad de sesión y contacto opcional.
+ * @param {{usuarioActualId: string, contactoInicial?: {id: string, nombre: string}|null, viajeOrigen?: {origen: string, destino: string}|null, onVolverAlViaje?: () => void}} props Identidad de sesión, contacto opcional y, si la conversación se abrió desde un viaje, su resumen y la acción para regresar a él.
  * @returns Vista de mensajería.
  */
-export default function MensajesView({ usuarioActualId, contactoInicial = null }) {
+export default function MensajesView({
+  usuarioActualId,
+  contactoInicial = null,
+  viajeOrigen = null,
+  onVolverAlViaje,
+}) {
   const {
     vista,
     setVista,
@@ -33,6 +38,8 @@ export default function MensajesView({ usuarioActualId, contactoInicial = null }
     mensajes,
     manejarEnvio,
     volverALista,
+    reintentar,
+    cargando,
     error,
   } = useMensajes(usuarioActualId, contactoInicial);
 
@@ -53,13 +60,35 @@ export default function MensajesView({ usuarioActualId, contactoInicial = null }
         </div>
 
         <div className="msj-cuerpo">
+          {viajeOrigen && onVolverAlViaje && (
+            <div className="msj-viaje-aviso">
+              <span>
+                <i className="bi bi-signpost-2-fill" aria-hidden="true" /> Consultas el viaje{" "}
+                <strong>
+                  {viajeOrigen.origen} → {viajeOrigen.destino}
+                </strong>
+                . Aún no está reservado.
+              </span>
+              <button type="button" className="btn btn-sm btn-primary" onClick={onVolverAlViaje}>
+                <i className="bi bi-arrow-left-circle-fill" aria-hidden="true" /> Volver al viaje
+              </button>
+            </div>
+          )}
           <ListaMensajes
             mensajes={mensajes}
             usuarioActualId={usuarioActualId}
             nombreContacto={contactoSeleccionado.nombre}
+            cargando={cargando}
           />
           <FormularioMensaje onEnviarMensaje={manejarEnvio} />
-          {error && <p className="text-danger mt-2 mb-0">{error}</p>}
+          {error && (
+            <p className="text-danger mt-2 mb-0" role="alert">
+              {error}{" "}
+              <button type="button" className="btn btn-link btn-sm p-0 align-baseline" onClick={() => void reintentar()}>
+                Reintentar
+              </button>
+            </p>
+          )}
         </div>
       </div>
     );

@@ -5,16 +5,32 @@ import { horaLocalMensaje } from "../utils/horaMensaje";
 
 /**
  * Renderiza los mensajes alineados según quién los envió.
- * @param {{mensajes: Array, usuarioActualId: string, nombreContacto?: string}} props Datos de la conversación.
+ * @param {{mensajes: Array, usuarioActualId: string, nombreContacto?: string, cargando?: boolean}} props Datos de la conversación.
  * @returns Lista visual de mensajes.
  */
-export default function ListaMensajes({ mensajes, usuarioActualId, nombreContacto = "" }) {
+export default function ListaMensajes({
+  mensajes,
+  usuarioActualId,
+  nombreContacto = "",
+  cargando = false,
+}) {
   const chatBottomRef = useRef(null);
   const inicial = nombreContacto.trim().charAt(0).toUpperCase() || "?";
 
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [mensajes]);
+
+  if (cargando && (!mensajes || mensajes.length === 0)) {
+    return (
+      <div className="msj-hilo">
+        <div className="msj-vacio" role="status">
+          <i className="bi bi-hourglass-split" aria-hidden="true" />
+          <span>Cargando mensajes...</span>
+        </div>
+      </div>
+    );
+  }
 
   if (!mensajes || mensajes.length === 0) {
     return (

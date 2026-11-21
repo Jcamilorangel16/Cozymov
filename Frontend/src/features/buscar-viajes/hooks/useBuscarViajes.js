@@ -1,7 +1,7 @@
 // Coordina filtros, carga de viajes y validación de disponibilidad del usuario.
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Swal from "sweetalert2";
 import { filtrarSolicitudes, solicitudesPropiasPendientes } from "../utils/solicitudes";
 import { consultarViajes, ordenarViajesPorSimilitud } from "../utils/viajes";
@@ -15,11 +15,12 @@ import { useSessionUserId } from "../../../hooks/useSessionUserId";
  * @param {string} [idUsuarioServidor] Identificador de la sesión verificada en el servidor.
  * @returns Estado de búsqueda, campos de filtro y acción para buscar.
  */
-export function useBuscarViajes(idUsuarioServidor = "") {
-  // Criterios que el usuario edita antes de iniciar una búsqueda.
-  const [origen, setOrigen] = useState("");
-  const [destino, setDestino] = useState("");
-  const [fecha, setFecha] = useState("");
+export function useBuscarViajes(idUsuarioServidor = "", filtrosIniciales = null) {
+  // Criterios que el usuario edita antes de iniciar una búsqueda. Al volver de una conversación
+  // se restauran los de la búsqueda que tenía.
+  const [origen, setOrigen] = useState(filtrosIniciales?.origen ?? "");
+  const [destino, setDestino] = useState(filtrosIniciales?.destino ?? "");
+  const [fecha, setFecha] = useState(filtrosIniciales?.fecha ?? "");
   // Resultados y estado visible de la búsqueda.
   const [viajes, setViajes] = useState([]);
   const [buscando, setBuscando] = useState(true);
@@ -43,17 +44,32 @@ export function useBuscarViajes(idUsuarioServidor = "") {
   const [errorMisSolicitudes, setErrorMisSolicitudes] = useState("");
   const [eliminandoSolicitudId, setEliminandoSolicitudId] = useState(null);
   // Filtros con los que se hizo la última búsqueda; las solicitudes también los respetan.
-  const [filtrosAplicados, setFiltrosAplicados] = useState({ origen: "", destino: "", fecha: "" });
+  const [filtrosAplicados, setFiltrosAplicados] = useState({
+    origen: filtrosIniciales?.origen ?? "",
+    destino: filtrosIniciales?.destino ?? "",
+    fecha: filtrosIniciales?.fecha ?? "",
+  });
   // sessionStorage se pierde al abrir otra pestaña aunque la sesión siga activa; el id que
   // verifica el servidor (cookie) sirve de respaldo para no ocultar las solicitudes.
   const idSesionNavegador = useSessionUserId();
   const idUsuario = idSesionNavegador || String(idUsuarioServidor || "");
+  // Solo se lee al montar: los filtros restaurados no deben repetir la consulta al editarlos.
+  const filtrosAplicadosInicialesRef = useRef(
+    filtrosIniciales && (filtrosIniciales.origen || filtrosIniciales.destino || filtrosIniciales.fecha)
+      ? filtrosIniciales
+      : null,
+  );
 
   useEffect(() => {
     const controlador = new AbortController();
     consultarViajes({}, controlador.signal)
       .then((viajesCargados) => {
-        setViajes(viajesCargados);
+        // La carga inicial respeta los filtros restaurados (misma ordenación que «Buscar»).
+        setViajes(
+          filtrosAplicadosInicialesRef.current
+            ? ordenarViajesPorSimilitud(viajesCargados, filtrosAplicadosInicialesRef.current)
+            : viajesCargados,
+        );
         setBusquedaRealizada(true);
       })
       .catch((errorConsulta) => {
@@ -283,6 +299,8 @@ export function useBuscarViajes(idUsuarioServidor = "") {
   }
 
   async function handleAceptarViaje(viaje, alAceptar) {
+    // Ya hay una reserva confirmada: no se crea otra (el botón también está deshabilitado).
+    if (tieneViajeEnCurso) return;
     const confirmacion = await Swal.fire({
       icon: "question",
       title: "¿Aceptar este viaje?",
@@ -468,6 +486,7 @@ export function useBuscarViajes(idUsuarioServidor = "") {
     tieneViajeEnCurso,
     validacionCompletada,
     idUsuario,
+    filtrosAplicados,
     eliminandoViajeId,
     aceptandoViajeId,
     handleBuscar,
