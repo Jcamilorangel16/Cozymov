@@ -7,6 +7,7 @@ import {
   MENSAJES_ERROR_VERIFICACION,
   verificarCorreoVerificado,
 } from "../../src/lib/verificacionCorreo";
+import { obtenerConfigMicrosoft } from "../../src/lib/microsoft";
 
 export const metadata: Metadata = {
   title: "Crear cuenta | Cozymov",
@@ -37,6 +38,7 @@ export default async function RegisterPage({
     <Register
       correoVerificado={verificado?.correo ?? ""}
       errorVerificacion={errorVerificacion}
+      microsoftDisponible={obtenerConfigMicrosoft("") !== null}
     />
   );
 }

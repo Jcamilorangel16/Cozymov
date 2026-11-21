@@ -17,6 +17,9 @@ En Vercel configura:
 | `ORIGENES_PERMITIDOS` | Opcional. Orígenes adicionales (separados por coma) desde los que se aceptan POST/PUT/DELETE a `/api`. Solo hace falta si un proxy cambia el `Host` y las solicitudes legítimas reciben 403. |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Credenciales OAuth de Google para el inicio de sesión con Google. |
 | `GOOGLE_REDIRECT_URI` | URL de callback registrada en Google. En producción: `https://cozymov.com/api/auth/google/callback`. Su origen también se usa para las redirecciones finales. Si falta, se usa el origen de la solicitud. |
+| `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` | Opcionales. Credenciales de la aplicación registrada en Microsoft Entra ID para "Continuar con Microsoft (Outlook)". Si falta alguna de las variables de Microsoft, el botón no aparece. |
+| `MICROSOFT_TENANT_ID` | GUID del tenant de la universidad. Solo se aceptan cuentas miembro de ese tenant; `common`, `organizations` o un dominio no sirven. |
+| `MICROSOFT_REDIRECT_URI` | URL de callback registrada en Entra. En producción: `https://cozymov.com/api/auth/microsoft/callback`. Si falta, se usa el origen de la solicitud. |
 | `SIGNALR_HUB_URL` | Opcional. URL pública del Hub de tiempo real; por defecto `VITE_API_URL` + `/hubs/tiempo-real`. `off` lo desactiva (la app sigue con sus consultas HTTP). Solo HTTPS en producción. Entra en la CSP al compilar: si cambia, vuelve a desplegar. Ver [`README_TIEMPO_REAL.md`](../README_TIEMPO_REAL.md). |
 
 En Google Cloud Console (APIs y servicios > Credenciales > ID de cliente OAuth)
@@ -29,6 +32,25 @@ pantalla de consentimiento basta con tenerlos listados). Con Google también se
 puede crear una cuenta, pero solo con correos `@unicesar.edu.co`: la identidad
 pendiente viaja en la cookie `google_registro`, firmada con una clave derivada
 de `SESSION_SECRET`. No requiere variables nuevas.
+
+Para Microsoft (cuentas de Outlook / Microsoft 365 institucionales), en el
+portal de Microsoft Entra > Registros de aplicaciones crea una aplicación de
+tipo **Web** con la URI de redireccionamiento
+`https://cozymov.com/api/auth/microsoft/callback` (y
+`http://localhost:3000/api/auth/microsoft/callback` en desarrollo). Crea un
+secreto de cliente en "Certificados y secretos". Si la aplicación no vive en el
+tenant de la universidad, elige "Cuentas de cualquier directorio organizativo"
+y pide a TI que la apruebe (consentimiento de administrador) si los usuarios no
+pueden consentir aplicaciones por su cuenta. El flujo pide `openid email
+profile`, que no requieren permisos adicionales de Graph. Para precargar
+nombres y apellidos en el registro, agrega en "Configuración de token" los
+claims opcionales `given_name` y `family_name` del ID token (sin ellos el
+usuario los escribe). Una cuenta existente se vincula la primera vez por el
+correo `@unicesar.edu.co` (exacto fuera de Development) y luego por la
+identidad `tid:oid` guardada en `identidad_externa` con proveedor `microsoft`.
+Sin cuenta, un correo `@unicesar.edu.co` lleva a `/register/microsoft` para
+completar el registro, como con Google. Las cuentas invitadas del tenant se
+rechazan. No requiere migración.
 
 En el backend, `Cors__OrigenesPermitidos` es opcional y está vacío por defecto:
 el navegador no llama a la API directamente, así que no hace falta abrir CORS.

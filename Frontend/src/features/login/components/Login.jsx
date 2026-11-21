@@ -7,12 +7,15 @@ import { useState } from 'react';
 import { useLogin } from '../hooks/useLogin';
 import BotonVerContrasena from '../../../components/BotonVerContrasena';
 import BotonGoogle from '../../../components/BotonGoogle';
+import BotonMicrosoft from '../../../components/BotonMicrosoft';
 
 /**
  * Renderiza el formulario de acceso a la aplicación.
+ * @param {{errorExterno?: string, microsoftDisponible?: boolean}} props
+ *   Mensaje de error de Google o Microsoft, y si Microsoft está configurado.
  * @returns Interfaz de inicio de sesión.
  */
-function Login({ errorGoogle = '' }) {
+function Login({ errorExterno = '', microsoftDisponible = false }) {
     const [verContrasena, setVerContrasena] = useState(false);
     const {
         correo,
@@ -95,13 +98,13 @@ function Login({ errorGoogle = '' }) {
                         </div>
                     </div>
 
-                    {(errorLogin || errorGoogle) && (
+                    {(errorLogin || errorExterno) && (
                         <p
                             className="small text-danger mb-3"
                             id="error-inicio-sesion"
                             role="alert"
                         >
-                            {errorLogin || errorGoogle}
+                            {errorLogin || errorExterno}
                         </p>
                     )}
 
@@ -120,6 +123,10 @@ function Login({ errorGoogle = '' }) {
                         </div>
 
                         <BotonGoogle texto="Continuar con Google" deshabilitado={cargando} />
+
+                        {microsoftDisponible && (
+                            <BotonMicrosoft texto="Continuar con Microsoft (Outlook)" deshabilitado={cargando} />
+                        )}
                     </div>
 
                 </form>

@@ -22,12 +22,13 @@ function mostrarError(mensaje) {
 }
 
 /**
- * Estado y acciones del formulario de registro con Google.
+ * Estado y acciones del formulario de registro con Google o Microsoft.
  * @param {{primerNombre: string, segundoNombre: string, primerApellido: string, segundoApellido: string}} nombres
- *   Nombres que dio Google, para precargar los campos.
+ *   Nombres que dio el proveedor, para precargar los campos.
+ * @param {string} [nombreProveedor] Nombre visible del proveedor.
  * @returns Valores y controladores del formulario.
  */
-export function useRegistroGoogle(nombres) {
+export function useRegistroGoogle(nombres, nombreProveedor = "Google") {
   const router = useRouter();
   const refs = useRef({});
   const [datosUsuario, setDatosUsuario] = useState({
@@ -115,7 +116,7 @@ export function useRegistroGoogle(nombres) {
       await Swal.fire({
         icon: "success",
         title: "¡Registro exitoso!",
-        text: "Tu cuenta se creó. Puedes entrar con Google o con tu correo y contraseña.",
+        text: `Tu cuenta se creó. Puedes entrar con ${nombreProveedor} o con tu correo y contraseña.`,
         confirmButtonText: "Continuar",
         allowOutsideClick: false,
         allowEscapeKey: false,

@@ -354,6 +354,31 @@ El login con correo y contraseña no redirige al registro cuando la cuenta no
 existe: responde igual que con una clave incorrecta para no revelar qué
 correos están registrados.
 
+### Inicio de sesión con Microsoft (Outlook)
+
+- Los botones "Continuar con Microsoft (Outlook)" (login) y "Registrarse con
+  Microsoft (Outlook)" (`/register`) aparecen únicamente si están
+  `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET` y `MICROSOFT_TENANT_ID`
+  (GUID). Configuración de Entra en `Frontend/README_BASE_DATOS.md`. La
+  universidad exige consentimiento de administrador: hasta que TI apruebe la
+  aplicación, Microsoft muestra "Aprobación necesaria".
+- Registro: igual que con Google. Sin cuenta y con correo `@unicesar.edu.co`,
+  el callback firma la identidad en la misma cookie `google_registro` (ahora con
+  claim `proveedor`; sin él se asume Google) y lleva a `/register/microsoft`.
+  Ambas páginas usan `PaginaRegistroExterno.tsx` y el formulario
+  `CompletarRegistroGoogle`. `POST /api/registro/google` elige
+  `RegistroGoogle` o `RegistroMicrosoft` según el proveedor de la cookie, nunca
+  del cuerpo; en el backend ambos usan `RegistrarConIdentidadExterna`.
+- `/api/auth/microsoft` y su `callback` siguen el patrón de Google
+  (PKCE, `state`, `nonce`, cookie `microsoft_oauth`, `response_mode=query`).
+  `src/lib/microsoft.ts` valida firma, emisor y `tid` del tenant configurado
+  y rechaza invitados (`idp` distinto del tenant). La identidad es `tid:oid`.
+- `POST /api/Usuarios/LoginMicrosoft` comparte con `LoginGoogle` el método
+  `IniciarConIdentidadExterna`: busca por (`microsoft`, sub) y, si no hay
+  vínculo, enlaza la cuenta con el mismo correo, que fuera de Development
+  debe ser exactamente `@unicesar.edu.co`. Errores vuelven a
+  `/?microsoft_error=`.
+
 ### Finalización de viajes y calificaciones
 
 El pasajero finaliza su viaje desde la vista "Viaje en curso" (botón

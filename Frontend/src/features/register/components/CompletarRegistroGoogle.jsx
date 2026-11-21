@@ -1,4 +1,4 @@
-// Pide los datos que Google no proporciona para terminar de crear la cuenta.
+// Pide los datos que Google o Microsoft no proporcionan para terminar de crear la cuenta.
 "use client";
 
 import { useState } from "react";
@@ -9,13 +9,18 @@ import { useRegistroGoogle } from "../hooks/useRegistroGoogle";
 import "../styles/register.css";
 
 /**
- * Formulario obligatorio para completar el registro con Google: datos
- * personales, celular y una contraseña para entrar también sin Google.
- * @param {{correo: string, nombres: object}} props Correo verificado por Google
- *   y nombres para precargar.
+ * Formulario obligatorio para completar el registro con un proveedor externo:
+ * datos personales, celular y una contraseña para entrar también sin él.
+ * @param {{proveedor?: "google"|"microsoft", nombreProveedor?: string, correo: string, nombres: object}} props
+ *   Proveedor, correo que validó y nombres para precargar.
  * @returns Interfaz para completar el registro.
  */
-export default function CompletarRegistroGoogle({ correo, nombres }) {
+export default function CompletarRegistroGoogle({
+  proveedor = "google",
+  nombreProveedor = "Google",
+  correo,
+  nombres,
+}) {
   const [verContrasena, setVerContrasena] = useState(false);
   const [verConfirmacion, setVerConfirmacion] = useState(false);
   const {
@@ -32,14 +37,15 @@ export default function CompletarRegistroGoogle({ correo, nombres }) {
     manejarCambio,
     manejarTeclado,
     crearCuenta,
-  } = useRegistroGoogle(nombres);
+  } = useRegistroGoogle(nombres, nombreProveedor);
 
   return (
     <div className="register-page d-flex justify-content-center align-items-center min-vh-100">
       <div className="card shadow rounded-4 p-4 register-card">
         <h2 className="display-6 text-center fw-bold text-primary mb-3">Cozymov</h2>
         <h1 className="text-center mb-3 titulo-icono">
-          <i className="bi bi-google" aria-hidden="true" /> Completa tu registro
+          <i className={`bi bi-${proveedor === "microsoft" ? "microsoft" : "google"}`} aria-hidden="true" />{" "}
+          Completa tu registro
         </h1>
         <h5 className="text-center text-muted mb-4">
           Aún no tienes cuenta. Completa tus datos y crea una contraseña para terminar.
@@ -68,7 +74,7 @@ export default function CompletarRegistroGoogle({ correo, nombres }) {
               aria-describedby="correo-google-ayuda"
             />
             <div id="correo-google-ayuda" className="form-text">
-              Verificado por Google. Tu cuenta usará este correo.
+              Verificado por {nombreProveedor}. Tu cuenta usará este correo.
             </div>
           </div>
           <div className="col-md-6">

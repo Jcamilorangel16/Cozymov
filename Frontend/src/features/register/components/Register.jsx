@@ -7,16 +7,22 @@ import Swal from "sweetalert2";
 import DatosPersonalesRegistro from "./DatosPersonalesRegistro";
 import CredencialesRegistro from "./CredencialesRegistro";
 import BotonGoogle from "../../../components/BotonGoogle";
+import BotonMicrosoft from "../../../components/BotonMicrosoft";
 import { useBorradorRegistro, useRegisterForm } from "../hooks/useRegisterForm";
 import "../styles/register.css";
 
 /**
  * Presenta el formulario de creación de cuenta.
- * @param {{correoVerificado?: string, errorVerificacion?: string}} props Correo
- *   que Google ya confirmó y error del último intento de verificación.
+ * @param {{correoVerificado?: string, errorVerificacion?: string, microsoftDisponible?: boolean}} props
+ *   Correo que Google ya confirmó, error del último intento de verificación y
+ *   si el registro con Microsoft está configurado.
  * @returns Interfaz de registro de usuario.
  */
-export default function Register({ correoVerificado = "", errorVerificacion = "" }) {
+export default function Register({
+  correoVerificado = "",
+  errorVerificacion = "",
+  microsoftDisponible = false,
+}) {
   const router = useRouter();
   const borrador = useBorradorRegistro();
 
@@ -33,6 +39,7 @@ export default function Register({ correoVerificado = "", errorVerificacion = ""
       key={borrador ? "con-borrador" : "sin-borrador"}
       correoVerificado={correoVerificado}
       borrador={borrador}
+      microsoftDisponible={microsoftDisponible}
     />
   );
 }
@@ -40,10 +47,11 @@ export default function Register({ correoVerificado = "", errorVerificacion = ""
 /**
  * Formulario de registro; sus valores iniciales salen del borrador y del
  * correo verificado.
- * @param {{correoVerificado: string, borrador: object|null}} props Valores iniciales.
+ * @param {{correoVerificado: string, borrador: object|null, microsoftDisponible: boolean}} props
+ *   Valores iniciales y si se muestra el botón de Microsoft.
  * @returns Tarjeta con el formulario.
  */
-function FormularioRegistro({ correoVerificado, borrador }) {
+function FormularioRegistro({ correoVerificado, borrador, microsoftDisponible }) {
   const {
     asignarRef,
     enfocarCampo,
@@ -71,6 +79,9 @@ function FormularioRegistro({ correoVerificado, borrador }) {
 
         <div className="d-grid gap-2 mb-3">
           <BotonGoogle texto="Registrarse con Google" deshabilitado={guardando} />
+          {microsoftDisponible && (
+            <BotonMicrosoft texto="Registrarse con Microsoft (Outlook)" deshabilitado={guardando} />
+          )}
           <p className="small text-muted text-center mb-0">
             Solo con tu correo @unicesar.edu.co
           </p>

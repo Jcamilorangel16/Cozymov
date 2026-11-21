@@ -13,7 +13,9 @@ import {
 import { datosSesionDeUsuario } from "../../../../src/lib/google";
 import {
   COOKIE_REGISTRO_GOOGLE,
+  NOMBRE_PROVEEDOR,
   verificarRegistroGoogle,
+  type ProveedorRegistro,
 } from "../../../../src/lib/registroGoogle";
 
 export const runtime = "nodejs";
@@ -43,9 +45,16 @@ async function leerMensajeError(respuesta: Response): Promise<string> {
   return detalle;
 }
 
+/** Endpoint del backend que crea la cuenta para cada proveedor. */
+const ENDPOINT_REGISTRO: Record<ProveedorRegistro, string> = {
+  google: "/api/Usuarios/RegistroGoogle",
+  microsoft: "/api/Usuarios/RegistroMicrosoft",
+};
+
 /**
- * Crea la cuenta con la identidad de Google guardada en la cookie de registro
- * pendiente y los datos que completó el usuario; deja la sesión iniciada.
+ * Crea la cuenta con la identidad (de Google o Microsoft) guardada en la
+ * cookie de registro pendiente y los datos que completó el usuario; deja la
+ * sesión iniciada. El proveedor sale de la cookie firmada, nunca del cuerpo.
  * @param request Solicitud con cédula, nombres, edad, ocupación y contraseña.
  * @returns 201 con la sesión creada o un error legible.
  */
@@ -56,12 +65,13 @@ export async function POST(request: NextRequest) {
   if (!pendiente) {
     return NextResponse.json(
       {
-        error: "El tiempo para completar el registro venció. Vuelve a registrarte con Google.",
+        error: "El tiempo para completar el registro venció. Vuelve a intentarlo.",
         vencido: true,
       },
       { status: 401 },
     );
   }
+  const nombreProveedor = NOMBRE_PROVEEDOR[pendiente.proveedor];
 
   let body: unknown;
   try {
@@ -87,7 +97,7 @@ export async function POST(request: NextRequest) {
   const datos = validacion.datos;
   let respuestaApi: Response;
   try {
-    respuestaApi = await fetch(`${backend.baseUrl}/api/Usuarios/RegistroGoogle`, {
+    respuestaApi = await fetch(`${backend.baseUrl}${ENDPOINT_REGISTRO[pendiente.proveedor]}`, {
       method: "POST",
       headers: {
         ...backend.headers,
@@ -95,7 +105,8 @@ export async function POST(request: NextRequest) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        // Identidad de Google: sale de la cookie firmada, nunca del cuerpo.
+        // Identidad del proveedor: sale de la cookie firmada, nunca del cuerpo.
+        // EmailVerificado solo lo lee RegistroGoogle.
         Sub: pendiente.sub,
         Correo: pendiente.correo,
         EmailVerificado: true,
@@ -112,7 +123,7 @@ export async function POST(request: NextRequest) {
       cache: "no-store",
     });
   } catch (error) {
-    console.error("No se pudo conectar con la API de registro con Google:", error);
+    console.error(`No se pudo conectar con la API de registro con ${nombreProveedor}:`, error);
     return NextResponse.json({ error: "No se pudo conectar con la API." }, { status: 502 });
   }
 
@@ -127,9 +138,9 @@ export async function POST(request: NextRequest) {
 
   const sesion = datosSesionDeUsuario(await respuestaApi.json().catch(() => null));
   if (!sesion) {
-    console.error("El backend respondió al registro con Google sin datos de usuario válidos.");
+    console.error(`El backend respondió al registro con ${nombreProveedor} sin datos de usuario válidos.`);
     return NextResponse.json(
-      { error: "La cuenta se creó, pero no se pudo iniciar sesión. Entra con Google." },
+      { error: `La cuenta se creó, pero no se pudo iniciar sesión. Entra con ${nombreProveedor}.` },
       { status: 502 },
     );
   }
@@ -143,7 +154,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("No se pudo crear la sesión del usuario:", error);
     return NextResponse.json(
-      { error: "La cuenta se creó, pero no se pudo iniciar sesión. Entra con Google." },
+      { error: `La cuenta se creó, pero no se pudo iniciar sesión. Entra con ${nombreProveedor}.` },
       { status: 500 },
     );
   }

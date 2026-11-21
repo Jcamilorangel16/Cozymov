@@ -103,9 +103,21 @@ test("separa nombres de Google en el primero y el resto", () => {
 
 test("la cookie de registro pendiente se verifica y conserva la identidad", async () => {
   const token = await registro.firmarRegistroGoogle(pendiente);
-  assert.deepEqual(await registro.verificarRegistroGoogle(token), pendiente);
+  // Sin proveedor explícito, la identidad es de Google.
+  assert.deepEqual(await registro.verificarRegistroGoogle(token), {
+    ...pendiente,
+    proveedor: "google",
+  });
   assert.equal(await registro.verificarRegistroGoogle(undefined), null);
   assert.equal(await registro.verificarRegistroGoogle(`${token}x`), null);
+
+  const deMicrosoft = await registro.firmarRegistroGoogle({ ...pendiente, proveedor: "microsoft" });
+  assert.equal((await registro.verificarRegistroGoogle(deMicrosoft)).proveedor, "microsoft");
+});
+
+test("la cookie de registro pendiente rechaza un proveedor desconocido", async () => {
+  const token = await registro.firmarRegistroGoogle({ ...pendiente, proveedor: "github" });
+  assert.equal(await registro.verificarRegistroGoogle(token), null);
 });
 
 test("la cookie de registro pendiente vence a los 15 minutos", async () => {
@@ -244,6 +256,33 @@ test("crea la cuenta con el correo de Google e inicia sesión", async () => {
     cookies.some((cookie) => /^google_registro=;/.test(cookie)),
     "debe borrar la cookie de registro pendiente",
   );
+});
+
+test("con una identidad de Microsoft llama a RegistroMicrosoft e inicia sesión", async () => {
+  let llamada;
+  globalThis.fetch = async (url, init) => {
+    llamada = { url, init };
+    return Response.json(
+      { idPersonas: 43, correo: pendiente.correo, primerNombre: "Ana", primerApellido: "Díaz" },
+      { status: 201 },
+    );
+  };
+  const subMicrosoft = "11111111-2222-3333-4444-555555555555:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
+
+  const respuesta = await ruta.POST(
+    solicitud(
+      // El cliente no puede elegir el proveedor: sale de la cookie firmada.
+      { ...datosFormulario, proveedor: "google" },
+      await registro.firmarRegistroGoogle({ ...pendiente, sub: subMicrosoft, proveedor: "microsoft" }),
+    ),
+  );
+
+  assert.equal(respuesta.status, 201);
+  assert.equal(llamada.url, "https://backend.example/api/Usuarios/RegistroMicrosoft");
+  const cuerpo = JSON.parse(llamada.init.body);
+  assert.equal(cuerpo.Sub, subMicrosoft);
+  assert.equal(cuerpo.Correo, pendiente.correo);
+  assert.ok(respuesta.headers.getSetCookie().some((cookie) => cookie.startsWith("sesion=")));
 });
 
 test("reenvía el conflicto del backend sin iniciar sesión", async () => {

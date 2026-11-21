@@ -286,6 +286,187 @@ public sealed class ConfiguracionControllersTests
         Assert.False(await context.Usuarios.AnyAsync());
     }
 
+    private const string SubMicrosoft =
+        "11111111-2222-3333-4444-555555555555:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
+
+    private static async Task<AppDbContext> ContextoConCuentaInstitucional()
+    {
+        var context = NewContext();
+        var usuario = NuevoUsuario(7, new PasswordHasher<Usuarios>());
+        usuario.Correo = "Estudiante@Unicesar.edu.co";
+        context.Usuarios.Add(usuario);
+        await context.SaveChangesAsync();
+        return context;
+    }
+
+    [Fact]
+    public async Task LoginMicrosoftVinculaLaCuentaPorCorreoYLuegoEntraPorSub()
+    {
+        await using var context = await ContextoConCuentaInstitucional();
+        var controlador = ControladorRegistro(context, "Production");
+
+        var primero = await controlador.LoginMicrosoft(new UsuariosLoginMicrosoftDTO
+        {
+            Sub = SubMicrosoft, Correo = " estudiante@unicesar.edu.co "
+        }, CancellationToken.None);
+
+        var dto = Assert.IsType<UsuariosDTO>(Assert.IsType<OkObjectResult>(primero.Result).Value);
+        Assert.Equal(7, dto.IdPersonas);
+        var identidad = await context.IdentidadesExternas.SingleAsync();
+        Assert.Equal(("microsoft", SubMicrosoft, 7),
+            (identidad.Proveedor, identidad.Sub, identidad.IdUsuario));
+
+        // Con el vínculo creado, entra por la identidad aunque el correo cambie.
+        var segundo = await controlador.LoginMicrosoft(new UsuariosLoginMicrosoftDTO
+        {
+            Sub = SubMicrosoft, Correo = "nuevo.alias@unicesar.edu.co"
+        }, CancellationToken.None);
+        Assert.IsType<OkObjectResult>(segundo.Result);
+        Assert.Equal(1, await context.IdentidadesExternas.CountAsync());
+    }
+
+    [Theory]
+    [InlineData("estudiante@otra.edu.co")]
+    [InlineData("estudiante@sub.unicesar.edu.co")]
+    [InlineData("estudiante@unicesar.edu.co.evil.com")]
+    public async Task LoginMicrosoftSoloVinculaCorreosUnicesarFueraDeDevelopment(string correo)
+    {
+        await using var context = await ContextoConCuentaInstitucional();
+        context.Usuarios.Single().Correo = correo;
+        await context.SaveChangesAsync();
+
+        var result = await ControladorRegistro(context, "Production").LoginMicrosoft(
+            new UsuariosLoginMicrosoftDTO { Sub = SubMicrosoft, Correo = correo },
+            CancellationToken.None);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, Estado(result));
+        Assert.False(await context.IdentidadesExternas.AnyAsync());
+
+        var enDesarrollo = await ControladorRegistro(context, "Development").LoginMicrosoft(
+            new UsuariosLoginMicrosoftDTO { Sub = SubMicrosoft, Correo = correo },
+            CancellationToken.None);
+        Assert.IsType<OkObjectResult>(enDesarrollo.Result);
+    }
+
+    [Fact]
+    public async Task LoginMicrosoftSinCuentaDevuelveNotFoundYNoCreaNada()
+    {
+        await using var context = await ContextoConCuentaInstitucional();
+
+        var result = await ControladorRegistro(context, "Production").LoginMicrosoft(
+            new UsuariosLoginMicrosoftDTO { Sub = SubMicrosoft, Correo = "otra@unicesar.edu.co" },
+            CancellationToken.None);
+
+        Assert.IsType<NotFoundObjectResult>(result.Result);
+        Assert.Equal(1, await context.Usuarios.CountAsync());
+        Assert.False(await context.IdentidadesExternas.AnyAsync());
+    }
+
+    [Theory]
+    [InlineData("", "estudiante@unicesar.edu.co")]
+    [InlineData(SubMicrosoft, "")]
+    public async Task LoginMicrosoftRechazaIdentidadIncompleta(string sub, string correo)
+    {
+        await using var context = await ContextoConCuentaInstitucional();
+
+        var result = await ControladorRegistro(context, "Production").LoginMicrosoft(
+            new UsuariosLoginMicrosoftDTO { Sub = sub, Correo = correo },
+            CancellationToken.None);
+
+        Assert.IsType<BadRequestObjectResult>(result.Result);
+    }
+
+    [Fact]
+    public async Task LasIdentidadesDeGoogleYMicrosoftNoSeConfunden()
+    {
+        await using var context = await ContextoConCuentaInstitucional();
+        var otro = NuevoUsuario(8, new PasswordHasher<Usuarios>());
+        context.Usuarios.Add(otro);
+        // El mismo valor de sub vinculado con Google a otra cuenta no afecta a Microsoft.
+        context.IdentidadesExternas.Add(new IdentidadExterna
+        {
+            IdUsuario = 8, Proveedor = "google", Sub = SubMicrosoft
+        });
+        await context.SaveChangesAsync();
+
+        var result = await ControladorRegistro(context, "Production").LoginMicrosoft(
+            new UsuariosLoginMicrosoftDTO { Sub = SubMicrosoft, Correo = "estudiante@unicesar.edu.co" },
+            CancellationToken.None);
+
+        var dto = Assert.IsType<UsuariosDTO>(Assert.IsType<OkObjectResult>(result.Result).Value);
+        Assert.Equal(7, dto.IdPersonas);
+    }
+
+    private static UsuariosRegistroMicrosoftDTO NuevoRegistroMicrosoft(
+        string correo = "nueva@unicesar.edu.co",
+        string sub = SubMicrosoft,
+        string cedula = "999") => new()
+    {
+        Sub = sub, Correo = correo, Cedula = cedula,
+        PrimerNombre = "Nueva", PrimerApellido = "Persona", Edad = 20,
+        Ocupacion = "Estudiante", Contrasena = "ClaveMicrosoft1", Telefono = "3105550000"
+    };
+
+    [Fact]
+    public async Task RegistroMicrosoftCreaLaCuentaVinculadaYLuegoEntraConMicrosoft()
+    {
+        await using var context = NewContext();
+        var controlador = ControladorRegistro(context, "Production");
+
+        var result = await controlador.RegistroMicrosoft(
+            NuevoRegistroMicrosoft(correo: " Nueva@Unicesar.EDU.co "), CancellationToken.None);
+
+        Assert.IsType<CreatedAtActionResult>(result.Result);
+        var usuario = await context.Usuarios.SingleAsync();
+        Assert.Equal("nueva@unicesar.edu.co", usuario.Correo);
+        var identidad = await context.IdentidadesExternas.SingleAsync();
+        Assert.Equal(("microsoft", SubMicrosoft, usuario.IdPersonas),
+            (identidad.Proveedor, identidad.Sub, identidad.IdUsuario));
+        Assert.Equal("+573105550000", (await context.TelefonosUsuario.SingleAsync()).Telefono);
+
+        var login = await controlador.LoginMicrosoft(new UsuariosLoginMicrosoftDTO
+        {
+            Sub = SubMicrosoft, Correo = "nueva@unicesar.edu.co"
+        }, CancellationToken.None);
+        Assert.IsType<OkObjectResult>(login.Result);
+
+        var conContrasena = await controlador.Login(new UsuariosLoginDTO
+        {
+            Correo = "nueva@unicesar.edu.co", Contrasena = "ClaveMicrosoft1"
+        });
+        Assert.Equal(StatusCodes.Status200OK, Estado(conContrasena));
+    }
+
+    [Theory]
+    [InlineData("Production", "nueva@otra.edu.co")]
+    [InlineData("Development", "nueva@outlook.com")]
+    [InlineData("Development", "nueva@sub.unicesar.edu.co")]
+    public async Task RegistroMicrosoftSoloAdmiteCorreosUnicesarEnCualquierEntorno(string entorno, string correo)
+    {
+        await using var context = NewContext();
+
+        var result = await ControladorRegistro(context, entorno)
+            .RegistroMicrosoft(NuevoRegistroMicrosoft(correo: correo), CancellationToken.None);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, Estado(result));
+        Assert.False(await context.Usuarios.AnyAsync());
+    }
+
+    [Fact]
+    public async Task RegistroMicrosoftRechazaUnaIdentidadYaRegistrada()
+    {
+        await using var context = NewContext();
+        var controlador = ControladorRegistro(context, "Production");
+        await controlador.RegistroMicrosoft(NuevoRegistroMicrosoft(), CancellationToken.None);
+
+        var result = await controlador.RegistroMicrosoft(
+            NuevoRegistroMicrosoft(correo: "otra@unicesar.edu.co", cedula: "1000"),
+            CancellationToken.None);
+
+        Assert.IsType<ConflictObjectResult>(result.Result);
+        Assert.Equal(1, await context.Usuarios.CountAsync());
+    }
+
     private static UsuariosRegistroGoogleDTO NuevoRegistroGoogle(
         string correo = "nueva@unicesar.edu.co",
         string sub = "sub-google-1",

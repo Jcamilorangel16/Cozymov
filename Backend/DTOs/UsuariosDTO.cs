@@ -108,17 +108,41 @@ public class UsuariosLoginGoogleDTO
 }
 
 /// <summary>
+/// Identidad de Microsoft Entra ID ya validada por el servidor de Next.js
+/// (tenant de la universidad, cuenta miembro). Sub es "tid:oid".
+/// </summary>
+public class UsuariosLoginMicrosoftDTO
+{
+    public string Sub { get; set; } = string.Empty;
+    public string Correo { get; set; } = string.Empty;
+}
+
+/// <summary>
 /// Cuenta nueva a partir de una identidad de Google ya validada por el servidor
 /// de Next.js. Sub, correo y verificación vienen de Google; el resto, incluida
 /// la contraseña, lo completa el usuario.
 /// </summary>
-public class UsuariosRegistroGoogleDTO
+public class UsuariosRegistroGoogleDTO : UsuariosRegistroExternoDTO
+{
+    public bool EmailVerificado { get; set; }
+}
+
+/// <summary>
+/// Cuenta nueva a partir de una identidad de Microsoft ya validada por el
+/// servidor de Next.js (tenant de la universidad, cuenta miembro). Sub es
+/// "tid:oid"; el resto lo completa el usuario.
+/// </summary>
+public class UsuariosRegistroMicrosoftDTO : UsuariosRegistroExternoDTO
+{
+}
+
+/// <summary>Datos comunes del registro con un proveedor externo.</summary>
+public abstract class UsuariosRegistroExternoDTO
 {
     [StringLength(255)]
     public string Sub { get; set; } = string.Empty;
     [StringLength(150)]
     public string Correo { get; set; } = string.Empty;
-    public bool EmailVerificado { get; set; }
     [Required, RegularExpression(@"^\d{1,10}$", ErrorMessage = "La cédula debe contener solo números y máximo 10 dígitos.")]
     public string Cedula { get; set; } = string.Empty;
     [Required, StringLength(50)]

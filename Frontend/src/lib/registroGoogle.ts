@@ -1,10 +1,12 @@
-// Registro con Google pendiente: la identidad que el callback validó viaja en
-// una cookie firmada y de corta duración hasta que el usuario completa los
-// datos que Google no proporciona (cédula, edad, ocupación).
+// Registro pendiente con un proveedor externo (Google o Microsoft): la
+// identidad que el callback validó viaja en una cookie firmada y de corta
+// duración hasta que el usuario completa los datos que el proveedor no da
+// (cédula, edad, ocupación). El nombre "Google" se conserva por historia: la
+// cookie y la página `/register/google` sirven a ambos proveedores.
 import { createHmac } from "node:crypto";
 import { jwtVerify, SignJWT } from "jose";
 
-/** Único dominio con el que se puede crear una cuenta usando Google. */
+/** Único dominio con el que se puede crear una cuenta usando Google o Microsoft. */
 export const DOMINIO_REGISTRO_GOOGLE = "unicesar.edu.co";
 export const COOKIE_REGISTRO_GOOGLE = "google_registro";
 export const DURACION_REGISTRO_GOOGLE_SEGUNDOS = 60 * 15;
@@ -14,7 +16,17 @@ const AUDIENCIA = "cozymov:registro-google";
 const LONGITUD_MINIMA_SECRETO = 32;
 const FORMATO_CORREO = /^[^\s@]+@[^\s@]+$/;
 
+export type ProveedorRegistro = "google" | "microsoft";
+
+/** Nombre visible de cada proveedor, para textos de la interfaz. */
+export const NOMBRE_PROVEEDOR: Record<ProveedorRegistro, string> = {
+  google: "Google",
+  microsoft: "Microsoft",
+};
+
 export type RegistroGooglePendiente = {
+  /** Proveedor que validó la identidad; si falta al firmar, Google. */
+  proveedor?: ProveedorRegistro;
   sub: string;
   correo: string;
   nombres: string;
@@ -55,6 +67,7 @@ function claveRegistro(): Uint8Array {
  */
 export async function firmarRegistroGoogle(datos: RegistroGooglePendiente): Promise<string> {
   return new SignJWT({
+    proveedor: datos.proveedor ?? "google",
     gsub: datos.sub,
     correo: datos.correo,
     nombres: datos.nombres,
@@ -74,15 +87,16 @@ export async function firmarRegistroGoogle(datos: RegistroGooglePendiente): Prom
  */
 export async function verificarRegistroGoogle(
   token: string | undefined,
-): Promise<RegistroGooglePendiente | null> {
+): Promise<Required<RegistroGooglePendiente> | null> {
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, claveRegistro(), {
       algorithms: [ALGORITMO],
       audience: AUDIENCIA,
     });
-    const { gsub, correo, nombres, apellidos } = payload;
+    const { proveedor = "google", gsub, correo, nombres, apellidos } = payload;
     if (
+      (proveedor !== "google" && proveedor !== "microsoft") ||
       typeof gsub !== "string" ||
       !gsub ||
       typeof correo !== "string" ||
@@ -91,6 +105,7 @@ export async function verificarRegistroGoogle(
       return null;
     }
     return {
+      proveedor,
       sub: gsub,
       correo,
       nombres: typeof nombres === "string" ? nombres : "",

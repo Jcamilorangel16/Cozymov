@@ -20,6 +20,10 @@ public class UsuariosController : ControllerBase
         "Demasiados intentos fallidos. Espera unos minutos antes de volver a intentarlo.";
 
     private const string ProveedorGoogle = "google";
+    private const string ProveedorMicrosoft = "microsoft";
+
+    /// <summary>Dominio que la universidad administra en su tenant de Microsoft.</summary>
+    private const string DominioInstitucionalMicrosoft = "unicesar.edu.co";
 
     /// <summary>Único dominio con el que se puede crear una cuenta usando Google.</summary>
     private const string DominioRegistroGoogle = "unicesar.edu.co";
@@ -337,41 +341,82 @@ public class UsuariosController : ControllerBase
     // validar el ID token de Google. No crea cuentas: únicamente identifica o
     // vincula una cuenta Cozymov existente.
     [HttpPost("LoginGoogle")]
-    public async Task<ActionResult<UsuariosDTO>> LoginGoogle(
+    public Task<ActionResult<UsuariosDTO>> LoginGoogle(
         UsuariosLoginGoogleDTO datos,
+        CancellationToken cancellationToken) =>
+        IniciarConIdentidadExterna(
+            ProveedorGoogle,
+            "Google",
+            datos.Sub,
+            datos.Correo,
+            datos.EmailVerificado,
+            correo => correo.EndsWith(".edu.co", StringComparison.Ordinal),
+            "Usa una cuenta de Google con correo institucional que termine en .edu.co.",
+            cancellationToken);
+
+    //POST: api/Usuarios/LoginMicrosoft
+    // Solo lo invoca el servidor de Next.js (X-Internal-Api-Key) después de
+    // validar el ID token de Microsoft: firma, emisor, tenant de la universidad
+    // y que la cuenta sea miembro, no invitada. Ese tenant administra el
+    // correo, así que se considera confirmado. Sub es "tid:oid". No crea
+    // cuentas: únicamente identifica o vincula una cuenta Cozymov existente.
+    [HttpPost("LoginMicrosoft")]
+    public Task<ActionResult<UsuariosDTO>> LoginMicrosoft(
+        UsuariosLoginMicrosoftDTO datos,
+        CancellationToken cancellationToken) =>
+        IniciarConIdentidadExterna(
+            ProveedorMicrosoft,
+            "Microsoft",
+            datos.Sub,
+            datos.Correo,
+            correoConfirmado: true,
+            // Dominio exacto: se rechazan subdominios y sufijos parecidos.
+            correo => correo.EndsWith("@" + DominioInstitucionalMicrosoft, StringComparison.Ordinal),
+            $"Usa tu cuenta institucional de Microsoft (@{DominioInstitucionalMicrosoft}).",
+            cancellationToken);
+
+    /// <summary>
+    /// Identifica la cuenta vinculada a una identidad externa ya validada por
+    /// Next.js. Si no hay vínculo, la vincula con la cuenta del mismo correo
+    /// (fuera de Development, solo si <paramref name="correoAdmitido"/> lo acepta).
+    /// </summary>
+    private async Task<ActionResult<UsuariosDTO>> IniciarConIdentidadExterna(
+        string proveedor,
+        string nombreProveedor,
+        string? subRecibido,
+        string? correoRecibido,
+        bool correoConfirmado,
+        Func<string, bool> correoAdmitido,
+        string errorCorreo,
         CancellationToken cancellationToken)
     {
-        const string Proveedor = "google";
-        var sub = (datos.Sub ?? string.Empty).Trim();
-        var correo = (datos.Correo ?? string.Empty).Trim().ToLowerInvariant();
+        var sub = (subRecibido ?? string.Empty).Trim();
+        var correo = (correoRecibido ?? string.Empty).Trim().ToLowerInvariant();
         if (sub.Length is 0 or > 255 || correo.Length is 0 or > 150)
         {
-            return BadRequest("La identidad de Google no es válida.");
+            return BadRequest($"La identidad de {nombreProveedor} no es válida.");
         }
 
-        if (!datos.EmailVerificado)
+        if (!correoConfirmado)
         {
             return StatusCode(
                 StatusCodes.Status403Forbidden,
-                "Google no confirmó el correo de esta cuenta.");
+                $"{nombreProveedor} no confirmó el correo de esta cuenta.");
         }
 
         var identidad = await _context.IdentidadesExternas
             .Include(i => i.Usuario)
             .FirstOrDefaultAsync(
-                i => i.Proveedor == Proveedor && i.Sub == sub,
+                i => i.Proveedor == proveedor && i.Sub == sub,
                 cancellationToken);
 
         var usuario = identidad?.Usuario;
         if (usuario == null)
         {
             var entorno = HttpContext.RequestServices.GetRequiredService<IHostEnvironment>();
-            if (!entorno.IsDevelopment() &&
-                !correo.EndsWith(".edu.co", StringComparison.Ordinal))
+            if (!entorno.IsDevelopment() && !correoAdmitido(correo))
             {
-                return StatusCode(
-                    StatusCodes.Status403Forbidden,
-                    "Usa una cuenta de Google con correo institucional que termine en .edu.co.");
+                return StatusCode(StatusCodes.Status403Forbidden, errorCorreo);
             }
 
             usuario = await _context.Usuarios
@@ -384,7 +429,7 @@ public class UsuariosController : ControllerBase
             _context.IdentidadesExternas.Add(new IdentidadExterna
             {
                 IdUsuario = usuario.IdPersonas,
-                Proveedor = Proveedor,
+                Proveedor = proveedor,
                 Sub = sub,
             });
             try
@@ -398,11 +443,11 @@ public class UsuariosController : ControllerBase
                 var existente = await _context.IdentidadesExternas
                     .Include(i => i.Usuario)
                     .FirstOrDefaultAsync(
-                        i => i.Proveedor == Proveedor && i.Sub == sub,
+                        i => i.Proveedor == proveedor && i.Sub == sub,
                         cancellationToken);
                 if (existente == null || existente.Usuario.IdPersonas != usuario.IdPersonas)
                 {
-                    return Conflict("Esta cuenta de Google ya está vinculada a otro usuario.");
+                    return Conflict($"Esta cuenta de {nombreProveedor} ya está vinculada a otro usuario.");
                 }
             }
         }
@@ -430,8 +475,34 @@ public class UsuariosController : ControllerBase
     // correos verificados @unicesar.edu.co, también en Development.
     [HttpPost("RegistroGoogle")]
     [EnableRateLimiting("registro")]
-    public async Task<ActionResult<UsuariosDTO>> RegistroGoogle(
+    public Task<ActionResult<UsuariosDTO>> RegistroGoogle(
         UsuariosRegistroGoogleDTO datos,
+        CancellationToken cancellationToken) =>
+        RegistrarConIdentidadExterna(
+            ProveedorGoogle, "Google", datos, datos.EmailVerificado, cancellationToken);
+
+    //POST: api/Usuarios/RegistroMicrosoft
+    // Igual que RegistroGoogle, con la identidad de Microsoft ("tid:oid") que
+    // Next.js validó contra el tenant de la universidad (solo cuentas miembro;
+    // ese tenant administra el correo). Solo admite @unicesar.edu.co, también
+    // en Development.
+    [HttpPost("RegistroMicrosoft")]
+    [EnableRateLimiting("registro")]
+    public Task<ActionResult<UsuariosDTO>> RegistroMicrosoft(
+        UsuariosRegistroMicrosoftDTO datos,
+        CancellationToken cancellationToken) =>
+        RegistrarConIdentidadExterna(
+            ProveedorMicrosoft, "Microsoft", datos, correoConfirmado: true, cancellationToken);
+
+    /// <summary>
+    /// Crea una cuenta y la vincula a la identidad externa en un solo
+    /// SaveChanges. Exige el dominio @unicesar.edu.co en cualquier entorno.
+    /// </summary>
+    private async Task<ActionResult<UsuariosDTO>> RegistrarConIdentidadExterna(
+        string proveedor,
+        string nombreProveedor,
+        UsuariosRegistroExternoDTO datos,
+        bool correoConfirmado,
         CancellationToken cancellationToken)
     {
         var sub = (datos.Sub ?? string.Empty).Trim();
@@ -440,14 +511,14 @@ public class UsuariosController : ControllerBase
             correo.Length is 0 or > 150 ||
             !FormatoCorreo.IsMatch(correo))
         {
-            return BadRequest("La identidad de Google no es válida.");
+            return BadRequest($"La identidad de {nombreProveedor} no es válida.");
         }
 
-        if (!datos.EmailVerificado)
+        if (!correoConfirmado)
         {
             return StatusCode(
                 StatusCodes.Status403Forbidden,
-                "Google no confirmó el correo de esta cuenta.");
+                $"{nombreProveedor} no confirmó el correo de esta cuenta.");
         }
 
         // Coincidencia exacta del dominio: se rechazan subdominios y sufijos
@@ -456,7 +527,7 @@ public class UsuariosController : ControllerBase
         {
             return StatusCode(
                 StatusCodes.Status403Forbidden,
-                $"Solo puedes registrarte con Google usando tu correo @{DominioRegistroGoogle}.");
+                $"Solo puedes registrarte con {nombreProveedor} usando tu correo @{DominioRegistroGoogle}.");
         }
 
         var cedula = (datos.Cedula ?? string.Empty).Trim();
@@ -483,17 +554,18 @@ public class UsuariosController : ControllerBase
         }
 
         if (await _context.IdentidadesExternas.AnyAsync(
-                i => i.Proveedor == ProveedorGoogle && i.Sub == sub,
+                i => i.Proveedor == proveedor && i.Sub == sub,
                 cancellationToken))
         {
-            return Conflict("Esta cuenta de Google ya está registrada. Inicia sesión con Google.");
+            return Conflict(
+                $"Esta cuenta de {nombreProveedor} ya está registrada. Inicia sesión con {nombreProveedor}.");
         }
 
         if (await _context.Usuarios.AnyAsync(
                 usuario => usuario.Correo.ToLower() == correo,
                 cancellationToken))
         {
-            return Conflict("Ese correo ya está registrado. Inicia sesión con Google.");
+            return Conflict($"Ese correo ya está registrado. Inicia sesión con {nombreProveedor}.");
         }
 
         if (await _context.Usuarios.AnyAsync(
@@ -515,7 +587,7 @@ public class UsuariosController : ControllerBase
             rol = "usuario",
             ocupacion = ocupacion
         };
-        // Con esta contraseña la cuenta también puede entrar sin Google.
+        // Con esta contraseña la cuenta también puede entrar sin el proveedor.
         usuario.Contrasena = _passwordHasher.HashPassword(usuario, contrasena);
         usuario.Telefonos.Add(new TelefonoUsuario { Telefono = telefono });
 
@@ -523,7 +595,7 @@ public class UsuariosController : ControllerBase
         _context.IdentidadesExternas.Add(new IdentidadExterna
         {
             Usuario = usuario,
-            Proveedor = ProveedorGoogle,
+            Proveedor = proveedor,
             Sub = sub,
         });
 
@@ -533,7 +605,7 @@ public class UsuariosController : ControllerBase
         }
         catch (DbUpdateException)
         {
-            // Otra solicitud registró el mismo correo, cédula o cuenta de Google a la vez.
+            // Otra solicitud registró el mismo correo, cédula o identidad externa a la vez.
             return Conflict(
                 "No se pudo crear la cuenta. Verifica que el correo y la cédula no estén registrados.");
         }
