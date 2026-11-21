@@ -25,3 +25,14 @@ export function desapilarVista(historial) {
   if (historial.length === 0) return { destino: null, historial };
   return { destino: historial[historial.length - 1], historial: historial.slice(0, -1) };
 }
+
+/**
+ * Historial al regresar al viaje desde la conversación: si la sección anterior es «Buscar», se
+ * consume esa entrada; si no (p. ej. se llegó por un aviso), se deja como estaba.
+ * @param {string[]} historial Secciones previas.
+ * @returns {string[]} Historial resultante.
+ */
+export function historialAlVolverAlViaje(historial) {
+  const { destino, historial: resto } = desapilarVista(historial);
+  return destino === "buscar" ? resto : historial;
+}

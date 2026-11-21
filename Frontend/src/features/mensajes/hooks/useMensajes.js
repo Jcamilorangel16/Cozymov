@@ -31,6 +31,8 @@ export function useMensajes(usuarioActualId, contactoInicial = null) {
   const [contactoSeleccionado, setContactoSeleccionado] = useState(contactoInicial);
   const [mensajes, setMensajes] = useState([]);
   const [error, setError] = useState(null);
+  // Primera carga de la conversación abierta (para no mostrarla vacía mientras llega).
+  const [cargando, setCargando] = useState(Boolean(contactoInicial));
   // Cambia para volver a pedir la lista de chats (llegó un mensaje o se leyó uno).
   const [versionChats, setVersionChats] = useState(0);
   // Número de la última consulta de la conversación: una respuesta anterior se descarta.
@@ -70,11 +72,15 @@ export function useMensajes(usuarioActualId, contactoInicial = null) {
     return pedir(`/api/mensajes?usuario1=${yo}&usuario2=${contactoId}`)
       .then((data) => {
         if (numero === consultaRef.current) {
+          setError(null);
           setMensajes((actuales) => reconciliarMensajes(actuales, data));
         }
       })
       .catch((e) => {
         if (numero === consultaRef.current) setError(e.message);
+      })
+      .finally(() => {
+        if (numero === consultaRef.current) setCargando(false);
       });
   }, [yo, contactoId]);
 
@@ -159,6 +165,7 @@ export function useMensajes(usuarioActualId, contactoInicial = null) {
   function abrirChat(contacto) {
     setMensajes([]);
     setError(null);
+    setCargando(true);
     setContactoSeleccionado(contacto);
   }
 
@@ -174,6 +181,8 @@ export function useMensajes(usuarioActualId, contactoInicial = null) {
     mensajes,
     manejarEnvio,
     volverALista,
+    reintentar: cargarConversacion,
+    cargando,
     error,
   };
 }

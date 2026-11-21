@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { apilarVista, desapilarVista } from "../utils/historialVistas";
+import { apilarVista, desapilarVista, historialAlVolverAlViaje } from "../utils/historialVistas";
 
 /**
  * Gestiona el estado de navegación local del menú principal.
@@ -30,15 +30,18 @@ export function useMenuPrincipal() {
    * @param {string} id Identificador de la sección del menú.
    * @returns {void}
    */
-  function mostrarVista(id) {
+  function mostrarVista(id, conservarViaje = false) {
     vistaRef.current = id;
     setVistaActiva(id);
     if (id !== "mensajes") {
       setContactoInicial(null);
     }
     if (id === "buscar") {
-      setViajeSeleccionado(null);
+      // Al regresar desde la conversación se conserva el viaje (y la búsqueda) seleccionado.
+      if (!conservarViaje) setViajeSeleccionado(null);
       setMensajeBusqueda("");
+    } else if (id !== "mensajes") {
+      setViajeSeleccionado(null);
     }
     if (id === "ofrecer") {
       setPasajeroSeleccionado(null);
@@ -62,7 +65,25 @@ export function useMenuPrincipal() {
     const { destino, historial: resto } = desapilarVista(historial);
     if (destino === null) return;
     setHistorial(resto);
-    mostrarVista(destino);
+    mostrarVista(destino, destino === "buscar" && viajeSeleccionado !== null);
+  }
+
+  /**
+   * Abre la conversación con el conductor de un viaje sin reservarlo, guardando el viaje y la
+   * búsqueda para poder regresar a él.
+   * @param {{id: string, nombre: string}} contacto Conductor del viaje.
+   * @param {object} contextoViaje Viaje y filtros (ver contextoDeViaje).
+   */
+  function abrirChatDesdeViaje(contacto, contextoViaje) {
+    setViajeSeleccionado(contextoViaje);
+    abrirChatConUsuario(contacto);
+  }
+
+  /** Regresa a «Buscar» con el viaje seleccionado, para confirmar o cancelar la reserva. */
+  function volverAlViaje() {
+    if (!viajeSeleccionado) return;
+    setHistorial(historialAlVolverAlViaje(historial));
+    mostrarVista("buscar", true);
   }
 
   function abrirChatConUsuario(contacto) {
@@ -77,6 +98,8 @@ export function useMenuPrincipal() {
     vistaActiva,
     contactoInicial,
     abrirChatConUsuario,
+    abrirChatDesdeViaje,
+    volverAlViaje,
     viajeSeleccionado,
     setViajeSeleccionado,
     mensajeBusqueda,

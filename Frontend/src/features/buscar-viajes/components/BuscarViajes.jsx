@@ -1,20 +1,30 @@
 // Presenta el formulario de búsqueda y los viajes activos disponibles.
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import PerfilPublicoModal from "../../perfil-publico/components/PerfilPublicoModal";
 import { puedeAceptarViaje } from "../../viajes/validations/viajes";
 import { useBuscarViajes } from "../hooks/useBuscarViajes";
 import { esModoColaboracion, formatearFecha, formatearPrecio } from "../utils/viajes";
+import {
+  contactoDeViaje,
+  contextoDeViaje,
+  puedeMensajearDesdeViaje,
+} from "../utils/mensajesViaje";
 import MisSolicitudes from "./MisSolicitudes";
 import SolicitudesPendientes from "./SolicitudesPendientes";
 
 /**
  * Muestra filtros de viaje y resultados de búsqueda.
- * @param {{onEnviarMensaje?: (contacto: {id: string, nombre: string}) => void, onNavigate?: (id: string) => void}} props Acciones para el chat y la navegación.
+ * @param {{onEnviarMensaje?: (contacto: {id: string, nombre: string}, contextoViaje: object) => void, onNavigate?: (id: string) => void, viajeSeleccionado?: object|null}} props Acciones para el chat y la navegación; el viaje seleccionado se conserva al volver de la conversación.
  * @returns Interfaz de búsqueda de viajes.
  */
-export default function BuscarViajes({ onEnviarMensaje, onNavigate, usuarioActualId = "" }) {
+export default function BuscarViajes({
+  onEnviarMensaje,
+  onNavigate,
+  usuarioActualId = "",
+  viajeSeleccionado = null,
+}) {
   const {
     origen,
     setOrigen,
@@ -46,7 +56,17 @@ export default function BuscarViajes({ onEnviarMensaje, onNavigate, usuarioActua
     errorMisSolicitudes,
     eliminandoSolicitudId,
     handleEliminarSolicitud,
-  } = useBuscarViajes(usuarioActualId);
+    filtrosAplicados,
+  } = useBuscarViajes(usuarioActualId, viajeSeleccionado?.filtros ?? null);
+  const idViajeSeleccionado = viajeSeleccionado?.id_viaje ?? null;
+
+  // Al volver de la conversación se deja a la vista el viaje que se estaba consultando.
+  useEffect(() => {
+    if (idViajeSeleccionado === null || buscando) return;
+    document
+      .getElementById(`viaje-${idViajeSeleccionado}`)
+      ?.scrollIntoView({ block: "center" });
+  }, [idViajeSeleccionado, buscando]);
   // Perfil público abierto: { id, nombre } o null.
   const [perfilAbierto, setPerfilAbierto] = useState(null);
 
@@ -144,7 +164,15 @@ export default function BuscarViajes({ onEnviarMensaje, onNavigate, usuarioActua
             ) : (
               <div className="d-flex flex-column gap-3">
                 {viajes.map((viaje) => (
-                  <article className="card color-card border-0 shadow-sm" key={viaje.id_viaje}>
+                  <article
+                    className={`card color-card shadow-sm ${
+                      idViajeSeleccionado !== null && viaje.id_viaje === idViajeSeleccionado
+                        ? "border border-primary border-2"
+                        : "border-0"
+                    }`}
+                    id={`viaje-${viaje.id_viaje}`}
+                    key={viaje.id_viaje}
+                  >
                     <div className="card-body">
                       <div className="d-flex flex-wrap justify-content-between gap-2">
                         <h4 className="h5 mb-1">
@@ -269,21 +297,24 @@ export default function BuscarViajes({ onEnviarMensaje, onNavigate, usuarioActua
                                 : "Eliminar viaje"}
                             </button>
                           )}
-                          {idUsuario && String(viaje.id_usuario) !== idUsuario && (
+                          {puedeMensajearDesdeViaje({
+                            idUsuario,
+                            viaje,
+                            validacionCompletada,
+                            tieneViajeEnCurso,
+                          }) && (
                             <button
                               className="btn btn-outline-primary me-2"
                               type="button"
                               onClick={() =>
-                                onEnviarMensaje?.({
-                                  id: String(viaje.id_usuario),
-                                  nombre:
-                                    [viaje.primer_nombre, viaje.primer_apellido]
-                                      .filter(Boolean)
-                                      .join(" ") || "Conductor",
-                                })
+                                onEnviarMensaje?.(
+                                  contactoDeViaje(viaje),
+                                  contextoDeViaje(viaje, filtrosAplicados),
+                                )
                               }
                             >
-                              Enviar mensaje
+                              <i className="bi bi-chat-dots-fill me-1" aria-hidden="true" />
+                              Mensajes
                             </button>
                           )}
                           <button

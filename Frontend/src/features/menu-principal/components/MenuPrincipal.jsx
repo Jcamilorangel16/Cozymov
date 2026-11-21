@@ -9,6 +9,7 @@ import OfrecerViajes from "../../ofrecer-viajes/components/OfrecerViajes";
 import MensajesView from "../../mensajes/components/MensajesView";
 import "../styles/menu-principal.css";
 import BuscarViajes from "../../buscar-viajes/components/BuscarViajes";
+import { conversacionEsDelViaje } from "../../buscar-viajes/utils/mensajesViaje";
 import AvisoSolicitudes from "./AvisoSolicitudes";
 import PanelInicio from "./PanelInicio";
 import SidebarMenu from "./SidebarMenu";
@@ -45,6 +46,8 @@ export default function MenuPrincipal({ usuarioActualId }) {
     vistaActiva,
     contactoInicial,
     abrirChatConUsuario,
+    abrirChatDesdeViaje,
+    volverAlViaje,
     viajeSeleccionado,
     setViajeSeleccionado,
     mensajeBusqueda,
@@ -164,6 +167,7 @@ export default function MenuPrincipal({ usuarioActualId }) {
                   setViajeSeleccionado={setViajeSeleccionado}
                   mensajeAccion={mensajeBusqueda}
                   setMensajeAccion={setMensajeBusqueda}
+                  onEnviarMensaje={abrirChatDesdeViaje}
                   onNavigate={irAVista}
                   usuarioActualId={usuarioActualId}
                 />
@@ -185,6 +189,8 @@ export default function MenuPrincipal({ usuarioActualId }) {
                   key={contactoInicial?.id ?? "lista"}
                   usuarioActualId={usuarioActualId}
                   contactoInicial={contactoInicial}
+                  viajeOrigen={conversacionEsDelViaje(viajeSeleccionado, contactoInicial) ? viajeSeleccionado : null}
+                  onVolverAlViaje={volverAlViaje}
                 />
               </div>
             )}
